@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "X/v20jAZVJ2cAWj9r5sX7WIEZWrAjznjNCcMK1+RfNDqTtdEKv08cQLDcE4ozdfoXbvYrQvtYX6qdMoGPQXlvA==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\Sekhar1224\\source\\repos\\BCI\\CoreServices\\CoreServices.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Sekhar1224\\.nuget\\packages\\system.threading.tasks.dataflow\\6.0.0\\system.threading.tasks.dataflow.6.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
