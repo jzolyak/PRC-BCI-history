@@ -15,5 +15,13 @@ namespace CoreServices.Models
         public static readonly string PO8_Sensor ="PO8";
         public static readonly string Ear_Sensor = "Ear";
 
+        public static  string Connectivity = "Connectivity";
+        public static readonly string Calibration = "Calibration";
+        public static readonly string Validation = "Validation";
+        public static readonly string Prediction = "Prediction";
+        public static readonly string Help = "Help";
+        public static readonly string Settings = "Settings";
+
+
     }
 }

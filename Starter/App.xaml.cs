@@ -13,5 +13,7 @@ namespace Starter
     /// </summary>
     public partial class App : Application
     {
+        //start up code
+        //intialize some/settings services and 
     }
 }

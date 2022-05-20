@@ -52,11 +52,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Sekhar1224\\source\\repos\\BCI\\CoreServices\\CoreServices.csproj",
+      "projectUniqueName": "C:\\Users\\Sekhar1224\\source\\repos\\BCI\\BCI\\CoreServices\\CoreServices.csproj",
       "projectName": "CoreServices",
-      "projectPath": "C:\\Users\\Sekhar1224\\source\\repos\\BCI\\CoreServices\\CoreServices.csproj",
+      "projectPath": "C:\\Users\\Sekhar1224\\source\\repos\\BCI\\BCI\\CoreServices\\CoreServices.csproj",
       "packagesPath": "C:\\Users\\Sekhar1224\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Sekhar1224\\source\\repos\\BCI\\CoreServices\\obj\\",
+      "outputPath": "C:\\Users\\Sekhar1224\\source\\repos\\BCI\\BCI\\CoreServices\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

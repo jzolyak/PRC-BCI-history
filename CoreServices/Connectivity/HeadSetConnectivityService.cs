@@ -148,6 +148,11 @@ namespace CoreServices.Connectivity
             _measurements.Add(new SensorMeasurements() { Sensor = "Ear", Impedance = 0.0, Level = 0.0, Noise = 0.0 });
         }
 
+        public List<SensorMeasurements> GetCurrentSensorMeasurements()
+        {
+            return _measurements;
+        }
+
         protected virtual void OnMeasurementsChange(List<SensorMeasurements>? newSensorMeasurements)
         {
             EventHandler<EventArgs<List<SensorMeasurements>>>? raiseMeasurementsChange = RaiseMeasurementsChange;

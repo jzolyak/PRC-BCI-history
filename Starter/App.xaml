@@ -2,8 +2,62 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Starter"
+             xmlns:vm="clr-namespace:ViewModels;assembly=ViewModels"
+             xmlns:calibratevm="clr-namespace:ViewModels.Calibration;assembly=ViewModels"
+             xmlns:connectivityvm="clr-namespace:ViewModels.Connectivity;assembly=ViewModels"             
+             xmlns:connectivityView="clr-namespace:Starter.Connectivity"
+             xmlns:UIHelpers="clr-namespace:Starter.UIHelpers"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+        <Style TargetType="{x:Type Label}">
+            <Setter Property="FontFamily" Value="Grandview"></Setter>
+        </Style>
+
+        <Style x:Key="HeaderLabelStyle" TargetType="{x:Type Label}">
+            <Setter Property="FontFamily" Value="Calibri"></Setter>
+            <Setter Property="FontWeight" Value="Bold"></Setter>
+            <Setter Property="FontSize" Value="25"></Setter>
+            <Setter Property="FontStretch" Value="Condensed"></Setter>
+        </Style>
+
+        <Style x:Key="MediumLabelStyle" TargetType="{x:Type Label}">
+            <Setter Property="FontFamily" Value="Calibri"></Setter>
+            <Setter Property="FontWeight" Value="Bold"></Setter>
+            <Setter Property="FontSize" Value="18"></Setter>
+            <Setter Property="FontStretch" Value="Condensed"></Setter>
+        </Style>
+        <UIHelpers:ColortoBrushConverter x:Key="colortoBrushConverter"></UIHelpers:ColortoBrushConverter>
+        <SolidColorBrush x:Key="ContentScreenBackGround">#f5f7f8</SolidColorBrush>
+        <SolidColorBrush x:Key="ContentScreenBackGroundBrush">#EFF1F3</SolidColorBrush>
+
+        <Style x:Key="ButtonStyle" TargetType="{x:Type Button}">
+            <!--Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect ShadowDepth="4" Direction="330" Color="Black" Opacity="0.5" BlurRadius="4"/>
+                </Setter.Value>
+            </Setter-->
+            <Setter Property="BorderThickness" Value="2"></Setter>
+            <Setter Property="FontFamily" Value="Calibri"></Setter>
+            <Setter Property="FontWeight" Value="Bold"></Setter>
+            <Setter Property="FontStretch" Value="Condensed"></Setter>
+            <Setter Property="Background" Value="White"></Setter>
+        </Style>
+
+        <Style x:Key="MyBorderStyle" TargetType="Border">
+            <Setter Property="BorderBrush" Value="Black" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="CornerRadius" Value="1" />
+        </Style>
+
+        <DataTemplate DataType="{x:Type connectivityvm:ConnectivityViewModel}">
+            <connectivityView:ConnectivityView DataContext="{Binding}" Height="Auto" Width="Auto"></connectivityView:ConnectivityView>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:MainMenuViewModel}">
+            <local:MainMenuView DataContext="{Binding}" Height="Auto" Width="Auto"></local:MainMenuView>
+        </DataTemplate>
+
+      
+        
     </Application.Resources>
 </Application>

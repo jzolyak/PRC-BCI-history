@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
 
-namespace ViewModels
+namespace ViewModels.Connectivity
 {
     public class SensorStatusViewModel:ViewModelBase
     {
@@ -26,6 +26,13 @@ namespace ViewModels
         {
             get { return _sensorText; }
             set { _sensorText = value; OnPropertyChanged(nameof(SensorText)); }
+        }
+
+        public SensorStatusViewModel(string _sensorName)
+        {
+            SensorName = _sensorName;
+            SensorText = "Good";
+            SensorBGColor = Color.Green;
         }
     }
 }

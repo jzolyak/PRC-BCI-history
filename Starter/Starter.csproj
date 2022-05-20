@@ -1,19 +1,34 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net6.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <UseWPF>true</UseWPF>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net6.0-windows</TargetFramework>
+		<Nullable>enable</Nullable>
+		<UseWPF>true</UseWPF>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="System.Threading.Tasks.Dataflow" Version="6.0.0" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Remove="Images\headset.PNG" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\CoreServices\CoreServices.csproj" />
-    <ProjectReference Include="..\ViewModels\ViewModels.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<Content Include="Images\headset.PNG">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="System.Threading.Tasks.Dataflow" Version="6.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\CoreServices\CoreServices.csproj" />
+		<ProjectReference Include="..\ViewModels\ViewModels.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include="Calibration\" />
+		<Folder Include="Validation\" />
+	</ItemGroup>
 
 </Project>

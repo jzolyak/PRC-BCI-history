@@ -5,8 +5,15 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Starter"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Height="800" Width="800" ResizeMode="NoResize" ShowInTaskbar="False" AllowDrop="False" WindowStyle="None" WindowStartupLocation="CenterScreen">
     <Grid>
-
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+        </Grid.RowDefinitions>
+        <Label Grid.Row="0" HorizontalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Style="{StaticResource HeaderLabelStyle}" Content="{Binding Title}"></Label>
+        <Grid Grid.Row="1" Background="{StaticResource ContentScreenBackGroundBrush}">
+            <ContentControl HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Content="{Binding CurrentViewModel}"></ContentControl>
+        </Grid>
     </Grid>
 </Window>

@@ -6,5 +6,6 @@ namespace CoreServices
 {
     public class NavigationService
     {
+        
     }
 }

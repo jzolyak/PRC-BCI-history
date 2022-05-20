@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using CoreServices.Models;
 
-namespace ViewModels
+namespace ViewModels.Connectivity
 {
     public class HeadsetConnectionStatusViewModel:ViewModelBase
     {
@@ -43,6 +43,15 @@ namespace ViewModels
         public HeadsetConnectionStatusViewModel()
         {
             _sensors = new Dictionary<string, SensorStatusViewModel>();
+            _sensors.Add(Constants.FZ_Sensor, new SensorStatusViewModel(Constants.FZ_Sensor));
+            _sensors.Add(Constants.P3_Sensor, new SensorStatusViewModel(Constants.P3_Sensor));
+            _sensors.Add(Constants.Pz_Sensor, new SensorStatusViewModel(Constants.Pz_Sensor));
+            _sensors.Add(Constants.P4_Sensor, new SensorStatusViewModel(Constants.P4_Sensor));
+            _sensors.Add(Constants.Oz_Sensor, new SensorStatusViewModel(Constants.Oz_Sensor));
+            _sensors.Add(Constants.PO7_Sensor, new SensorStatusViewModel(Constants.PO7_Sensor));
+            _sensors.Add(Constants.PO8_Sensor, new SensorStatusViewModel(Constants.PO8_Sensor));
+            _sensors.Add(Constants.Ear_Sensor, new SensorStatusViewModel(Constants.Ear_Sensor));
+
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using CoreServices.Calibration;
+using CoreServices.Connectivity;
 
 namespace ViewModels
 {
