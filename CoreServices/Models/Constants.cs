@@ -22,6 +22,14 @@ namespace CoreServices.Models
         public static readonly string Help = "Help";
         public static readonly string Settings = "Settings";
 
+        public const string Connected = "Connected";
+        public const string NotConnected = "NotConnected";
+
+        public const string Sensor_Status_Green = "Green";
+        public const string Sensor_Status_Yellow = "Yellow";
+        public const string Sensor_Status_Red = "Red";
+
+
 
     }
 }

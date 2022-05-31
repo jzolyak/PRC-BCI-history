@@ -40,8 +40,13 @@ namespace ViewModels.Connectivity
             get { return _sensors?.GetValueOrDefault(Constants.Ear_Sensor); }
         }
 
+        private string _headsetConnectionStatus;
+
+        public string HeadsetConnectionStatus { get { return _headsetConnectionStatus; } set { _headsetConnectionStatus = value; OnPropertyChanged(nameof(HeadsetConnectionStatus)); } }
+
         public HeadsetConnectionStatusViewModel()
         {
+            _headsetConnectionStatus = Constants.NotConnected;
             _sensors = new Dictionary<string, SensorStatusViewModel>();
             _sensors.Add(Constants.FZ_Sensor, new SensorStatusViewModel(Constants.FZ_Sensor));
             _sensors.Add(Constants.P3_Sensor, new SensorStatusViewModel(Constants.P3_Sensor));

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CoreServices.Models;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
@@ -21,6 +22,13 @@ namespace ViewModels.Connectivity
             set { _sensorName = value; OnPropertyChanged(nameof(SensorName)); }
         }
 
+        private string? _sensorStatus;
+        public string? SensorStatus
+        {
+            get { return _sensorStatus; }
+            set { _sensorStatus = value; OnPropertyChanged(nameof(SensorStatus)); }
+        }
+
         private string? _sensorText;
         public string? SensorText
         {
@@ -31,8 +39,9 @@ namespace ViewModels.Connectivity
         public SensorStatusViewModel(string _sensorName)
         {
             SensorName = _sensorName;
-            SensorText = "Good";
+            SensorText = "Poor";
             SensorBGColor = Color.Green;
+            SensorStatus = Constants.Sensor_Status_Red;
         }
     }
 }

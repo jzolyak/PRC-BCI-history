@@ -4,17 +4,19 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Starter"
+             xmlns:connectivity="clr-namespace:Starter.Connectivity"
              mc:Ignorable="d" 
-             d:DesignHeight="640" d:DesignWidth="800">
+             d:DesignHeight="640" d:DesignWidth="1000">
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="300"></ColumnDefinition>
+                <ColumnDefinition Width="500"></ColumnDefinition>
             <ColumnDefinition Width="*"></ColumnDefinition>
         </Grid.ColumnDefinitions>
         <StackPanel Grid.Column="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Orientation="Vertical" DataContext="{Binding HeadsetConnectionStatusViewModel}">
             <Label Content="Electrode Connectivity" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource MediumLabelStyle}"></Label>
-            <Canvas>
-                <Image Height="300" Width="300" Canvas.Top="10" Canvas.Left="0" Source="Images\headset.png"></Image>
+            <Canvas HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                <connectivity:HeadSetView HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Canvas.Top="0" Canvas.Left="0" DataContext="{Binding}"></connectivity:HeadSetView>
+                <!--Image Height="300" Width="300" Canvas.Top="10" Canvas.Left="0" Source="Images\headset.png"></-->
             </Canvas>
         </StackPanel>
         <Grid Grid.Column="1">
@@ -28,9 +30,20 @@
                 <RowDefinition Height="80"></RowDefinition>
                 <RowDefinition Height="80"></RowDefinition>
             </Grid.RowDefinitions>
-            <Border Style="{StaticResource  MyBorderStyle}" Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="300" Margin="8">
-                <Label Style="{StaticResource MediumLabelStyle}" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="Green">Status: Connected</Label>
-            </Border>
+            <StackPanel Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="300" Margin="8" Orientation="Horizontal" DataContext="{Binding HeadsetConnectionStatusViewModel}">
+            <Label Style="{StaticResource MediumLabelStyle}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,0,8,0">Status:</Label>
+                <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="{Binding HeadsetConnectionStatus}">
+                    <Label.Style>
+                        <Style TargetType="Label" BasedOn="{StaticResource MediumLabelStyle}">
+                        <Style.Triggers>
+                                <DataTrigger Binding="{Binding HeadsetConnectionStatus}" Value="NotConnected">
+                                    <Setter Property="Foreground" Value= "Red"></Setter>
+                            </DataTrigger>
+                        </Style.Triggers>
+                        </Style>
+                    </Label.Style>
+                </Label>
+            </StackPanel>
             <Button Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="Connectivity" Content="Connectivity" Style="{StaticResource ButtonStyle}" FontSize="20"></Button>
             <Button Grid.Row="2" HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="Calibration"  Content="Calibration" Style="{StaticResource ButtonStyle}" FontSize="20"></Button>
             <Button Grid.Row="3" HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="Validation" Content="Validation" Style="{StaticResource ButtonStyle}" FontSize="20"></Button>

@@ -14,6 +14,7 @@ namespace ViewModels
         public ICommand FinishCmd { get; set; }
         private Action<string> _openCommandAction;
         private Action _closeCommandAction;
+      
 
         public MainMenuViewModel(Action<string> openCommandAction,Action closeAction)
         {

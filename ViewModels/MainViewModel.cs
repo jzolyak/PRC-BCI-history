@@ -22,19 +22,22 @@ namespace ViewModels
         private ValidationViewModel _validationViewModel;
         private PredictionViewModel _predictionViewModel;
         private SettingsViewModel _settingsViewModel;
+        private Action _closeAction;
 
         public string Title { get { return _title; } set { _title = value; OnPropertyChanged(nameof(Title));} }
 
-        public MainViewModel()
+        public MainViewModel(Action closeAction)
         {
             Title = "Brain Computer Interface";
             _mainMenuViewModel = new MainMenuViewModel(Open,Close);
             _connectivityViewModel = new ConnectivityViewModel(ExitToMainMenu);
+            _mainMenuViewModel.HeadsetConnectionStatusViewModel = _connectivityViewModel.HeadsetConnectionStatusViewModel;
             _calibrationViewModel = new CalibrationViewModel(ExitToMainMenu);
             _settingsViewModel = new SettingsViewModel(ExitToMainMenu);
             _predictionViewModel = new PredictionViewModel(ExitToMainMenu);
             _validationViewModel = new ValidationViewModel(ExitToMainMenu);
             CurrentViewModel = _mainMenuViewModel;
+            _closeAction = closeAction;
         }
 
         private void Open(string mode)
@@ -48,7 +51,7 @@ namespace ViewModels
         }
         private void Close()
         {
-           
+            if (_closeAction != null) _closeAction();
         }
         private void ExitToMainMenu()
         {

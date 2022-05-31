@@ -10,12 +10,18 @@
     <Compile Update="Connectivity\ConnectivityView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Connectivity\HeadSetView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="MainMenuView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>
     <Page Update="Connectivity\ConnectivityView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Connectivity\HeadSetView.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="MainMenuView.xaml">
