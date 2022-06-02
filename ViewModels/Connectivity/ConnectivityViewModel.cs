@@ -42,7 +42,13 @@ namespace ViewModels.Connectivity
             MeasurementList = new ObservableCollection<SensorMeasurementViewModel>(_measurements);
             HeadsetConnectionStatusViewModel = new HeadsetConnectionStatusViewModel();
             ContinueCommand = new RelayCommand(ContinueConnection);
+            ResetCommand = new RelayCommand(Reset);
             Recommandation = "Recommended action to take next appears here...";
+        }
+
+        private void Reset(object obj)
+        {
+           _headSetConnectivityService?.Reset();
         }
 
         private void _headSetConnectivityService_RaiseSensorStatusColorChange(object sender, EventArgs<int[]> e)
