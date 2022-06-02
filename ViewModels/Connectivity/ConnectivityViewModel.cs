@@ -13,6 +13,7 @@ namespace ViewModels.Connectivity
     {
         public HeadsetConnectionStatusViewModel? HeadsetConnectionStatusViewModel { get; set; }
         public ObservableCollection<SensorMeasurementViewModel>? MeasurementList { get; set; }
+        private List<SensorMeasurementViewModel> _measurements; 
 
         private HeadSetConnectivityService _headSetConnectivityService;
         private string _recommandation;
@@ -22,23 +23,25 @@ namespace ViewModels.Connectivity
         public ICommand ContinueCommand { get; set; }
         public ICommand ResetCommand { get; set; }
         private bool _enableStart;
-        public bool EnableStart { get { return _enableStart; } set { _enableStart = value; OnPropertyChanged(nameof(EnableStart)); } }  
+        public bool EnableStart { get { return _enableStart; } set { _enableStart = value; OnPropertyChanged(nameof(EnableStart)); } }
 
-        public ConnectivityViewModel(Action exitAction):base(exitAction)
+        public ConnectivityViewModel(Action exitAction) : base(exitAction)
         {
             StartCommand = new RelayCommand(StartConnection);
-            MeasurementList = new ObservableCollection<SensorMeasurementViewModel>();
             EnableStart = true;
             _headSetConnectivityService = ServiceLocator.HeadSetConnectivityService;
             _headSetConnectivityService.RaiseMeasurementsChange += HeadSetConnectivityService_RaiseMeasurementsChange;
             _headSetConnectivityService.RaiseRecommendationChange += HeadSetConnectivityService_RaiseRecommendationChange;
             _headSetConnectivityService.RaiseSensorStatusColorChange += _headSetConnectivityService_RaiseSensorStatusColorChange;
             var initialMeasurements = _headSetConnectivityService.GetCurrentSensorMeasurements();
-           if(initialMeasurements !=null && initialMeasurements.Count > 0)
+            _measurements = new List<SensorMeasurementViewModel>();
+            if (initialMeasurements != null && initialMeasurements.Count > 0)
             {
-                initialMeasurements.ForEach(measure => { if (measure != null) MeasurementList.Add(new SensorMeasurementViewModel(measure)); });
+                initialMeasurements.ForEach(measure => { if (measure != null) _measurements.Add(new SensorMeasurementViewModel(measure)); });
             }
+            MeasurementList = new ObservableCollection<SensorMeasurementViewModel>(_measurements);
             HeadsetConnectionStatusViewModel = new HeadsetConnectionStatusViewModel();
+            ContinueCommand = new RelayCommand(ContinueConnection);
             Recommandation = "Recommended action to take next appears here...";
         }
 
@@ -50,65 +53,77 @@ namespace ViewModels.Connectivity
             if (statusColor[0] >= 5)        // Red - Twist sensor in hair, push down on sensor for 2 sec
             {
                 HeadsetConnectionStatusViewModel.FZ_Sensor.SensorBGColor = Color.Red;
+                HeadsetConnectionStatusViewModel.FZ_Sensor.SensorStatus = Constants.Sensor_Status_Red;
                 HeadsetConnectionStatusViewModel.FZ_Sensor.SensorText = "Twist";
             }
             else if (statusColor[0] >= 1)       // Yellow - Push down on sensor for 2 sec, no twisting
             {
                 HeadsetConnectionStatusViewModel.FZ_Sensor.SensorBGColor = Color.Yellow;
+                HeadsetConnectionStatusViewModel.FZ_Sensor.SensorStatus = Constants.Sensor_Status_Yellow;
                 HeadsetConnectionStatusViewModel.FZ_Sensor.SensorText = "Push";
             }
             else
             {
 
                 HeadsetConnectionStatusViewModel.FZ_Sensor.SensorBGColor = Color.Green;
-                HeadsetConnectionStatusViewModel.FZ_Sensor.SensorText = "Good";   // Good measurement, no adjustment needed
+                HeadsetConnectionStatusViewModel.FZ_Sensor.SensorStatus = Constants.Sensor_Status_Green;
+                HeadsetConnectionStatusViewModel.FZ_Sensor.SensorText = "";   // Good measurement, no adjustment needed
             }
 
             if (statusColor[1] >= 5)        // Red
             {
                 HeadsetConnectionStatusViewModel.P3_Sensor.SensorBGColor = Color.Red;
+                HeadsetConnectionStatusViewModel.P3_Sensor.SensorStatus = Constants.Sensor_Status_Red;
                 HeadsetConnectionStatusViewModel.P3_Sensor.SensorText = "Twist";
             }
             else if (statusColor[1] >= 1)       // Yellow
             {
                 HeadsetConnectionStatusViewModel.P3_Sensor.SensorBGColor = Color.Yellow;
+                HeadsetConnectionStatusViewModel.P3_Sensor.SensorStatus = Constants.Sensor_Status_Yellow;
                 HeadsetConnectionStatusViewModel.P3_Sensor.SensorText = "Push";
             }
             else
             {
                 HeadsetConnectionStatusViewModel.P3_Sensor.SensorBGColor = Color.LightGreen;
-                HeadsetConnectionStatusViewModel.P3_Sensor.SensorText = "Good";
+                HeadsetConnectionStatusViewModel.P3_Sensor.SensorStatus = Constants.Sensor_Status_Green;
+                HeadsetConnectionStatusViewModel.P3_Sensor.SensorText = "";
             }
 
             if (statusColor[2] >= 5)        // Red
             {
                 HeadsetConnectionStatusViewModel.Pz_Sensor.SensorBGColor = Color.Red;
+                HeadsetConnectionStatusViewModel.Pz_Sensor.SensorStatus = Constants.Sensor_Status_Green;
                 HeadsetConnectionStatusViewModel.Pz_Sensor.SensorText = "Twist";
             }
             else if (statusColor[2] >= 1)       // Yellow
             {
                 HeadsetConnectionStatusViewModel.Pz_Sensor.SensorBGColor = Color.Yellow;
+                HeadsetConnectionStatusViewModel.Pz_Sensor.SensorStatus = Constants.Sensor_Status_Yellow;
                 HeadsetConnectionStatusViewModel.Pz_Sensor.SensorText = "Push";
             }
             else
             {
                 HeadsetConnectionStatusViewModel.Pz_Sensor.SensorBGColor = Color.Green;
+                HeadsetConnectionStatusViewModel.Pz_Sensor.SensorStatus = Constants.Sensor_Status_Green;
                 HeadsetConnectionStatusViewModel.Pz_Sensor.SensorText = "Good";
             }
 
             if (statusColor[3] >= 5)        // Red
             {
                 HeadsetConnectionStatusViewModel.P4_Sensor.SensorBGColor = Color.Red;
+                HeadsetConnectionStatusViewModel.P4_Sensor.SensorStatus = Constants.Sensor_Status_Red;
                 HeadsetConnectionStatusViewModel.P4_Sensor.SensorText = "Twist";
             }
             else if (statusColor[3] >= 1)       // Yellow
             {
                 HeadsetConnectionStatusViewModel.P4_Sensor.SensorBGColor = Color.Yellow;
+                HeadsetConnectionStatusViewModel.P4_Sensor.SensorStatus = Constants.Sensor_Status_Yellow;
                 HeadsetConnectionStatusViewModel.P4_Sensor.SensorText = "Push";
             }
             else
             {
                 HeadsetConnectionStatusViewModel.P4_Sensor.SensorBGColor = Color.Green;
+                HeadsetConnectionStatusViewModel.P4_Sensor.SensorStatus = Constants.Sensor_Status_Green;
                 HeadsetConnectionStatusViewModel.P4_Sensor.SensorText = "Good";
             }
 
@@ -116,16 +131,19 @@ namespace ViewModels.Connectivity
             if (statusColor[4] >= 5)        // Red
             {
                 HeadsetConnectionStatusViewModel.PO7_Sensor.SensorBGColor = Color.Red;
+                HeadsetConnectionStatusViewModel.PO7_Sensor.SensorStatus = Constants.Sensor_Status_Red;
                 HeadsetConnectionStatusViewModel.PO7_Sensor.SensorText = "Twist";
             }
             else if (statusColor[4] >= 1)       // Yellow
             {
                 HeadsetConnectionStatusViewModel.PO7_Sensor.SensorBGColor = Color.Yellow;
+                HeadsetConnectionStatusViewModel.PO7_Sensor.SensorStatus = Constants.Sensor_Status_Yellow;
                 HeadsetConnectionStatusViewModel.PO7_Sensor.SensorText = "Push";
             }
             else
             {
                 HeadsetConnectionStatusViewModel.PO7_Sensor.SensorBGColor = Color.Green;
+                HeadsetConnectionStatusViewModel.PO7_Sensor.SensorStatus = Constants.Sensor_Status_Green;
                 HeadsetConnectionStatusViewModel.PO7_Sensor.SensorText = "Good";
             }
 
@@ -133,48 +151,57 @@ namespace ViewModels.Connectivity
             if (statusColor[5] >= 5)        // Red
             {
                 HeadsetConnectionStatusViewModel.Oz_Sensor.SensorBGColor = Color.Red;
+                HeadsetConnectionStatusViewModel.Oz_Sensor.SensorStatus = Constants.Sensor_Status_Red;
                 HeadsetConnectionStatusViewModel.Oz_Sensor.SensorText = "Twist";
             }
             else if (statusColor[5] >= 1)       // Yellow
             {
                 HeadsetConnectionStatusViewModel.Oz_Sensor.SensorBGColor = Color.Yellow;
+                HeadsetConnectionStatusViewModel.Oz_Sensor.SensorStatus = Constants.Sensor_Status_Yellow;
                 HeadsetConnectionStatusViewModel.Oz_Sensor.SensorText = "Push";
             }
             else
             {
                 HeadsetConnectionStatusViewModel.Oz_Sensor.SensorBGColor = Color.Green;
+                HeadsetConnectionStatusViewModel.Oz_Sensor.SensorStatus = Constants.Sensor_Status_Green;
                 HeadsetConnectionStatusViewModel.Oz_Sensor.SensorText = "Good";
             }
 
             if (statusColor[6] >= 5)        // Red
             {
                 HeadsetConnectionStatusViewModel.PO8_Sensor.SensorBGColor = Color.Red;
+                HeadsetConnectionStatusViewModel.PO8_Sensor.SensorStatus = Constants.Sensor_Status_Red;
                 HeadsetConnectionStatusViewModel.PO8_Sensor.SensorText = "Twist";
             }
             else if (statusColor[6] >= 1)       // Yellow
             {
                 HeadsetConnectionStatusViewModel.PO8_Sensor.SensorBGColor = Color.Yellow;
+                HeadsetConnectionStatusViewModel.PO8_Sensor.SensorStatus = Constants.Sensor_Status_Yellow;
                 HeadsetConnectionStatusViewModel.PO8_Sensor.SensorText = "Push";
             }
             else
             {
                 HeadsetConnectionStatusViewModel.PO8_Sensor.SensorBGColor = Color.Green;
+                HeadsetConnectionStatusViewModel.PO8_Sensor.SensorStatus = Constants.Sensor_Status_Green;
                 HeadsetConnectionStatusViewModel.PO8_Sensor.SensorText = "Good";
             }
 
             if (statusColor[7] >= 5)        // Red
             {
                 HeadsetConnectionStatusViewModel.Ear_Sensor.SensorBGColor = Color.Red;
+                HeadsetConnectionStatusViewModel.Ear_Sensor.SensorStatus = Constants.Sensor_Status_Red;
                 HeadsetConnectionStatusViewModel.Ear_Sensor.SensorText = "Twist";
             }
             else if (statusColor[7] >= 1)       // Yellow
             {
                 HeadsetConnectionStatusViewModel.Ear_Sensor.SensorBGColor = Color.Yellow;
+                HeadsetConnectionStatusViewModel.Ear_Sensor.SensorStatus = Constants.Sensor_Status_Yellow;
                 HeadsetConnectionStatusViewModel.Ear_Sensor.SensorText = "Push";
             }
             else
             {
                 HeadsetConnectionStatusViewModel.Ear_Sensor.SensorBGColor = Color.Green;
+                HeadsetConnectionStatusViewModel.Ear_Sensor.SensorStatus = Constants.Sensor_Status_Green;
                 HeadsetConnectionStatusViewModel.Ear_Sensor.SensorText = "Good";
             }
 
@@ -188,7 +215,18 @@ namespace ViewModels.Connectivity
 
         private void HeadSetConnectivityService_RaiseMeasurementsChange(object sender, EventArgs<List<SensorMeasurements>> e)
         {
-            
+            //MeasurementList
+            if (e == null || e.Value == null || e.Value.Count ==0) return;
+
+            e.Value.ForEach(m => {
+                var measurement = _measurements.Find(x=>x.Sensor.Equals(m.Sensor));
+                if (measurement != null)
+                {
+                    measurement.Impedance = m.Impedance;
+                    measurement.Noise = m.Noise;
+                    measurement.Level = m.Level;
+                }
+            });
         }
 
         private async void StartConnection(object obj)
@@ -196,6 +234,10 @@ namespace ViewModels.Connectivity
             if (_headSetConnectivityService == null) return;
             EnableStart = false;
             await _headSetConnectivityService.ConnectivityMode();
+        }
+        private void ContinueConnection(object obj)
+        {
+           _headSetConnectivityService.Continue();
         }
     }
 }

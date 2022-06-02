@@ -68,6 +68,7 @@
 
         <DataTemplate DataType="{x:Type connectivityvm:SensorStatusViewModel}">
             <Canvas Height="50" Width="50" DataContext="{Binding}">
+                <Label Content="{Binding SensorText}" Style="{StaticResource MediumLabelStyle}" Foreground="LightCoral" Margin="-5,-25,0,0" VerticalAlignment="Top" VerticalContentAlignment="Top"></Label>
                 <Rectangle Height="40" Width="40" Fill="Green" Canvas.Left="0" Canvas.Top="0" Visibility="{Binding SensorStatus,Converter={StaticResource sensorStatusConverter},ConverterParameter='Green',Mode=OneWay}"></Rectangle>
                 <Polygon Height="40" Width="40" Fill="Yellow" Points="0,30 15,0 30,30" Canvas.Left="0" Canvas.Top="0" Visibility="{Binding SensorStatus,Converter={StaticResource sensorStatusConverter},ConverterParameter='Yellow',Mode=OneWay}"></Polygon>
                 <Ellipse Height="40" Width="40" Fill="Red" Canvas.Left="0" Canvas.Top="0" Visibility="{Binding SensorStatus,Converter={StaticResource sensorStatusConverter},ConverterParameter='Red',Mode=OneWay}"></Ellipse>
