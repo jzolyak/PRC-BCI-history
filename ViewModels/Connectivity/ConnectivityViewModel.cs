@@ -73,7 +73,7 @@ namespace ViewModels.Connectivity
 
                 HeadsetConnectionStatusViewModel.FZ_Sensor.SensorBGColor = Color.Green;
                 HeadsetConnectionStatusViewModel.FZ_Sensor.SensorStatus = Constants.Sensor_Status_Green;
-                HeadsetConnectionStatusViewModel.FZ_Sensor.SensorText = "";   // Good measurement, no adjustment needed
+                HeadsetConnectionStatusViewModel.FZ_Sensor.SensorText = "Good";   // Good measurement, no adjustment needed
             }
 
             if (statusColor[1] >= 5)        // Red
@@ -90,9 +90,9 @@ namespace ViewModels.Connectivity
             }
             else
             {
-                HeadsetConnectionStatusViewModel.P3_Sensor.SensorBGColor = Color.LightGreen;
+                HeadsetConnectionStatusViewModel.P3_Sensor.SensorBGColor = Color.Green;
                 HeadsetConnectionStatusViewModel.P3_Sensor.SensorStatus = Constants.Sensor_Status_Green;
-                HeadsetConnectionStatusViewModel.P3_Sensor.SensorText = "";
+                HeadsetConnectionStatusViewModel.P3_Sensor.SensorText = "Good";
             }
 
             if (statusColor[2] >= 5)        // Red
@@ -228,9 +228,9 @@ namespace ViewModels.Connectivity
                 var measurement = _measurements.Find(x=>x.Sensor.Equals(m.Sensor));
                 if (measurement != null)
                 {
-                    measurement.Impedance = m.Impedance;
-                    measurement.Noise = m.Noise;
-                    measurement.Level = m.Level;
+                    measurement.Impedance = Math.Round(m.Impedance,4);
+                    measurement.Noise = Math.Round(m.Noise,4);
+                    measurement.Level = Math.Round(m.Level,4);
                 }
             });
         }

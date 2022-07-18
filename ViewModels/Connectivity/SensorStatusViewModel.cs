@@ -39,8 +39,8 @@ namespace ViewModels.Connectivity
         public SensorStatusViewModel(string _sensorName)
         {
             SensorName = _sensorName;
-            SensorText = "Poor";
-            SensorBGColor = Color.Green;
+            SensorText = "Twist";
+            SensorBGColor = Color.Red;
             SensorStatus = Constants.Sensor_Status_Red;
         }
     }

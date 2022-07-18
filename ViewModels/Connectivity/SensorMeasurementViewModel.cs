@@ -19,9 +19,9 @@ namespace ViewModels.Connectivity
         public SensorMeasurementViewModel(SensorMeasurements sensorMeasurements)
         {
             Sensor = sensorMeasurements.Sensor;
-            Level = sensorMeasurements.Level;
-            Noise = sensorMeasurements.Noise;
-            Impedance = sensorMeasurements.Impedance;
+            Level = Math.Round(sensorMeasurements.Level,4);
+            Noise = Math.Round(sensorMeasurements.Noise,4);
+            Impedance = Math.Round(sensorMeasurements.Impedance,4);
         }
     }
 }
