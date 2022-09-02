@@ -1,0 +1,27 @@
+﻿<UserControl x:Class="Starter.Calibration.DeleteConfirmationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Starter.Calibration"
+             mc:Ignorable="d" 
+              d:DesignWidth="800" Background="White" Height="340">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="140"></RowDefinition>
+            <RowDefinition Height="100"></RowDefinition>
+            <RowDefinition Height="100"></RowDefinition>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" FontSize="30" TextWrapping="WrapWithOverflow" Margin="10">You are about to begin a new calibration.The previous incomplete calibration will be deleted.Do you want to continue?</TextBlock>
+        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Stretch" Orientation="Horizontal">
+            <Button Content="Yes" Style="{StaticResource ButtonStyle}" FontSize="25" Width="140" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5" Height="70" Command="{Binding StartCalibrationCommand}"></Button>
+            <Button Content="No" Style="{StaticResource ButtonStyle}" FontSize="25" Width="140" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5" Height="70" Command="{Binding PopupCloseCommand}"></Button>
+        </StackPanel>
+        <StackPanel Grid.Row="2" Orientation="Horizontal" DataContext="{Binding CalibrationFileMetadata}">
+            <Label FontSize="25" HorizontalAlignment="Center" VerticalAlignment="Center" Content="Delete Calibration:"></Label>
+            <Label FontSize="25" HorizontalAlignment="Center" VerticalAlignment="Center" Content="{Binding FileName}"></Label>
+            <Label FontSize="25" HorizontalAlignment="Center" VerticalAlignment="Center" Content="{Binding NumSets}"></Label>
+            <Label FontSize="25" HorizontalAlignment="Center" VerticalAlignment="Center" Content="/5 sets completed"></Label>
+        </StackPanel>
+    </Grid>
+</UserControl>

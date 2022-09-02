@@ -229,6 +229,7 @@ namespace CoreServices.Connectivity
             /* +++++++++++++++++++++++++++++++++++++++ */
 
             Console.WriteLine("Starting Connectivity Mode ...");
+            Logger.Info(this, "Starting Connectivity Mode ...");
             IntPtr h = DSI_Headset_New(null);
 
             Console.WriteLine(DSI_ClearError());

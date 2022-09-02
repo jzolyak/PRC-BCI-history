@@ -1,4 +1,5 @@
-﻿using CoreServices.Connectivity;
+﻿using CoreServices;
+using CoreServices.Connectivity;
 using CoreServices.Models;
 using System;
 using System.Collections.Generic;
@@ -237,9 +238,17 @@ namespace ViewModels.Connectivity
 
         private async void StartConnection(object obj)
         {
-            if (_headSetConnectivityService == null) return;
-            EnableStart = false;
-            await _headSetConnectivityService.ConnectivityMode();
+            try
+            {
+                if (_headSetConnectivityService == null) { Logger.Error(this, "head set connectivity service is null"); return; }
+                EnableStart = false;
+                Logger.Info(this, "Stating connection");
+                await _headSetConnectivityService.ConnectivityMode();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(this, ex.Message);
+            }
         }
         private void ContinueConnection(object obj)
         {

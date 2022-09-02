@@ -28,6 +28,7 @@ namespace CoreServices.Models
         public const string Sensor_Status_Green = "Green";
         public const string Sensor_Status_Yellow = "Yellow";
         public const string Sensor_Status_Red = "Red";
+        public const string DemoVideo_Preference_Key = "ShowDemoVideo";
 
 
 

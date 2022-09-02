@@ -6,6 +6,7 @@
              xmlns:calibratevm="clr-namespace:ViewModels.Calibration;assembly=ViewModels"
              xmlns:connectivityvm="clr-namespace:ViewModels.Connectivity;assembly=ViewModels"             
              xmlns:connectivityView="clr-namespace:Starter.Connectivity"
+             xmlns:calibrationView="clr-namespace:Starter.Calibration"
              xmlns:UIHelpers="clr-namespace:Starter.UIHelpers"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
@@ -19,6 +20,14 @@
             <Setter Property="FontSize" Value="25"></Setter>
             <Setter Property="FontStretch" Value="Condensed"></Setter>
         </Style>
+
+        <Style x:Key="SubHeaderLabelStyle" TargetType="{x:Type Label}">
+            <Setter Property="FontFamily" Value="Calibri"></Setter>
+            <Setter Property="FontWeight" Value="Bold"></Setter>
+            <Setter Property="FontSize" Value="20"></Setter>
+            <Setter Property="FontStretch" Value="Condensed"></Setter>
+        </Style>
+        
 
         <Style x:Key="MediumLabelStyle" TargetType="{x:Type Label}">
             <Setter Property="FontFamily" Value="Calibri"></Setter>
@@ -36,6 +45,7 @@
 
         <UIHelpers:ColortoBrushConverter x:Key="colortoBrushConverter"></UIHelpers:ColortoBrushConverter>
         <UIHelpers:SensorStatusConverter x:Key="sensorStatusConverter"></UIHelpers:SensorStatusConverter>
+        <UIHelpers:BooltoVisibilityConverter x:Key="booltoVisibilityConverter"></UIHelpers:BooltoVisibilityConverter>
         <SolidColorBrush x:Key="ContentScreenBackGround">#f5f7f8</SolidColorBrush>
         <SolidColorBrush x:Key="ContentScreenBackGroundBrush">#EFF1F3</SolidColorBrush>
 
@@ -57,9 +67,38 @@
             <Setter Property="BorderThickness" Value="2" />
             <Setter Property="CornerRadius" Value="1" />
         </Style>
+        <Style x:Key="CustomErrorControlOnErrorStyle" TargetType="TextBox">
+            <Setter Property="Validation.ErrorTemplate">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <StackPanel>
+                            <AdornedElementPlaceholder x:Name="placeholder" />
+                            <TextBlock FontSize="20" FontStyle="Italic" Foreground="Red" 
+                                       Text="{Binding ElementName=placeholder, Path=AdornedElement.(Validation.Errors)[0].ErrorContent}" />
+                        </StackPanel>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
         <DataTemplate DataType="{x:Type connectivityvm:ConnectivityViewModel}">
             <connectivityView:ConnectivityView DataContext="{Binding}" Height="Auto" Width="Auto"></connectivityView:ConnectivityView>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type calibratevm:CalibrationViewModel}">
+            <calibrationView:CalibrationView DataContext="{Binding}" Height="Auto" Width="Auto"></calibrationView:CalibrationView>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type calibratevm:DeleteConfirmationViewModel}">
+            <calibrationView:DeleteConfirmationView DataContext="{Binding}" Height="Auto" Width="Auto"></calibrationView:DeleteConfirmationView>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type calibratevm:DemoVideoViewModel}">
+            <calibrationView:DemoVideoView DataContext="{Binding}" Height="Auto" Width="Auto"></calibrationView:DemoVideoView>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type calibratevm:FileNameEntryViewModel}">
+            <calibrationView:FileNameEntryView DataContext="{Binding}" Height="Auto" Width="Auto"></calibrationView:FileNameEntryView>
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:MainMenuViewModel}">

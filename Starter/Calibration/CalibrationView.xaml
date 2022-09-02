@@ -4,9 +4,100 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Starter.Calibration"
+             xmlns:behavior="http://schemas.microsoft.com/xaml/behaviors" 
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-            
+             d:DesignHeight="500" d:DesignWidth="800">
+    <Grid Opacity="{Binding Opacity}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="1*"></RowDefinition>
+            <RowDefinition Height="9*"></RowDefinition>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Center" Visibility="{Binding EnableResume,Converter={StaticResource booltoVisibilityConverter}}" Orientation="Horizontal">
+            <Label Style="{StaticResource HeaderLabelStyle}" Content="Current Calibration:" Foreground="#449DD1"></Label>
+            <Label Style="{StaticResource HeaderLabelStyle}" DataContext="{Binding CurrentFileMetadata}" Content="{Binding UserGivenName}" Foreground="#449DD1"></Label>
+        </StackPanel>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="4.5*"></ColumnDefinition>
+                <ColumnDefinition Width="1*"></ColumnDefinition>
+                <ColumnDefinition Width="4.5*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height=".3*"></RowDefinition>
+                    <RowDefinition Height=".3*"></RowDefinition>
+                    <RowDefinition Height=".3*"></RowDefinition>
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0">
+                    <Button Style="{StaticResource ButtonStyle}" Content="Start New Calibration" HorizontalAlignment="Center" Width="200" Height="70" FontSize="20" VerticalAlignment="Center" Command="{Binding StartCmd}"></Button>
+                </StackPanel>
+
+                <StackPanel Grid.Row="1">
+                    <Button Style="{StaticResource ButtonStyle}" Content="Resume Calibrating" HorizontalAlignment="Center" Width="200" Height="70" FontSize="20" VerticalAlignment="Center" Command="{Binding ResumeCmd}" IsEnabled="{Binding EnableResume}"></Button>
+                    <StackPanel Orientation="Horizontal" Visibility="{Binding EnableResume,Converter={StaticResource booltoVisibilityConverter}}" HorizontalAlignment="Center">
+                        <Label Content="{Binding UserGivenName}" Margin="2" Style="{StaticResource MediumLabelStyle}" DataContext="{Binding CurrentFileMetadata}"></Label>
+                        <Label Content="{Binding NumofSets}" Margin="2,2,0,0" Style="{StaticResource MediumLabelStyle}" DataContext="{Binding CurrentFileMetadata}"></Label>
+                        <Label Content="/5 sets completed" Margin="0,2,2,2" Style="{StaticResource MediumLabelStyle}" DataContext="{Binding CurrentFileMetadata}"></Label>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Row="2">
+                    <Button Style="{StaticResource ButtonStyle}" Content="Calibration Help" HorizontalAlignment="Center" Width="200" Height="70" FontSize="20" VerticalAlignment="Top" Command="{Binding HelpCmd}"></Button>
+                </StackPanel>
+            </Grid>
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*"></RowDefinition>
+                    <RowDefinition Height="6*"></RowDefinition>
+                    <RowDefinition Height="3*"/>
+                </Grid.RowDefinitions>
+                <Grid  Grid.Row="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="45"></RowDefinition>
+                        <RowDefinition Height="*"></RowDefinition>
+                        <RowDefinition Height="45"></RowDefinition>
+                    </Grid.RowDefinitions>
+                    <Button Height="40" Width="40" BorderBrush="Black" Style="{StaticResource ButtonStyle}" BorderThickness="3" HorizontalAlignment="Center" VerticalAlignment="Top" Grid.Row="0" Command="{Binding MoveUpCmd}">
+                        <Path Fill="Black" Data="M 0 8 L 16 8 L 8 0 Z" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Button>
+                    <Button Height="40" Width="40" BorderBrush="Black" Style="{StaticResource ButtonStyle}" BorderThickness="3"  HorizontalAlignment="Center" Grid.Row="2" Command="{Binding MoveDownCmd}">
+                        <Path Fill="Black" Data="M 0 0 L 8 8 L 16 0 Z" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Button>
+                    
+                </Grid>
+            </Grid>
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*"></RowDefinition>
+                    <RowDefinition Height="6*"></RowDefinition>
+                    <RowDefinition Height="3*"/>
+                </Grid.RowDefinitions>
+                <Label Style="{StaticResource SubHeaderLabelStyle}" Content="Select Saved Calibration" Grid.Row="0" HorizontalAlignment="Center"></Label>
+                <ListBox Margin="10,0,10,10" Grid.Row="1" x:Name="myListBox" ItemsSource="{Binding FileNamesCollection}" SelectedItem="{Binding SelectedFileMetadata}" SelectedIndex="{Binding CurrentFileMetadataIdx}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <TextBlock Text="{Binding}" FontSize="25"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                    <behavior:Interaction.Triggers>
+                        <behavior:EventTrigger EventName="SelectionChanged">
+                            <behavior:InvokeCommandAction Command="{Binding SelectedFileChangeCmd}"  CommandParameter="{Binding ElementName=myListBox, Path=SelectedItem}"/>
+                        </behavior:EventTrigger>
+                    </behavior:Interaction.Triggers>
+                </ListBox>
+                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Left" Margin="130,0,0,0" >
+                    <Button Style="{StaticResource ButtonStyle}" Content="Cancel" HorizontalAlignment="Center" Width="100" Height="70" FontSize="20" VerticalAlignment="Top" Command="{Binding ExitCommand}" Margin="10,0,0,0"></Button>
+                    <Button Style="{StaticResource ButtonStyle}" Content="Exit" HorizontalAlignment="Center" Width="100" Height="70" FontSize="20" VerticalAlignment="Top" Command="{Binding ExitCommand}" Margin="10,0,10,0"></Button>
+                </StackPanel>
+            </Grid>
+        </Grid>
+        <Popup Name="myPopup" IsOpen="{Binding ShowPopup}" Placement="Center" AllowsTransparency="True">
+            <Border BorderThickness="2" BorderBrush="Black">
+                <ContentControl HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Content="{Binding PopupContentViewModel}" BorderBrush="Black" Margin="2">
+
+                </ContentControl>
+            </Border>
+        </Popup>
     </Grid>
 </UserControl>

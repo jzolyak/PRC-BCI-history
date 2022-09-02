@@ -7,6 +7,21 @@
     </ApplicationDefinition>
   </ItemGroup>
   <ItemGroup>
+    <Compile Update="Calibration\CalibrationHelpView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Calibration\CalibrationView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Calibration\DeleteConfirmationView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Calibration\DemoVideoView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Calibration\FileNameEntryView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Connectivity\ConnectivityView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -18,6 +33,21 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Page Update="Calibration\CalibrationHelpView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Calibration\CalibrationView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Calibration\DeleteConfirmationView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Calibration\DemoVideoView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Calibration\FileNameEntryView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="Connectivity\ConnectivityView.xaml">
       <SubType>Designer</SubType>
     </Page>

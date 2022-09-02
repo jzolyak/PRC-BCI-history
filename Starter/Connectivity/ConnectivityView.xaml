@@ -20,11 +20,11 @@
             <Canvas Grid.Column="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="5" DataContext="{Binding HeadsetConnectionStatusViewModel}" Background="Transparent">
                 <local:HeadSetView HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Canvas.Left="0" Canvas.Top="0" DataContext="{Binding}"></local:HeadSetView>
             </Canvas>
-            <DataGrid Grid.Column="1" x:Name="measurementsGrid" Margin="20" ItemsSource="{Binding MeasurementList}" AutoGenerateColumns="False" IsReadOnly="True">
+            <DataGrid Grid.Column="1" x:Name="measurementsGrid" Margin="20" ItemsSource="{Binding MeasurementList}" AutoGenerateColumns="False" IsReadOnly="True" >
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Sensor" Binding="{Binding Sensor}" Width="Auto" MinWidth="70" FontSize="15"></DataGridTextColumn>
-                    <DataGridTextColumn Header="Impedance" Binding="{Binding Impedance}" Width="Auto" MinWidth="80" FontSize="15"></DataGridTextColumn>
-                    <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="Auto" MinWidth="70" FontSize="15"></DataGridTextColumn>
+                    <DataGridTextColumn Header="Sensor" Binding="{Binding Sensor}" Width="*" MinWidth="70" FontSize="15"></DataGridTextColumn>
+                    <DataGridTextColumn Header="Impedance" Binding="{Binding Impedance}" Width="*" MinWidth="80" FontSize="15"></DataGridTextColumn>
+                    <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="*" MinWidth="70" FontSize="15"></DataGridTextColumn>
                     <DataGridTextColumn Header="Noise" Binding="{Binding Noise}" Width="*" MinWidth="70" FontSize="15"></DataGridTextColumn>
                 </DataGrid.Columns>
             </DataGrid>
