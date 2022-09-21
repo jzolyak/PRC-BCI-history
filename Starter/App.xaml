@@ -61,6 +61,18 @@
             <Setter Property="FontStretch" Value="Condensed"></Setter>
             <Setter Property="Background" Value="White"></Setter>
         </Style>
+        <Style x:Key="ButtonStyleSmall" TargetType="{x:Type Button}">
+            <!--Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect ShadowDepth="4" Direction="330" Color="Black" Opacity="0.5" BlurRadius="4"/>
+                </Setter.Value>
+            </Setter-->
+            <Setter Property="BorderThickness" Value="1"></Setter>
+            <Setter Property="FontFamily" Value="Calibri"></Setter>
+            <Setter Property="FontWeight" Value="Bold"></Setter>
+            <Setter Property="FontStretch" Value="Condensed"></Setter>
+            <Setter Property="Background" Value="White"></Setter>
+        </Style>
 
         <Style x:Key="MyBorderStyle" TargetType="Border">
             <Setter Property="BorderBrush" Value="Black" />
