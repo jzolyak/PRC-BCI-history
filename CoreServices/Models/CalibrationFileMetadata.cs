@@ -11,6 +11,7 @@ namespace CoreServices.Models
         private bool isStale;        
         private int _currentSet;
         private bool isCurrent;
+        private bool isCurrentPredictionFile;
         private DateTime lastUpdatedTime;
         public bool IsStale { get => isStale; set => isStale = value; }
         public string UserGivenName { get => _userGivenName; set => _userGivenName = value; }
@@ -18,6 +19,7 @@ namespace CoreServices.Models
         public int CurrentSet { get => _currentSet; set => _currentSet = value; }
         public bool IsCurrent { get => isCurrent; set => isCurrent = value; }
         public DateTime LastUpdatedTime { get => lastUpdatedTime; set => lastUpdatedTime = value; }
+        public bool IsCurrentPredictionFile { get => isCurrentPredictionFile; set => isCurrentPredictionFile = value; }
 
         public override string ToString()
         {

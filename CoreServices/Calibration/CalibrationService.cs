@@ -20,6 +20,7 @@ namespace CoreServices.Calibration
 
         public event EventHandler<EventArgs<CalibrationFileMetadata>>? RaiseFileMetadataChange;
 
+        private CalibrationFileMetadata _currentPredictionFile;
         public CalibrationService()
         {
             _fileMetadataList = new ConcurrentDictionary<String,CalibrationFileMetadata>();
@@ -55,11 +56,18 @@ namespace CoreServices.Calibration
                         var calibrationFileMetadata = _fileMetadataList[metadata[0]];
                         calibrationFileMetadata.NumofSets = calibrationFileMetadata.NumofSets + 1;
                         if (calibrationFileMetadata.LastUpdatedTime < lastUpdatedTime) calibrationFileMetadata.LastUpdatedTime = lastUpdatedTime;
-                        if (metadata[2].ToLower().StartsWith("current"))
+                        var thirdParam = metadata[2].ToLower();
+                        if (thirdParam.StartsWith("current"))
                         {
                             calibrationFileMetadata.CurrentSet = Int32.Parse(metadata[1]);
                             calibrationFileMetadata.IsCurrent = true;
                         }
+                        else if (thirdParam.StartsWith("prediction"))
+                        {
+                            calibrationFileMetadata.IsCurrentPredictionFile = true;
+                            _currentPredictionFile = calibrationFileMetadata;
+                        }
+
                         if ( metadata.Length > 3)
                         {
                             if (metadata[3].ToLower().Equals("stale"))
@@ -120,6 +128,13 @@ namespace CoreServices.Calibration
      
         }
 
+        public void UpdatePredictionFile(CalibrationFileMetadata newFile)
+        {
+            if (newFile == null || string.IsNullOrEmpty(newFile.UserGivenName) || !newFile.IsCurrentPredictionFile || _currentPredictionFile.UserGivenName.ToLower().Equals(newFile.UserGivenName.ToLower())) return;
+            //rename filenames or use another calibration settings file to store the current prediction file name
+            
+        }
+
         private void NotifyFileMetadataChange(CalibrationFileMetadata calibrationFileMetadata)
         {
             if (RaiseFileMetadataChange == null) return;
@@ -128,7 +143,7 @@ namespace CoreServices.Calibration
 
         public void User_Actual_Start()
         {
-            //run your script
+           
         }
     }
 }
