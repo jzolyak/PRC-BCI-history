@@ -6,91 +6,14 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using System.IO;
+
+using BCI_Headset;
 
 namespace CoreServices.Connectivity
 {
     public class HeadSetConnectivityService
     {
-        public static String PORT = "COM4";
-
-        public static String montage = "Fz-A1A2 P3-A1A2 Pz-A1A2 P4-A1A2 PO7-A1A2 Oz-A1A2 PO8-A1A2";
-        public static String reference = "A1A2";
-
-        public static String[] sourceName = new string[] { "Fz", "P3", "Pz", "P4", "PO7", "Oz", "PO8", "A1A2" };
-
-        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_New")]
-        public static extern IntPtr DSI_Headset_New(string port);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_Delete")]
-        public static extern void DSI_Headset_Delete(IntPtr h);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_Connect")]
-        public static extern void DSI_Headset_Connect(IntPtr h, string port);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_Disconnect")]
-        public static extern void DSI_Headset_Disconnect(IntPtr h);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_GetInfoString")]
-        public static extern string DSI_Headset_GetInfoString(IntPtr h);
-
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_ChooseChannels")]
-        public static extern void DSI_Headset_ChooseChannels(IntPtr h, string montage, string reference, int i);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_GetNumberOfChannels")]
-        public static extern int DSI_Headset_GetNumberOfChannels(IntPtr h);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_GetNumberOfSources")]
-        public static extern int DSI_Headset_GetNumberOfSources(IntPtr h);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_GetChannelByName")]
-        public static extern IntPtr DSI_Headset_GetChannelByName(IntPtr h, string name);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_GetSourceByName")]
-        public static extern IntPtr DSI_Headset_GetSourceByName(IntPtr h, string name);
-
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_ConfigureBatch")]
-        public static extern void DSI_Headset_ConfigureBatch(IntPtr h, int nSamples, double targetDelaySeconds);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_WaitForBatch")]
-        public static extern double DSI_Headset_WaitForBatch(IntPtr h);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_SecondsSinceConnection")]
-        public static extern double DSI_Headset_SecondsSinceConnection(IntPtr h);
-
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Channel_ReadBuffered")]
-        public static extern double DSI_Channel_ReadBuffered(IntPtr c);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_GetNumberOfBufferedSamples")]
-        public static extern int DSI_Headset_GetNumberOfBufferedSamples(IntPtr h);
-
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Source_IsReferentialEEG")]
-        public static extern bool DSI_Source_IsReferentialEEG(IntPtr s);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Source_IsFactoryReference")]
-        public static extern bool DSI_Source_IsFactoryReference(IntPtr s);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Source_GetImpedanceEEG")]
-        public static extern double DSI_Source_GetImpedanceEEG(IntPtr s);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_GetImpedanceCMF")]
-        public static extern double DSI_Headset_GetImpedanceCMF(IntPtr s);
-
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_StartImpedanceDriver")]
-        public static extern void DSI_Headset_StartImpedanceDriver(IntPtr h);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_StopImpedanceDriver")]
-        public static extern void DSI_Headset_StopImpedanceDriver(IntPtr h);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_StartBackgroundAcquisition")]
-        public static extern void DSI_Headset_StartBackgroundAcquisition(IntPtr h);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_StopBackgroundAcquisition")]
-        public static extern void DSI_Headset_StopBackgroundAcquisition(IntPtr h);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_StartDataAcquisition")]
-        public static extern void DSI_Headset_StartDataAcquisition(IntPtr h);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_StopDataAcquisition")]
-        public static extern void DSI_Headset_StopDataAcquisition(IntPtr h);
-
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_StartAnalogReset")]
-        public static extern void DSI_Headset_StartAnalogReset(IntPtr h);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_FlushBuffers")]
-        public static extern void DSI_Headset_FlushBuffers(IntPtr h);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Sleep")]
-        public static extern void DSI_Sleep(double seconds);
-
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Error")]
-        public static extern string DSI_Error();
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_ClearError")]
-        public static extern string DSI_ClearError();
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_IsBlueToothInitialized")]
-        public static extern bool DSI_Headset_IsBlueToothInitialized(IntPtr h);
-        [DllImport("libDSI-Windows-x86_64.dll", EntryPoint = "DSI_Headset_IsConnected")]
-        public static extern bool DSI_Headset_IsConnected(IntPtr h);
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
@@ -204,83 +127,124 @@ namespace CoreServices.Connectivity
 
         public async Task ConnectivityMode()
         {
+            BinaryWriter bw;
+
+            bool passTest = true;
             bool goodMeasurment = false;
             bool pauseForReset = false;
 
-            const int MAX_SOURCES = 8;              // Assumes no TRIG channel in montage, just sensors
             const int samplesPerBatch = 15;         // 15 samples = 50 msec @ Fs=300 Hz
 
             int goodResultCount = 0;
             int oneSecondCounter = 0;
-            int failThreshold = 3;                  // Number of 1 sec measurments in 10 sec interval that
+            int failThreshold = 5;                  // Number of 1 sec measurments in 10 sec interval that
                                                     // failed good range, hnece triggering sensor adjustment
 
-            int[] statusColorCode = new int[MAX_SOURCES];
-            int[] testColorCode = new int[MAX_SOURCES];
+            const double MEASURE = 10.0;
+            const double WAITING = 20.0;
+            const double RESET = 30.0;
+
+            double stateMarker = MEASURE;
 
             double bufferAheadSec = 0.06;           // 60 msec
 
-            double[] statusBuffer = new double[MAX_SOURCES * 3];
 
-            double[,] statusTableValues = new double[MAX_SOURCES, 3];
+            /* +++++++++++++++++++++++++++++++++++++++ */
 
-            SensorEvents[] sensorEventCounters = new SensorEvents[MAX_SOURCES];
+            // For now just create a dummy binary file to store the status results
+            try
+            {
+                bw = new BinaryWriter(new FileStream("SensorData.bin", FileMode.Create));
+            }
+            catch (IOException e)
+            {
+                Console.WriteLine(e.Message + "\n Cannot create file.");
+                return;
+            }
 
             /* +++++++++++++++++++++++++++++++++++++++ */
 
             Console.WriteLine("Starting Connectivity Mode ...");
             Logger.Info(this, "Starting Connectivity Mode ...");
-            IntPtr h = DSI_Headset_New(null);
 
-            Console.WriteLine(DSI_ClearError());
+            WearableSensingVR300 headset = new WearableSensingVR300();
 
-            DSI_Headset_Connect(h, PORT);
-            if (DSI_Error() != null)
-            {
-               OnRecommendationChange(DSI_ClearError());
-            }
-            else
-            {
-                OnRecommendationChange("DSI_Headset_Connect() passed ...");
-            }
+            headset.CreateNew();
+            headset.SetMessageVerbosity(2);
 
+            string port = headset.GetDefaultHeadsetComPort();
+            passTest = headset.ConnectPort(port);
             await Task.Delay(1000);
 
-            if (DSI_Headset_IsBlueToothInitialized(h) == false)
+            if (passTest == true)
             {
-                OnRecommendationChange("\nERROR:  BlueTooth is not initialized");
+               OnRecommendationChange("Connection to COM port passed ... \n");
             }
             else
             {
-                OnRecommendationChange("\nBlueTooth is initialized ...");
+                OnRecommendationChange("Connection to COM port failed ... \n");
             }
 
-            if (DSI_Headset_IsConnected(h) == false)
+            /*
+            passTest = headset.IsBlueToothInitialized();
+            await Task.Delay(1000);
+
+            if (passTest == true)
             {
-                OnRecommendationChange("\nERROR:  Headset is not connected \n");
+                OnRecommendationChange("Bluetooth Initialization passed ... \n");
             }
             else
             {
-                OnRecommendationChange("\nHeadset is connected ... \n");
+                OnRecommendationChange("Bluetooth Initialization failed ... \n");
+            }
+            */
+
+            passTest = headset.IsConnected();
+            await Task.Delay(1000);
+
+            if (passTest == true)
+            {
+                OnRecommendationChange("BCI program is connected to headset ... \n");
+            }
+            else
+            {
+                OnRecommendationChange("BCI program is not connected to headset ... \n");
             }
 
+            /* +++++++++++++++++++++++++++++++++++++++ */
 
-            DSI_Headset_ChooseChannels(h, montage, reference, 1);
+            string montage = headset.GetDefaultHeadsetMontage();
+            string reference = headset.GetDefaultHeadsetReference();
+            headset.ChooseChannels(montage, reference);
 
-            string info = DSI_Headset_GetInfoString(h);
-            Console.WriteLine(info);
+            // Each channel is (sensor source - reference signal), thus #channels = #sources - 1
+            int numberOfChannels = headset.GetNumberOfChannels();
 
-            int numberOfChannels = DSI_Headset_GetNumberOfChannels(h);
-            int numberOfSources = DSI_Headset_GetNumberOfSources(h);
+            // Assumes no TRIG channel in montage, just sensors
+            int numberOfSources = headset.GetNumberOfSources();
 
-            DSI_Headset_StartAnalogReset(h);
+            // Number of status values per channel returned when measuring connectivity
+            int numStatusValues = headset.GetNumberofStatusValues();
+
+            int[] statusColorCode = new int[numberOfSources];
+            int[] testColorCode = new int[numberOfSources];
+
+            double[] statusBuffer = new double[numberOfSources * numStatusValues];
+
+            double[,] statusTableValues = new double[numberOfSources, numStatusValues];
+
+            SensorEvents[] sensorEventCounters = new SensorEvents[numberOfSources];
+
+            /* +++++++++++++++++++++++++++++++++++++++ */
+
+            headset.StartAnalogReset();
             await Task.Delay(100);
 
-            DSI_Headset_StartImpedanceDriver(h);
+            headset.StartImpedanceDriver();
 
-            DSI_Headset_ConfigureBatch(h, samplesPerBatch, bufferAheadSec);
+            headset.ConfigureBatch(samplesPerBatch, bufferAheadSec);
 
-            DSI_Headset_StartBackgroundAcquisition(h);
+            headset.StartBackgroundAcquisition();
 
 
             /* ++++++++++++++++++++++++++++++++++++++ */
@@ -293,7 +257,7 @@ namespace CoreServices.Connectivity
 
             // Start separate task that is fetching sensor samples from headset
             // and measuring sensor status over 1 second intervals.
-            Task t = Task.Run(() => MeasureConnectivity(h, tokenSource.Token, statusBufferBlock));
+            Task t = Task.Run(() => MeasureConnectivity(headset, tokenSource.Token, statusBufferBlock));
 
             // The task continuously measures sensor values and reports back an average value once a second.
             // The average values are updated on the screen over a 10 second interval, and those values
@@ -310,16 +274,20 @@ namespace CoreServices.Connectivity
             {
                 statusBuffer = await UpdataSensorStatusAsync(statusBufferBlock);
 
+                statusTableValues = UnpackStatusTableValues(numberOfSources, numStatusValues, statusBuffer);
+
                 // User clicked on the Reset button
                 if (resetFlag == true)
                 {
+                    stateMarker = RESET;
+
                     oneSecondCounter = 0;
                     resetFlag = false;
                     continueFlag = false;
                     waitToContinue = false;
                     pauseForReset = true;
 
-                    DSI_Headset_StartAnalogReset(h);
+                    headset.StartAnalogReset();
 
                     ResetSensorEventCounters(ref sensorEventCounters);
                 }
@@ -340,7 +308,7 @@ namespace CoreServices.Connectivity
                 {
                     if (waitToContinue == false)
                     {
-                        statusTableValues = UnpackStatusTableValues(statusBuffer);
+                        stateMarker = MEASURE;
 
                         statusColorCode = UpdateStatusColorCode(statusTableValues, ref sensorEventCounters);
 
@@ -397,6 +365,8 @@ namespace CoreServices.Connectivity
 
                     else // (waitToContinue == true)
                     {
+                        stateMarker = WAITING;
+
                         // User has made adjustments, if needed, and ready to take another 10 second measurment
                         if (continueFlag == true)
                         {
@@ -404,19 +374,14 @@ namespace CoreServices.Connectivity
                             continueFlag = false;
                             waitToContinue = false;
 
-                            // Automatically reset sensors after making an adjustment, then wait for 2 seconds for
-                            // sensor readings to settle.
-                            if (goodMeasurment == false)
-                            {
-                                pauseForReset = true;
-                                DSI_Headset_StartAnalogReset(h);
-                            }
-
                             ResetSensorEventCounters(ref sensorEventCounters);
                         }
                     }
 
                 }  // if (resetFlag == true)
+
+                // Store copy of sensor status information once a second to binary file.
+                RecordSensorData(bw, statusTableValues, stateMarker);
 
             }  // while (exitFlag == false)
 
@@ -425,21 +390,25 @@ namespace CoreServices.Connectivity
 
             /* +++++++++++++++++++++++++++++++++++++++ */
 
-            DSI_Headset_StopBackgroundAcquisition(h);
+            headset.StopBackgroundAcquisition();
 
-            DSI_Headset_StopImpedanceDriver(h);
+            headset.StopImpedanceDriver();
+            await Task.Delay(1000);
 
-            DSI_Headset_Disconnect(h);
-            DSI_Headset_Delete(h);
+            headset.Disconnect();
+            await Task.Delay(1000);
+
+            headset.Delete();
 
             Console.WriteLine("Terminating the application...");
 
-        }
+        }  // ConnectivityMode()
 
-        public void MeasureConnectivity(IntPtr h, CancellationToken cts, ITargetBlock<double[]> bufferBlock)
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+        public void MeasureConnectivity(IHeadset headset, CancellationToken cts, ITargetBlock<double[]> bufferBlock)
         {
-            const int MAX_CHANNELS = 7;             // Assumes no TRIG channel in montage, just sensors
-            const int MAX_SOURCES = 8;              // Assumes no TRIG channel in montage, just sensors
             const int CIRCULAR_BUF_LEN = 512;       // Num sensor samples per chan in the circular buffer
 
             const int samplesPerBatch = 15;         // 15 samples = 50 msec @ Fs=300 Hz
@@ -466,64 +435,62 @@ namespace CoreServices.Connectivity
 
             double signalValue;
             double averageValue;
-
-            double[] minValue = new double[MAX_CHANNELS];
-            double[] maxValue = new double[MAX_CHANNELS];
-            double[] accumSum = new double[MAX_CHANNELS];
-
-            double[,] CircularBuffer = new double[MAX_CHANNELS, CIRCULAR_BUF_LEN];
-
-            double[] ImpedanceBuffer = new double[MAX_SOURCES];
-
-            double[] minImpedance = new double[MAX_SOURCES];
-            double[] maxImpedance = new double[MAX_SOURCES];
-            double[] sumImpedance = new double[MAX_SOURCES];
-
-            double[] statusBuffer = new double[MAX_SOURCES * 3];
-
-            double[,] statusTableValues = new double[MAX_SOURCES, 3];
-
             double accum;
             double difference;
             double variance;
             double standardDeviation;
 
-            double[] accumFilteredSum = new double[MAX_CHANNELS];
-            double[,] FilterOutputBuffer = new double[MAX_CHANNELS, CIRCULAR_BUF_LEN];
-            double[,] delayedInputBuffer = new double[MAX_CHANNELS, ntaps * 2];
-
             /* +++++++++++++++++++++++++++++++++++++++ */
 
-            int numberOfChannels = DSI_Headset_GetNumberOfChannels(h);
-            int numberOfSources = DSI_Headset_GetNumberOfSources(h);
+            int numberOfChannels = headset.GetNumberOfChannels();
+            int numberOfSources = headset.GetNumberOfSources();
+            int numStatusValues = headset.GetNumberofStatusValues();
+
+            double[] minValue = new double[numberOfChannels];
+            double[] maxValue = new double[numberOfChannels];
+            double[] accumSum = new double[numberOfChannels];
+
+            double[,] CircularBuffer = new double[numberOfChannels, CIRCULAR_BUF_LEN];
+
+            double[] ImpedanceBuffer = new double[numberOfSources];
+
+            double[] minImpedance = new double[numberOfSources];
+            double[] maxImpedance = new double[numberOfSources];
+            double[] sumImpedance = new double[numberOfSources];
+
+            double[] statusBuffer = new double[numberOfSources * numStatusValues];
+
+            double[,] statusTableValues = new double[numberOfSources, numStatusValues];
+
+            double[] accumFilteredSum = new double[numberOfChannels];
+            double[,] FilterOutputBuffer = new double[numberOfChannels, CIRCULAR_BUF_LEN];
+            double[,] delayedInputBuffer = new double[numberOfChannels, ntaps * 2];
+
+            /* +++++++++++++++++++++++++++++++++++++++ */
 
 
             while (!cts.IsCancellationRequested)
             {
                 // This blocking call aims to ensure that batches of samples are picked
                 // up at exactly regular intervals (t0 timestamps should be very regular)
-                t0 = DSI_Headset_WaitForBatch(h);
-
-                //bufferLevel = DSI_Headset_GetNumberOfBufferedSamples(h);
-                //Console.WriteLine("time = {0:0.####}" + "  buffer level = {1}", t0, bufferLevel);
-                //Console.WriteLine("time = {0:0.####}", t0);
+                t0 = headset.WaitForBatch();
 
                 batchCounter++;
 
                 for (channelIndex = 0; channelIndex < numberOfChannels; channelIndex++)
                 {
-                    IntPtr c = DSI_Headset_GetChannelByName(h, sourceName[channelIndex]);
+                    IntPtr c = headset.GetChannel(channelIndex);
 
                     bufferIndex = circBufWriteIndex;
 
                     for (sampleIndex = 0; sampleIndex < samplesPerBatch; sampleIndex++)
                     {
                         // The background thread is filling the buffers. This is where you empty them:
-                        signalValue = DSI_Channel_ReadBuffered(c);
+                        signalValue = headset.ReadBuffered(c);
 
                         // Store the signal value in an array for processing.
                         CircularBuffer[channelIndex, bufferIndex] = signalValue;
-                        bufferIndex = (bufferIndex++) & (CIRCULAR_BUF_LEN - 1);
+                        bufferIndex = (++bufferIndex) & (CIRCULAR_BUF_LEN - 1);
                     }
                 }
 
@@ -537,7 +504,7 @@ namespace CoreServices.Connectivity
                     for (sampleIndex = 0; sampleIndex < samplesPerBatch; sampleIndex++)
                     {
                         signalValue = CircularBuffer[channelIndex, bufferIndex];
-                        bufferIndex = (bufferIndex++) & (CIRCULAR_BUF_LEN - 1);
+                        bufferIndex = (++bufferIndex) & (CIRCULAR_BUF_LEN - 1);
 
                         accumSum[channelIndex] = accumSum[channelIndex] + signalValue;
 
@@ -564,7 +531,7 @@ namespace CoreServices.Connectivity
                     for (sampleIndex = 0; sampleIndex < samplesPerBatch; sampleIndex++)
                     {
                         signalValue = CircularBuffer[channelIndex, bufferIndex];
-                        bufferIndex = (bufferIndex++) & (CIRCULAR_BUF_LEN - 1);
+                        bufferIndex = (++bufferIndex) & (CIRCULAR_BUF_LEN - 1);
 
                         delayedInputBuffer[channelIndex, filterState] = signalValue;
                         delayedInputBuffer[channelIndex, (filterState + ntaps)] = signalValue;
@@ -577,7 +544,7 @@ namespace CoreServices.Connectivity
                         }
 
                         FilterOutputBuffer[channelIndex, filterIndex] = accum;
-                        filterIndex = (filterIndex++) & (CIRCULAR_BUF_LEN - 1);
+                        filterIndex = (++filterIndex) & (CIRCULAR_BUF_LEN - 1);
 
                         accumFilteredSum[channelIndex] = accumFilteredSum[channelIndex] + accum;
 
@@ -597,16 +564,16 @@ namespace CoreServices.Connectivity
                 // (Impedance value doesn't change as rapidly as detected voltage level).
                 for (sourceIndex = 0; sourceIndex < numberOfSources; sourceIndex++)
                 {
-                    IntPtr s = DSI_Headset_GetSourceByName(h, sourceName[sourceIndex]);
+                    IntPtr s = headset.GetSource(sourceIndex);
 
-                    if (DSI_Source_IsReferentialEEG(s) && !DSI_Source_IsFactoryReference(s))
+                    if (headset.IsReferentialEEG(s) && !headset.IsFactoryReference(s))
                     {
-                        ImpedanceBuffer[sourceIndex] = DSI_Source_GetImpedanceEEG(s);
+                        ImpedanceBuffer[sourceIndex] = headset.GetImpedanceEEG(s);
                     }
                     else
                     {
                         // The common-mode follower (CMF) sensor, at the factory reference position, is a special case:
-                        ImpedanceBuffer[sourceIndex] = DSI_Headset_GetImpedanceCMF(h);
+                        ImpedanceBuffer[sourceIndex] = headset.GetImpedanceCMF();
                     }
                 }
 
@@ -649,9 +616,17 @@ namespace CoreServices.Connectivity
                         averageValue = accumSum[channelIndex] / (double)batchSize;
 
                         statusTableValues[channelIndex, 1] = averageValue;
+
+                        statusTableValues[channelIndex, 3] = minValue[channelIndex];
+                        statusTableValues[channelIndex, 4] = maxValue[channelIndex];
+
                         accumSum[channelIndex] = 0.0;
-                        minValue[channelIndex] = 0.0;
-                        maxValue[channelIndex] = 0.0;
+
+                        // Resetting min/max value to zero creates artificial floor or ceiling for next one
+                        // second interval. Use last min/max samples from this batch as start point for next.
+                        double temp = minValue[channelIndex];
+                        minValue[channelIndex] = maxValue[channelIndex];
+                        maxValue[channelIndex] = temp;
 
                         difference = 0.0;
                         variance = 0.0;
@@ -664,7 +639,7 @@ namespace CoreServices.Connectivity
                         for (int index = 0; index < batchSize; index++)
                         {
                             signalValue = FilterOutputBuffer[channelIndex, bufferIndex];
-                            bufferIndex = (bufferIndex++) & (CIRCULAR_BUF_LEN - 1);
+                            bufferIndex = (++bufferIndex) & (CIRCULAR_BUF_LEN - 1);
 
                             difference = signalValue - averageValue;
                             variance = variance + (difference * difference);
@@ -678,7 +653,7 @@ namespace CoreServices.Connectivity
 
                     batchCounter = 0;
 
-                    statusBuffer = PackStatusTableValues(statusTableValues);
+                    statusBuffer = PackStatusTableValues(numberOfSources, numStatusValues, statusTableValues);
 
                     bufferBlock.Post(statusBuffer);
 
@@ -686,6 +661,28 @@ namespace CoreServices.Connectivity
 
             }  // while (!cts.IsCancellationRequested)
 
+        }  // MeasureConnectivity()
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+        public void RecordSensorData(BinaryWriter bw, double[,] statusTableValues, double stateMarker)
+        {
+            int numRows = statusTableValues.GetLength(0);
+            int numCols = statusTableValues.GetLength(1);
+
+            for (int j = 0; j < numCols; j++)
+            {
+                for (int i = 0; i < numRows; i++)
+                {
+                    bw.Write(statusTableValues[i, j]);
+                }
+            }
+
+            for (int i = 0; i < numRows; i++)
+            {
+                bw.Write(stateMarker);
+            }
         }
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
@@ -693,13 +690,11 @@ namespace CoreServices.Connectivity
 
         public async Task<double[]> UpdataSensorStatusAsync(ISourceBlock<double[]> bufferBlock)
         {
-            double[] statusBuffer = new double[8 * 3];
-
-            // Wait for MeasureConnectivity task to pass measured sensor values over the
+            // Wait for MeasureConnectivity task to send measured sensor values over the
             // past 1 second interval back to the main (GUI) thread via the bufferBlock
             // construct found in the .NET Framework library.
 
-            statusBuffer = await bufferBlock.ReceiveAsync();
+            double[] statusBuffer = await bufferBlock.ReceiveAsync();
 
             return statusBuffer;
         }
@@ -707,17 +702,18 @@ namespace CoreServices.Connectivity
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-        public double[] PackStatusTableValues(double[,] valueTable)
+        public double[] PackStatusTableValues(int numSources, int numStatusValues, double[,] valueTable)
         {
             int i = 0;
 
-            double[] statusBuffer = new double[8 * 3];
+            double[] statusBuffer = new double[numSources * numStatusValues];
 
-            for (int j = 0; j < 8; j++)
+            for (int j = 0; j < numSources; j++)
             {
-                statusBuffer[i++] = valueTable[j, 0];
-                statusBuffer[i++] = valueTable[j, 1];
-                statusBuffer[i++] = valueTable[j, 2];
+                for (int k = 0; k < numStatusValues; k++)
+                {
+                    statusBuffer[i++] = valueTable[j, k];
+                }
             }
             return statusBuffer;
         }
@@ -725,17 +721,18 @@ namespace CoreServices.Connectivity
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-        public double[,] UnpackStatusTableValues(double[] statusBuffer)
+        public double[,] UnpackStatusTableValues(int numSources, int numStatusValues, double[] statusBuffer)
         {
             int i = 0;
 
-            double[,] valueTable = new double[8, 3];
+            double[,] valueTable = new double[numSources, numStatusValues];
 
-            for (int j = 0; j < 8; j++)
+            for (int j = 0; j < numSources; j++)
             {
-                valueTable[j, 0] = statusBuffer[i++];
-                valueTable[j, 1] = statusBuffer[i++];
-                valueTable[j, 2] = statusBuffer[i++];
+                for (int k = 0; k < numStatusValues; k++)
+                {
+                    valueTable[j, k] = statusBuffer[i++];
+                }
             }
             return valueTable;
         }
@@ -874,10 +871,9 @@ namespace CoreServices.Connectivity
 
         public void ResetSensorEventCounters(ref SensorEvents[] sensorEventCounters)
         {
-            int sourceIndex;
-            int numberOfSources = 8;
+            int numberOfSources = sensorEventCounters.Length;
 
-            for (sourceIndex = 0; sourceIndex < numberOfSources; sourceIndex++)
+            for (int sourceIndex = 0; sourceIndex < numberOfSources; sourceIndex++)
             {
                 sensorEventCounters[sourceIndex].noiseLevelOutOfRange = 0;
                 sensorEventCounters[sourceIndex].noiseLevelAdjust = 0;
@@ -899,12 +895,9 @@ namespace CoreServices.Connectivity
         {
             bool testPassed = true;         // Assume pass until find case where sensor needs adjustment
 
-            int sourceIndex;
-            int numberOfSources = 8;
+            int numberOfSources = sensorEventCounters.Length;
 
-            // int[] recommendColorCode = new int[numberOfSources];
-
-            for (sourceIndex = 0; sourceIndex < numberOfSources; sourceIndex++)
+            for (int sourceIndex = 0; sourceIndex < numberOfSources; sourceIndex++)
             {
                 if ((sensorEventCounters[sourceIndex].noiseLevelOutOfRange >= threshold) ||
                      (sensorEventCounters[sourceIndex].baselineLevelOutOfRange >= threshold) ||
