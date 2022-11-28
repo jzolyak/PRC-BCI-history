@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace CoreServices.Calibration
 {
@@ -20,11 +21,18 @@ namespace CoreServices.Calibration
 
         public event EventHandler<EventArgs<CalibrationFileMetadata>>? RaiseFileMetadataChange;
 
+        public event EventHandler<EventArgs<ScreenOverlay>>? RaiseScreenOverLayChange;
+        public event EventHandler<EventArgs<UIInstruction>>? RaiseUIRequestChange;
+        public event EventHandler<EventArgs>? RaiseExitCalibrationEvent;
+
+        private StateEngine _stateEngine;
+
         private CalibrationFileMetadata _currentPredictionFile;
         public CalibrationService()
         {
             _fileMetadataList = new ConcurrentDictionary<String,CalibrationFileMetadata>();
             _calibrationFilePath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)+ "\\CalibrationFiles\\";
+            _stateEngine = new StateEngine(NotifyUI, NotifyScreenOverLayChange, ExitCalibration);
             LoadCalibrationFiles();
         }
 
@@ -104,6 +112,11 @@ namespace CoreServices.Calibration
 
         }
 
+        public bool CheckEmpowerIsAlive()
+        {
+            return _stateEngine ==null ? false : _stateEngine.CheckEmpowerIsAlive();
+        }
+
         public CalibrationFileMetadata CreateDummyCalibrationFiles(string name)
         {
             //usergivenname_setnum_status
@@ -141,9 +154,32 @@ namespace CoreServices.Calibration
             RaiseFileMetadataChange(this,new EventArgs<CalibrationFileMetadata>(calibrationFileMetadata));
         }
 
+        private void NotifyScreenOverLayChange(ScreenOverlay screenOverlay)
+        {
+            if(RaiseScreenOverLayChange == null) return;
+            RaiseScreenOverLayChange(this,new EventArgs<ScreenOverlay>(screenOverlay));
+            
+        }
+
+        private void NotifyUI(UIInstruction uiInsturction)
+        {
+            if(RaiseUIRequestChange == null) return;
+            RaiseUIRequestChange(this, new EventArgs<UIInstruction>(uiInsturction));
+        }
+
+        private void ExitCalibration()
+        {
+            if (RaiseExitCalibrationEvent != null) RaiseExitCalibrationEvent(this, new EventArgs());
+        }
+        public void ReceiveNotificationFromUI(UIInstruction instruction)
+        {
+           _stateEngine.NotificationfromUI(instruction);
+        }
         public void User_Actual_Start()
         {
-           
+            Task.Run(_stateEngine.CalibrationMode);
         }
     }
+
+   
 }

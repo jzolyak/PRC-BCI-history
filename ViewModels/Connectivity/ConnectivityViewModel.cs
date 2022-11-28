@@ -26,7 +26,7 @@ namespace ViewModels.Connectivity
         private bool _enableStart;
         public bool EnableStart { get { return _enableStart; } set { _enableStart = value; OnPropertyChanged(nameof(EnableStart)); } }
 
-        public ConnectivityViewModel(Action exitAction) : base(exitAction)
+        public ConnectivityViewModel(Action exitAction,Action<bool> showorHideMainWindow) : base(exitAction, showorHideMainWindow)
         {
             StartCommand = new RelayCommand(StartConnection);
             EnableStart = true;

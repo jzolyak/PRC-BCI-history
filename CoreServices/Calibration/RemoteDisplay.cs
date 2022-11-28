@@ -197,6 +197,27 @@ namespace CoreServices.Calibration
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
+        public bool CheckEmpowerIsAlive()
+        {
+
+            IUIAutomationElementArray automationArray;
+
+            IUIAutomation automation = new CUIAutomation();
+            IUIAutomationElement rootElement = automation.GetRootElement();
+
+            if (rootElement != null)
+            {
+                IUIAutomationCondition condition = automation.CreatePropertyCondition(30005, "Empower™");
+
+                // Get the parent element of all the children elements of the remote application.
+                IUIAutomationElement appElement = rootElement.FindFirst(TreeScope.TreeScope_Children, condition);
+
+                if (appElement != null)
+                    return true;
+            }
+            return false;
+        }
+
     }
     public struct DisplayProperties
     {

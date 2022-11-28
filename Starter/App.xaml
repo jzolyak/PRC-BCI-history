@@ -113,6 +113,30 @@
             <calibrationView:FileNameEntryView DataContext="{Binding}" Height="Auto" Width="Auto"></calibrationView:FileNameEntryView>
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type calibratevm:CalibrationBeginQueryViewModel}">
+            <calibrationView:CalibrationBeginQueryView DataContext="{Binding}" Height="Auto" Width="Auto"></calibrationView:CalibrationBeginQueryView>
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type calibratevm:CalibrationRepeatQueryViewModel}">
+            <calibrationView:CalibrationRepeatQueryView DataContext="{Binding}" Height="Auto" Width="Auto"></calibrationView:CalibrationRepeatQueryView>
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type calibratevm:CalibrationStopQueryViewModel}">
+            <calibrationView:CalibrationStopQueryView DataContext="{Binding}" Height="Auto" Width="Auto"></calibrationView:CalibrationStopQueryView>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type calibratevm:CountDownViewModel}">
+            <calibrationView:CountDownView DataContext="{Binding}" Height="Auto" Width="Auto"></calibrationView:CountDownView>
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type calibratevm:CalibrationCompleteViewModel}">
+            <calibrationView:CalibrationCompleteView DataContext="{Binding}" Height="Auto" Width="Auto"></calibrationView:CalibrationCompleteView>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type calibratevm:CalibrationInstructionsViewModel}">
+            <calibrationView:CalibrationInstructions DataContext="{Binding}" Height="Auto" Width="Auto"></calibrationView:CalibrationInstructions>
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type vm:MainMenuViewModel}">
             <local:MainMenuView DataContext="{Binding}" Height="Auto" Width="Auto"></local:MainMenuView>
         </DataTemplate>

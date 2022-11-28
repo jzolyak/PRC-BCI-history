@@ -31,7 +31,20 @@ namespace Starter.UIHelpers
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return null;
+            try
+            {
+                if (value == null) return false;
+                Visibility boolValue = (Visibility)value;
+                if (boolValue==Visibility.Visible)
+                {
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
         }
     }
    

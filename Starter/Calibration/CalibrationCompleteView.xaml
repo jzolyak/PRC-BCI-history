@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<UserControl 
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Starter.Calibration"
+             x:Class="Starter.Calibration.CalibrationCompleteView">
+        <StackPanel>
+            <Label Content="Calibration is complete" HorizontalAlignment="Center" Margin="0,40,0,40" FontSize="20"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button x:Name="okButton" Height="40" Width="80" Margin="0,40,40,40" Content="OK" FontFamily="Arial" FontSize="16" FontWeight="Bold" Style="{StaticResource ButtonStyle}" Command="{Binding OkCommand}" />
+            </StackPanel>
+        </StackPanel>
+</UserControl>

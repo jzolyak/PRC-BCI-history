@@ -10,7 +10,13 @@
     <Compile Update="Calibration\CalibrationHelpView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Calibration\CalibrationInstructions.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Calibration\CalibrationView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Calibration\CalibrationWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="Calibration\DeleteConfirmationView.xaml.cs">
@@ -33,10 +39,31 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Page Update="Calibration\CalibrationBeginQueryView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Calibration\CalibrationCompleteView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="Calibration\CalibrationHelpView.xaml">
       <SubType>Designer</SubType>
     </Page>
+    <Page Update="Calibration\CalibrationInstructions.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Calibration\CalibrationRepeatQueryView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Calibration\CalibrationStopQueryView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="Calibration\CalibrationView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Calibration\CalibrationWindow.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Calibration\CountDownView.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Calibration\DeleteConfirmationView.xaml">

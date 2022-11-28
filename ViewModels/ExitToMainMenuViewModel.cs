@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Windows.Input;
+using ViewModels.Help;
 
 namespace ViewModels
 {
@@ -9,11 +10,19 @@ namespace ViewModels
     {
         public ICommand ExitCommand { get; set; }
 
+        protected Action<bool> _showorHideMainWindow; 
+        protected Action<ChildWindowSettings> _showorHideChildWindow;
+
         private Action _exitAction;
-        public ExitToMainMenuViewModel(Action exitAction)
+        public ExitToMainMenuViewModel(Action exitAction,Action<bool> showorHideMainWindow)
         {
             _exitAction = exitAction;
             ExitCommand = new RelayCommand(OnExit);
+            _showorHideMainWindow = showorHideMainWindow;
+        }
+        public ExitToMainMenuViewModel(Action exitAction, Action<bool> showorHideMainWindow,Action<ChildWindowSettings> showorHideChildWindow):this(exitAction,showorHideMainWindow)
+        {
+            _showorHideChildWindow = showorHideChildWindow;
         }
 
         public void OnExit(object param)

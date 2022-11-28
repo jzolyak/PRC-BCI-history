@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
+using ViewModels.Help;
 
 namespace ViewModels.Calibration
 {
@@ -28,11 +29,14 @@ namespace ViewModels.Calibration
         private FileNameEntryViewModel _fileNameEntryViewModel;
         private DemoVideoViewModel _demoVideoViewModel;
         private CalibrationHelpViewModel _calibrationHelpViewModel;
+        private FlashStimulusViewModel _flashStimulusViewModel;
+        private CalibrationInstructionsViewModel _calibrationInstructionsViewModel;
         private object? _popupContentViewModel;
         private bool _showPopup;
         private double _opacity;
         private bool _showDemoVideo;
         private int _currentFileMetadataIdx;
+        private bool _hasFiles;
         public bool IsCalibrationInProgress { get { return _isCalibrationInProgress; } set { _isCalibrationInProgress = value; OnPropertyChanged(nameof(IsCalibrationInProgress)); } }
         public ICommand StartCmd { get; set; }
         public ICommand MoveUpCmd { get; set; }
@@ -46,7 +50,7 @@ namespace ViewModels.Calibration
         public CalibrationFileMetadata SelectedFileMetadata { get => _selectedFileMetadata; set { _selectedFileMetadata = value; OnPropertyChanged(nameof(SelectedFileMetadata)); } }
         public int CurrentSet { get => _currentSet; set { _currentSet = value; OnPropertyChanged(nameof(CurrentSet)); } }
         public bool EnableResume { get => _enableResume; set { _enableResume = value; OnPropertyChanged(nameof(EnableResume)); } }
-
+        public bool HasFiles { get => _hasFiles;set { _hasFiles = value; OnPropertyChanged(nameof(HasFiles)); } }
         public bool ShowPopup { get => _showPopup; set { _showPopup = value; OnPropertyChanged(nameof(ShowPopup)); } }
 
         public double Opacity { get => _opacity; set { _opacity = value; OnPropertyChanged(nameof(Opacity)); } }
@@ -55,7 +59,7 @@ namespace ViewModels.Calibration
 
         public object? PopupContentViewModel { get => _popupContentViewModel; set { _popupContentViewModel = value; OnPropertyChanged(nameof(PopupContentViewModel)); } }
 
-        public CalibrationViewModel(Action exitAction) : base(exitAction)
+        public CalibrationViewModel(Action exitAction,Action<bool> showorHideMainWindow,Action<ChildWindowSettings> showorHideChildWindow) : base(exitAction, showorHideMainWindow, showorHideChildWindow)
         {
             StartCmd = new RelayCommand(StartCalibrationPreCheck);
             ResumeCmd = new RelayCommand(ResumeCalibration);
@@ -72,12 +76,14 @@ namespace ViewModels.Calibration
             PopupContentViewModel = null;
             _deleteConfirmationViewModel = new DeleteConfirmationViewModel(GetFileNameFromUser, ClosePopup, CurrentFileMetadata);
             _fileNameEntryViewModel = new FileNameEntryViewModel(DisplayDemoVideo, ClosePopup, _calibrationFileMetadataColl);
-            _demoVideoViewModel = new DemoVideoViewModel(StartActualCalibration, ClosePopup);
+            _demoVideoViewModel = new DemoVideoViewModel(ShowCalibrationInstructions, ClosePopup);
+            _calibrationInstructionsViewModel = new CalibrationInstructionsViewModel(StartActualCalibration, ClosePopup);
             _calibrationHelpViewModel = new CalibrationHelpViewModel(ClosePopup);
             _showDemoVideo = _userSettingsService.GetSettingsValue(Constants.DemoVideo_Preference_Key) == null ? true : !_userSettingsService.GetSettingsValue("ShowDemoVideo").ToLower().StartsWith("false");
             Opacity = 1;
             MoveUpCmd = new RelayCommand(MoveFileMetadataIndexUp);
             MoveDownCmd = new RelayCommand(MoveFileMetadataIndexDown);
+            _flashStimulusViewModel = new FlashStimulusViewModel();
         }
 
         private void _calibrationService_RaiseFileMetadataChange(object? sender, EventArgs<CalibrationFileMetadata> e)
@@ -145,6 +151,7 @@ namespace ViewModels.Calibration
             var sortedList = _calibrationFileMetadataColl.ToList();
             sortedList.Sort((one, two) => { return two.LastUpdatedTime.CompareTo(one.LastUpdatedTime); });
             FileNamesCollection = new ObservableCollection<CalibrationFileMetadata>(sortedList);
+            HasFiles = FileNamesCollection.Count > 0;
         }
 
         private void CloseDemoView()
@@ -179,8 +186,9 @@ namespace ViewModels.Calibration
                 DisplayPopup(_demoVideoViewModel);
                 return;
             }
-           
-            StartActualCalibration();
+
+            // StartActualCalibration();
+            ShowCalibrationInstructions();
         }
 
         private void GetFileNameFromUser()
@@ -202,6 +210,18 @@ namespace ViewModels.Calibration
             PopupContentViewModel = null;
             ShowPopup = false;
             Opacity = 1;
+            if (_showorHideMainWindow != null) _showorHideMainWindow(false);
+            
+            //start the calibration
+            var childWindowpref = new ChildWindowSettings { ShowWindow = true, DataContext = _flashStimulusViewModel };
+            _showorHideChildWindow(childWindowpref);
+            _calibrationService.User_Actual_Start();
+
+        }
+
+        private void ShowCalibrationInstructions()
+        {
+            DisplayPopup(_calibrationInstructionsViewModel);
         }
 
        
