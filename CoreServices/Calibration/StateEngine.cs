@@ -27,6 +27,15 @@ namespace CoreServices.Calibration
             Clear_Textbox, Stop_Message, Ready_To_Begin, Clean_Up, Exit_Mode,Notify_UI,Wait_On_UI,Process_UI_Notification
         }
 
+        public string[] CalibrationStateNames =
+        {
+            "Show_Instructions", "Open_Files", "Read_Command", "Remote_Display", "Get_Remote_Elements",
+            "Local_Display", "Get_Local_Elements", "Assign_Key_Mapping", "Create_Grouping", "Create_Sequence",
+            "Highlight_Target", "Test_Script_Enabled", "Core_Loop", "Unhighlight_Target", "Click_Key", "Programmed_Delay",
+            "Clear_Textbox", "Stop_Message", "Ready_To_Begin", "Clean_Up", "Exit_Mode",
+            "Notify_UI", "Wait_On_UI", "Process_UI_Notification"
+        };
+
         public StateEngine(Action<UIInstruction> notifyUIAction,Action<ScreenOverlay> notifyScreenOverLayChange, Action exitAction)
         {
             this.notifyUIAction = notifyUIAction;
@@ -64,6 +73,8 @@ namespace CoreServices.Calibration
             int matrixSize1 = 0;
             int matrixSize2 = 0;
             bool showCountDownTimer = true;
+
+            int elementIndex = 0;
 
             int maxFlashSequences = 3;
             int flash_ON_time_msec = 90;
@@ -138,6 +149,9 @@ namespace CoreServices.Calibration
                 //   - Script runs to completion, user exits at end of set, or error occurs
                 while (!modeExit)
                 {
+                    string logString = "currentLine = " + currentLine.ToString() + "  modeState = " + CalibrationStateNames[(int)modeState] + "\n";
+                    Logger.Info(this, logString);
+
                     switch (modeState)
                     {
                         /* ************* */
@@ -330,6 +344,34 @@ namespace CoreServices.Calibration
                                     modeState = CalibrationStates.Assign_Key_Mapping;
                                 }
 
+                                else if (fields[0] == "SELECT")
+                                {
+                                    // Issue a command to a Empower (assumes displayed keyboard has already been fetched) 
+                                    // in order to invoke the button's click pattern to perform things like clear the text box,
+                                    // Go Back, or select typing keyboard.
+                                    targetkeyIDvalue = Int32.Parse(fields[1]);
+                                    targetKeyName = fields[2];
+
+                                    elementIndex = 0;
+                                    for (int i = 0; i < flashableKeys.Count; i++)
+                                    {
+                                        if (flashableKeys[i].keyID == targetkeyIDvalue)
+                                        {
+                                            elementIndex = flashableKeys[i].elementIndex;
+                                            break;
+                                        }
+                                    }
+
+                                    remoteDisplay.SelectElement(elementIndex);
+
+                                    // Give other app time to respond to command
+                                    // await Task.Delay(2000);
+
+                                    // Advance index to next command in the script
+                                    currentLine++;
+                                    modeState = CalibrationStates.Read_Command;
+                                }
+
                                 else if (fields[0] == "STOP")
                                 {
                                     // Advance index to next command in the script
@@ -403,7 +445,8 @@ namespace CoreServices.Calibration
                                 //newWindow.Show();
 
                                 // Ready to fetch next target from calibration commands
-                                modeState = CalibrationStates.Click_Key;
+                                // modeState = CalibrationStates.Click_Key;     // <== This is second time I've fixed same error. JAZ 12/2/22
+                                modeState = CalibrationStates.Read_Command;
                             }
                             break;
 
@@ -573,22 +616,29 @@ namespace CoreServices.Calibration
 
                         case CalibrationStates.Click_Key:
                             // Clicking target key generates speech (in REMOTE) and displays key name.
-                            if (flashableKeys.Count > 0)
+                            // flashableKeys[] contains the mapping between the clickable elements seen on the display with
+                            // the flashable elements created in the artificial screen overlay. Find the index location in
+                            // flashableKeys[] with a keyID matching the targetkeyIDvalue, then use either the corresponding
+                            // elementIndex to access the list of clickable GUI elements on the screen, or the buttonIndex
+                            // to flash the corresponding button in the screen overlay.
+
+                            elementIndex = 0;
+                            for (int i = 0; i < flashableKeys.Count; i++)
                             {
-                                remoteDisplay.SelectElement(flashableKeys[targetkeyIDvalue].elementIndex);
+                                if (flashableKeys[i].keyID == targetkeyIDvalue)
+                                {
+                                    elementIndex = flashableKeys[i].elementIndex;
+                                    break;
+                                }
                             }
+
+                            remoteDisplay.SelectElement(elementIndex);
 
                             // if (displayType == REMOTE)
                             //    - Call Microsoft UIA function to click key and let Empower do the work
                             // else
                             //    - Call function to show key name on local display
 
-                            //KeyMapping key = flashableKeys.Find(x=>x.keyID == targetkeyIDvalue);
-                            //if(flashableKeys.Count>0)
-                            //{ 
-                            //var pattern = (IUIAutomationInvokePattern)key.element.GetCurrentPattern(10000);
-                            //pattern.Invoke();
-                            //    }
                             modeState = CalibrationStates.Programmed_Delay;
                             break;
 
