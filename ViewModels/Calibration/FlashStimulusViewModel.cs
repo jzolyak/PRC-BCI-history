@@ -56,13 +56,14 @@ namespace ViewModels.Calibration
         {
             if (e == null || e.Value == null) return;
             _uiInstruction = e.Value;
+            CalibrationFileMetadata? calibrationFileMetadata = _uiInstruction.Param != null ? (CalibrationFileMetadata)_uiInstruction.Param : null;
            switch(_uiInstruction.Type)
             {
-                case UIType.CalibrationStopQuery: PopupContentViewModel = _stopQueryViewModel;OpenPopup(); break;
-                case UIType.CalibrationBeginQuery: PopupContentViewModel = _beginQueryViewModel; OpenPopup(); break;
-                case UIType.CalibrationRepeatQuery: PopupContentViewModel = _repeatQueryViewModel; OpenPopup(); break;
+                case UIType.CalibrationStopQuery: PopupContentViewModel = _stopQueryViewModel; _stopQueryViewModel.UpdateText(calibrationFileMetadata); OpenPopup(); break;
+                case UIType.CalibrationBeginQuery: PopupContentViewModel = _beginQueryViewModel; _beginQueryViewModel.UpdateText(calibrationFileMetadata); OpenPopup(); break;
+                case UIType.CalibrationRepeatQuery: PopupContentViewModel = _repeatQueryViewModel; _repeatQueryViewModel.UpdateText(calibrationFileMetadata); ; OpenPopup(); break;
                 case UIType.CalibrationComplete: PopupContentViewModel = _completeViewModel; OpenPopup(); break;
-                case UIType.CountDownWindow: PopupContentViewModel = _countDownViewModel; _countDownViewModel.Start(); OpenPopup(); break;
+                case UIType.CountDownWindow: PopupContentViewModel = _countDownViewModel; _countDownViewModel.UpdateTitle(calibrationFileMetadata); _countDownViewModel.Start(); OpenPopup(); break;
             }
         }
 

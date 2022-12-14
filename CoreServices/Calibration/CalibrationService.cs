@@ -28,6 +28,8 @@ namespace CoreServices.Calibration
         private StateEngine _stateEngine;
 
         private CalibrationFileMetadata _currentPredictionFile;
+        private CalibrationFileMetadata _currentCalibrationFile;
+
         public CalibrationService()
         {
             _fileMetadataList = new ConcurrentDictionary<String,CalibrationFileMetadata>();
@@ -135,6 +137,16 @@ namespace CoreServices.Calibration
             NotifyFileMetadataChange(calibrationFileMetadata);
             return calibrationFileMetadata;
         }
+
+        public CalibrationFileMetadata CreateNewCalibrationFile(string name)
+        {
+            var calibrationFileMetadata = new CalibrationFileMetadata { UserGivenName = name, NumofSets = 5, CurrentSet = 1, IsStale = false };
+            _fileMetadataList.TryAdd(_calibrationFilePath, calibrationFileMetadata);
+            NotifyFileMetadataChange(calibrationFileMetadata);
+            _currentCalibrationFile = calibrationFileMetadata;
+            return calibrationFileMetadata;
+        }
+
         public void UserCancel()
         {
 
@@ -177,6 +189,7 @@ namespace CoreServices.Calibration
         }
         public void User_Actual_Start()
         {
+            _stateEngine.SetCalibrationFile(_currentCalibrationFile);
             Task.Run(_stateEngine.CalibrationMode);
         }
     }

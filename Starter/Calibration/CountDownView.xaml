@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:Starter.Calibration"
              x:Class="Starter.Calibration.CountDownView" Background="White" Height="150" Width="300">
         <Grid>
-            <Label x:Name="countDownLabel" Content="Calibration Set 1 will begin in ..." FontSize="20" Margin="20,20,0,0" />
+            <Label x:Name="countDownLabel" Content="{Binding Title}" FontSize="20" Margin="20,20,0,0" />
             <TextBox x:Name="countDownValue" Text="{Binding Text}" FontSize="30" BorderThickness="0"  Height="60" Width="60" Margin="20,40,0,0"  />
         </Grid>
 </UserControl>

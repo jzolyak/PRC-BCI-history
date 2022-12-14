@@ -7,7 +7,7 @@
              x:Class="Starter.Calibration.CalibrationStopQueryView" Background="White" Height="400" Width="600">
         <StackPanel>
             <Label Content="STOP" HorizontalAlignment="Center" Margin="0,20,0,0" FontSize="56"/>
-            <Label x:Name="queryLabel" Content="Do you want to Keep or Discard data collected in Calibration Set 1 of 5?" HorizontalAlignment="Center" Margin="0,40,0,0" FontSize="16"/>
+            <Label x:Name="queryLabel" Content="{Binding Text}" HorizontalAlignment="Center" Margin="0,40,0,0" FontSize="16"/>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <Button x:Name="keepButton"  Height="40" Width="140" Margin="0,40,40,40" Content="Keep" FontFamily="Arial" FontSize="25"  Style="{StaticResource ButtonStyle}" Command="{Binding KeepCommand}"/>

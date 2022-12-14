@@ -206,7 +206,7 @@ namespace ViewModels.Calibration
             }
            
             //for now create file with all 5 sets.
-            CurrentFileMetadata = _calibrationService.CreateDummyCalibrationFiles(_fileNameEntryViewModel.FileName);
+            CurrentFileMetadata = _calibrationService.CreateNewCalibrationFile(_fileNameEntryViewModel.FileName);
             PopupContentViewModel = null;
             ShowPopup = false;
             Opacity = 1;

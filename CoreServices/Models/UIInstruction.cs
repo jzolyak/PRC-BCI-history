@@ -10,6 +10,8 @@ namespace CoreServices.Models
     {
         public UIType Type { get; set; }
         public bool Result { get; set; }
+
+        public object Param { get; set; }
      
     }
 }

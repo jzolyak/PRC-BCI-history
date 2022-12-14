@@ -17,6 +17,8 @@ namespace CoreServices.Calibration
         private UIInstruction uiInstruction;
         private Action<UIInstruction> notifyUIAction;
         private Action<ScreenOverlay> notifyScreenOverLayChange;
+        private CalibrationFileMetadata calibrationFileMetadata;
+
 
         private Action exitAction;
         public enum CalibrationStates
@@ -258,6 +260,8 @@ namespace CoreServices.Calibration
                                     // Determine which set number you are at in the script
                                     currentSetNum = Int32.Parse(fields[1]);
                                     totalSetNum = Int32.Parse(fields[2]);
+                                    calibrationFileMetadata.NumofSets = totalSetNum;
+                                    calibrationFileMetadata.CurrentSet = currentSetNum;
                                     if (currentSetNum == startSetNum)
                                     {
                                         // Found where we need to start. Advance to next command in list
@@ -285,6 +289,7 @@ namespace CoreServices.Calibration
                                             if (nextLine[0] == "START")
                                             {
                                                 currentSetNum = Int32.Parse(nextLine[1]);
+                                                calibrationFileMetadata.CurrentSet = currentSetNum;
                                                 if (currentSetNum == startSetNum)
                                                 {
                                                     foundMatch = true;
@@ -711,10 +716,16 @@ namespace CoreServices.Calibration
 
         private void NotifyUI(UIInstruction uiInstruction)
         {
+            if (calibrationFileMetadata != null) uiInstruction.Param = calibrationFileMetadata;
             if(notifyUIAction!=null)
             {
                 notifyUIAction(uiInstruction);
             }
+        }
+
+        public void SetCalibrationFile(CalibrationFileMetadata calibrationFileMetadata)
+        {
+            this.calibrationFileMetadata = calibrationFileMetadata;
         }
     }
 }
