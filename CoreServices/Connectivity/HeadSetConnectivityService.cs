@@ -158,13 +158,13 @@ namespace CoreServices.Connectivity
             }
             catch (IOException e)
             {
-                Console.WriteLine(e.Message + "\n Cannot create file.");
+                Logger.Error(this,e.Message + "\n Cannot create file.");
                 return;
             }
 
             /* +++++++++++++++++++++++++++++++++++++++ */
 
-            Console.WriteLine("Starting Connectivity Mode ...");
+           Logger.Info(this,"Starting Connectivity Mode ...");
             Logger.Info(this, "Starting Connectivity Mode ...");
 
             WearableSensingVR300 headset = new WearableSensingVR300();
@@ -400,7 +400,7 @@ namespace CoreServices.Connectivity
 
             headset.Delete();
 
-            Console.WriteLine("Terminating the application...");
+           Logger.Info(this,"Terminating the application...");
 
         }  // ConnectivityMode()
 
@@ -838,7 +838,7 @@ namespace CoreServices.Connectivity
                 }
                 else  // value is lower than 0.05 MegaOhms
                 {
-                    Console.WriteLine("Chan = {0}, Imped = {1}", sourceIndex, signalValue);
+                   Logger.Info(this,"Chan ="+ sourceIndex + ", Imped =" + signalValue);
                     statusSensorScores[sourceIndex, 0] = 10;    // Bad - Ear clip has fallen off
                     sensorEventCounters[sourceIndex].impedanceBad++;
                 }
