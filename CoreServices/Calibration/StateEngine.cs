@@ -201,7 +201,7 @@ namespace CoreServices.Calibration
                 maxLinesInFile = commandLines.Length;
                 currentLine = 0;
                 repeatCalibrationLine = 0;
-
+                BinaryWriter? binaryWriter=null;
                 // Continue performing calibration until either:
                 //   - Script runs to completion, user exits at end of set, or error occurs
                 while (!modeExit)
@@ -682,7 +682,7 @@ namespace CoreServices.Calibration
                                 Logger.Error(this, "calibration file meta data is not available.unable to proceed");
                                 modeState = CalibrationStates.Clean_Up; break;
                             }    
-                            BinaryWriter binaryWriter = FileHandlerService.CreateAndOpenBinaryFile(calibrationFileMetadata.GetCurrentBinFileName());
+                            binaryWriter = FileHandlerService.CreateAndOpenBinaryFile(calibrationFileMetadata.GetCurrentBinFileName());
                             if (binaryWriter == null)
                             {
                                 Logger.Error(this, "unable to create binary writer.");
@@ -853,6 +853,15 @@ namespace CoreServices.Calibration
                 }  // while (!modeExit)
 
                 // this.Close();
+
+                headset.Disconnect();
+                headset.Delete();
+
+
+                if (binaryWriter != null)
+                {
+                    binaryWriter.Close();
+                }
 
                 //return Task.CompletedTask;
             }
