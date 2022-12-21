@@ -66,6 +66,7 @@ namespace ViewModels.Calibration
             SelectedFileChangeCmd = new RelayCommand(OnSelectedFileChange);
             _calibrationService = ServiceLocator.CalibrationService;
             _calibrationService.RaiseFileMetadataChange += _calibrationService_RaiseFileMetadataChange;
+            _calibrationService.RaiseExitCalibrationEvent += _calibrationService_RaiseExitCalibrationEvent;
             _userSettingsService = ServiceLocator.UserSettingsService;
             LoadCalibrationFilesMetadata();
             CurrentFileMetadata = FileNamesCollection.FirstOrDefault(x => x.IsCurrent);
@@ -84,6 +85,11 @@ namespace ViewModels.Calibration
             MoveUpCmd = new RelayCommand(MoveFileMetadataIndexUp);
             MoveDownCmd = new RelayCommand(MoveFileMetadataIndexDown);
             _flashStimulusViewModel = new FlashStimulusViewModel();
+        }
+
+        private void _calibrationService_RaiseExitCalibrationEvent(object? sender, EventArgs e)
+        {
+            if (_showorHideMainWindow != null) _showorHideMainWindow(true);
         }
 
         private void _calibrationService_RaiseFileMetadataChange(object? sender, EventArgs<CalibrationFileMetadata> e)

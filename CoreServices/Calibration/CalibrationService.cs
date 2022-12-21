@@ -142,7 +142,7 @@ namespace CoreServices.Calibration
         {
             var calibrationFileMetadata = new CalibrationFileMetadata { UserGivenName = name, NumofSets = 5, CurrentSet = 1, IsStale = false };
             _fileMetadataList.TryAdd(_calibrationFilePath, calibrationFileMetadata);
-            NotifyFileMetadataChange(calibrationFileMetadata);
+            //NotifyFileMetadataChange(calibrationFileMetadata);
             _currentCalibrationFile = calibrationFileMetadata;
             return calibrationFileMetadata;
         }

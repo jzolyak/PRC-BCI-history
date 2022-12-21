@@ -42,6 +42,46 @@ namespace CoreServices.Files
         //read text 
 
         //erase all the content of the opened file(this might not be case) or delete the complete file
+        public static bool DeleteBinaryFile(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+            BinaryWriter? binaryWriter = null;
+            if (!currentWriterList.ContainsKey(name))
+            {
+                return false;
+            }
+            if (currentWriterList.TryGetValue(name, out binaryWriter))
+            {
+                return false;
+            }
+            if(binaryWriter==null) return false;
+            binaryWriter.Close();
+            File.Delete(name);
+            currentWriterList.TryRemove(name, out binaryWriter);
+            return true;
+        }
 
+        public bool DeleteBinaryFile(BinaryWriter binaryWriter)
+        {
+            if (binaryWriter == null) return false;
+            var keyValuePair = currentWriterList.FirstOrDefault(x => x.Value.Equals(binaryWriter));
+            var name=keyValuePair.Key;
+            if(string.IsNullOrEmpty(name)) return false;    
+            binaryWriter.Close();
+            File.Delete(name);
+            currentWriterList.TryRemove(name, out binaryWriter);
+            return true;
+        }
+
+        public static bool CloseBinaryWriter(BinaryWriter binaryWriter)
+        {
+            if(binaryWriter == null) return false;
+            var keyValuePair = currentWriterList.FirstOrDefault(x => x.Value.Equals(binaryWriter));
+            var name = keyValuePair.Key;
+            if (string.IsNullOrEmpty(name)) return false;
+            binaryWriter.Close();
+            currentWriterList.TryRemove(name, out binaryWriter);
+            return true;
+        }
     }
 }

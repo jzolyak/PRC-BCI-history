@@ -252,6 +252,7 @@ namespace CoreServices.Calibration
                                 }
                                 else
                                 {
+                                    FileHandlerService.DeleteBinaryFile(calibrationFileMetadata.GetCurrentBinFileName());
                                     modeState = CalibrationStates.Wait_On_UI;
                                     uiInstruction.Type = UIType.CalibrationRepeatQuery;
                                     uiInstruction.Result = false;
@@ -857,10 +858,9 @@ namespace CoreServices.Calibration
                 headset.Disconnect();
                 headset.Delete();
 
-
                 if (binaryWriter != null)
                 {
-                    binaryWriter.Close();
+                    FileHandlerService.CloseBinaryWriter(binaryWriter);
                 }
 
                 //return Task.CompletedTask;
