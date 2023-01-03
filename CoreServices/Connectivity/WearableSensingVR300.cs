@@ -149,6 +149,11 @@ namespace BCI_Headset
             return defaultPort;
         }
 
+        public void SetDefaultHeadsetComPort(string port)
+        {
+            defaultPort = port;
+        }
+
         /* +++++++++++++++++++++ */
 
         public bool IsConnected()

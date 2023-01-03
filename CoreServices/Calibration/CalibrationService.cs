@@ -52,59 +52,79 @@ namespace CoreServices.Calibration
                 {
                     Logger.Error(this, "Cannot find Calibration files directory. Unable to load calibration files"); return;
                 }
-                var files = Directory.GetFiles(_calibrationFilePath, "*.COEF");
+                var files = Directory.GetFiles(_calibrationFilePath, "*.bin");
                 //filename pattern - usergivenname_setnum_status
-                foreach (var file in files)
-                {
-                    if (string.IsNullOrEmpty(file)) continue;
-                    var fileName = Path.GetFileName(file);
-                    var lastUpdatedTime = File.GetLastWriteTime(file);
-                    var metadata = fileName.Split("_");
-                    if (metadata.Length < 3) continue;
-                    if (_fileMetadataList.ContainsKey(metadata[0]))
-                    {
-                        var calibrationFileMetadata = _fileMetadataList[metadata[0]];
-                        calibrationFileMetadata.NumofSets = calibrationFileMetadata.NumofSets + 1;
-                        if (calibrationFileMetadata.LastUpdatedTime < lastUpdatedTime) calibrationFileMetadata.LastUpdatedTime = lastUpdatedTime;
-                        var thirdParam = metadata[2].ToLower();
-                        if (thirdParam.StartsWith("current"))
-                        {
-                            calibrationFileMetadata.CurrentSet = Int32.Parse(metadata[1]);
-                            calibrationFileMetadata.IsCurrent = true;
-                        }
-                        else if (thirdParam.StartsWith("prediction"))
-                        {
-                            calibrationFileMetadata.IsCurrentPredictionFile = true;
-                            _currentPredictionFile = calibrationFileMetadata;
-                        }
+                LoadCalibrationFileMetadata(files);
+                var calfiles = Directory.GetFiles(_calibrationFilePath, "*.COEF");
+                //filename pattern - usergivenname_setnum_status
+                LoadCalibrationFileMetadata(calfiles);
 
-                        if ( metadata.Length > 3)
-                        {
-                            if (metadata[3].ToLower().Equals("stale"))
-                            {
-                                calibrationFileMetadata.IsStale = true;
-                            }
-                            else if (metadata[3].ToLower().Equals("currentfile"))
-                            {
-                                calibrationFileMetadata.IsCurrent = true;
-                            }
-                            //revisit - need to deal with stale
-                        }
-                    }
-                    else
-                    {
-                        int currentset = -1;
-                        if (metadata[2].ToLower().Equals("current"))
-                        {
-                            currentset = Int32.Parse(metadata[1]);
-                        }
-                        _fileMetadataList.TryAdd(metadata[0], new CalibrationFileMetadata { UserGivenName = metadata[0], NumofSets=1,CurrentSet=currentset, IsStale = metadata.Length > 3 && metadata[3].ToLower().Equals("stale") });
-                    }
-                }
             }
             catch (Exception ex)
             {
                 Logger.Error(this, ex.Message);
+            }
+        }
+
+        private void LoadCalibrationFileMetadata(string[] files)
+        {
+            foreach (var file in files)
+            {
+                if (string.IsNullOrEmpty(file)) continue;
+                var fileName = Path.GetFileName(file);
+                var lastUpdatedTime = File.GetLastWriteTime(file);
+                var metadata = fileName.Split("_");
+                if (metadata.Length < 3) continue;
+                if (_fileMetadataList.ContainsKey(metadata[0]))
+                {
+                    var calibrationFileMetadata = _fileMetadataList[metadata[0]];
+                    calibrationFileMetadata.NumofSets = Int32.Parse(metadata[1]);
+                    if (calibrationFileMetadata.LastUpdatedTime < lastUpdatedTime) calibrationFileMetadata.LastUpdatedTime = lastUpdatedTime;
+                    var thirdParam = metadata[2].ToLower();
+                    if (thirdParam.StartsWith("current")|| file.EndsWith(".bin"))
+                    {
+                        calibrationFileMetadata.CurrentSet = Int32.Parse(metadata[1]);
+                        calibrationFileMetadata.IsCurrent = true;                     
+                    }
+                    else if (thirdParam.StartsWith("prediction"))
+                    {
+                        calibrationFileMetadata.IsCurrentPredictionFile = true;
+                        _currentPredictionFile = calibrationFileMetadata;
+                    }
+
+                    if (metadata.Length > 3)
+                    {
+                        if (metadata[3].ToLower().Equals("stale"))
+                        {
+                            calibrationFileMetadata.IsStale = true;
+                        }
+                        else if (metadata[3].ToLower().Equals("currentfile"))
+                        {
+                            calibrationFileMetadata.IsCurrent = true;
+                        }
+                        //revisit - need to deal with stale
+                    }
+                    if (file.EndsWith(".bin"))
+                    {
+                        _currentCalibrationFile = calibrationFileMetadata;
+                    }
+                }
+                else
+                {
+                    int currentset = -1;
+                    if (metadata[2].ToLower().Equals("current"))
+                    {
+                        currentset = Int32.Parse(metadata[1]);
+                    }
+                    var calibrationmetadata = new CalibrationFileMetadata
+                    {
+                        UserGivenName = metadata[0],
+                        NumofSets = 1,
+                        CurrentSet = currentset,
+                        IsStale = metadata.Length > 3 && metadata[3].ToLower().Equals("stale")
+                    }
+                    _fileMetadataList.TryAdd(metadata[0], new CalibrationFileMetadata { UserGivenName = metadata[0], NumofSets = 1, CurrentSet = currentset, IsStale = metadata.Length > 3 && metadata[3].ToLower().Equals("stale") });
+                }
             }
         }
         public void StartCalibration()

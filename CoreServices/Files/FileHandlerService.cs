@@ -12,9 +12,14 @@ namespace CoreServices.Files
     {
         private static ConcurrentDictionary<string, BinaryWriter> currentWriterList = new ConcurrentDictionary<string, BinaryWriter>();
         //create and open and keep it open and return binary writer
-        public static BinaryWriter? CreateAndOpenBinaryFile(string name)
+        public static BinaryWriter? CreateAndOpenBinaryFile(string name,string subdirectory)
         {
             if (string.IsNullOrEmpty(name)) return null; 
+            if(!string.IsNullOrEmpty(subdirectory))
+            {
+                name = Path.Combine(subdirectory, name);
+            }
+            EnsureFolder(name);
             BinaryWriter? binaryWriter = null;
             if(!currentWriterList.ContainsKey(name) || !currentWriterList.TryGetValue(name, out binaryWriter))
             {
@@ -42,9 +47,13 @@ namespace CoreServices.Files
         //read text 
 
         //erase all the content of the opened file(this might not be case) or delete the complete file
-        public static bool DeleteBinaryFile(string name)
+        public static bool DeleteBinaryFile(string name, string subdirectory)
         {
             if (string.IsNullOrEmpty(name)) return false;
+            if (!string.IsNullOrEmpty(subdirectory))
+            {
+                name = Path.Combine(subdirectory, name);
+            }
             BinaryWriter? binaryWriter = null;
             if (!currentWriterList.ContainsKey(name))
             {
@@ -61,7 +70,7 @@ namespace CoreServices.Files
             return true;
         }
 
-        public bool DeleteBinaryFile(BinaryWriter binaryWriter)
+        public static bool DeleteBinaryFile(BinaryWriter binaryWriter)
         {
             if (binaryWriter == null) return false;
             var keyValuePair = currentWriterList.FirstOrDefault(x => x.Value.Equals(binaryWriter));
@@ -82,6 +91,17 @@ namespace CoreServices.Files
             binaryWriter.Close();
             currentWriterList.TryRemove(name, out binaryWriter);
             return true;
+        }
+
+       private static void EnsureFolder(string path)
+        {
+            string directoryName = Path.GetDirectoryName(path);
+            // If path is a file name only, directory name will be an empty string
+            if (directoryName.Length > 0)
+            {
+                // Create all directories on the path that don't already exist
+                Directory.CreateDirectory(directoryName);
+            }
         }
     }
 }

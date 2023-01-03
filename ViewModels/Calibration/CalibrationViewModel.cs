@@ -170,6 +170,7 @@ namespace ViewModels.Calibration
             Opacity = 1;
             PopupContentViewModel = null;
             ShowPopup = false;
+            if (_showorHideMainWindow != null) _showorHideMainWindow(true);
         }
 
         private void StartCalibrationPreCheck(object obj)
@@ -227,6 +228,7 @@ namespace ViewModels.Calibration
 
         private void ShowCalibrationInstructions()
         {
+            if (_showorHideMainWindow != null) _showorHideMainWindow(false);
             DisplayPopup(_calibrationInstructionsViewModel);
         }
 

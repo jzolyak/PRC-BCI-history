@@ -942,5 +942,10 @@ namespace CoreServices.Connectivity
             OnMeasurementsChange(measurements);
             OnSensorStatusColorChange(statusColor);
         }
+
+        public void UpdateHeadsetPort(string port)
+        {
+            WearableSensingVR300.defaultPort = port;
+        }
     }
 }

@@ -202,6 +202,10 @@ namespace CoreServices.Calibration
                 currentLine = 0;
                 repeatCalibrationLine = 0;
                 BinaryWriter? binaryWriter=null;
+                if(calibrationFileMetadata != null)
+                {
+                    startSetNum = calibrationFileMetadata.CurrentSet;
+                }
                 // Continue performing calibration until either:
                 //   - Script runs to completion, user exits at end of set, or error occurs
                 while (!modeExit)
@@ -252,7 +256,7 @@ namespace CoreServices.Calibration
                                 }
                                 else
                                 {
-                                    FileHandlerService.DeleteBinaryFile(calibrationFileMetadata.GetCurrentBinFileName());
+                                    FileHandlerService.DeleteBinaryFile(calibrationFileMetadata.GetCurrentBinFileName(), "CalibrationFiles");
                                     modeState = CalibrationStates.Wait_On_UI;
                                     uiInstruction.Type = UIType.CalibrationRepeatQuery;
                                     uiInstruction.Result = false;
@@ -683,7 +687,7 @@ namespace CoreServices.Calibration
                                 Logger.Error(this, "calibration file meta data is not available.unable to proceed");
                                 modeState = CalibrationStates.Clean_Up; break;
                             }    
-                            binaryWriter = FileHandlerService.CreateAndOpenBinaryFile(calibrationFileMetadata.GetCurrentBinFileName());
+                            binaryWriter = FileHandlerService.CreateAndOpenBinaryFile(calibrationFileMetadata.GetCurrentBinFileName(), "CalibrationFiles");
                             if (binaryWriter == null)
                             {
                                 Logger.Error(this, "unable to create binary writer.");

@@ -30,7 +30,7 @@ namespace ViewModels.Calibration
             {
                 return;
             }
-            Text = "Are you ready to begin Calibration Set " + calibrationFileMetadata.CurrentSet + " ?";
+            Text = "Are you ready to begin Calibration Set " + (calibrationFileMetadata.CurrentSet+1) + " ?";
         }
 
         private void StartCalibrationSet(Object obj)
