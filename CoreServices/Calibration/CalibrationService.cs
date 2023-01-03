@@ -122,7 +122,7 @@ namespace CoreServices.Calibration
                         NumofSets = 1,
                         CurrentSet = currentset,
                         IsStale = metadata.Length > 3 && metadata[3].ToLower().Equals("stale")
-                    }
+                    };
                     _fileMetadataList.TryAdd(metadata[0], new CalibrationFileMetadata { UserGivenName = metadata[0], NumofSets = 1, CurrentSet = currentset, IsStale = metadata.Length > 3 && metadata[3].ToLower().Equals("stale") });
                 }
             }
