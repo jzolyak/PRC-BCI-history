@@ -73,15 +73,14 @@ namespace CoreServices.Calibration
                 if (string.IsNullOrEmpty(file)) continue;
                 var fileName = Path.GetFileName(file);
                 var lastUpdatedTime = File.GetLastWriteTime(file);
-                var metadata = fileName.Split("_");
+                var metadata = Path.GetFileNameWithoutExtension(fileName).Split("_");
                 if (metadata.Length < 3) continue;
                 if (_fileMetadataList.ContainsKey(metadata[0]))
                 {
                     var calibrationFileMetadata = _fileMetadataList[metadata[0]];
-                    calibrationFileMetadata.NumofSets = Int32.Parse(metadata[1]);
                     if (calibrationFileMetadata.LastUpdatedTime < lastUpdatedTime) calibrationFileMetadata.LastUpdatedTime = lastUpdatedTime;
                     var thirdParam = metadata[2].ToLower();
-                    if (thirdParam.StartsWith("current")|| file.EndsWith(".bin"))
+                    if (thirdParam.StartsWith("current"))
                     {
                         calibrationFileMetadata.CurrentSet = Int32.Parse(metadata[1]);
                         calibrationFileMetadata.IsCurrent = true;                     
@@ -91,7 +90,15 @@ namespace CoreServices.Calibration
                         calibrationFileMetadata.IsCurrentPredictionFile = true;
                         _currentPredictionFile = calibrationFileMetadata;
                     }
-
+                    if( file.EndsWith(".bin"))
+                    {
+                        int setNum = Int32.Parse(metadata[1]);
+                        if (setNum > calibrationFileMetadata.CurrentSet)
+                        {
+                            calibrationFileMetadata.CurrentSet = setNum;
+                        }
+                        calibrationFileMetadata.IsCurrent = true;
+                    }
                     if (metadata.Length > 3)
                     {
                         if (metadata[3].ToLower().Equals("stale"))
@@ -111,19 +118,16 @@ namespace CoreServices.Calibration
                 }
                 else
                 {
-                    int currentset = -1;
-                    if (metadata[2].ToLower().Equals("current"))
-                    {
-                        currentset = Int32.Parse(metadata[1]);
-                    }
-                    var calibrationmetadata = new CalibrationFileMetadata
+                   
+                    _currentCalibrationFile = new CalibrationFileMetadata
                     {
                         UserGivenName = metadata[0],
-                        NumofSets = 1,
-                        CurrentSet = currentset,
+                        NumofSets = Int32.Parse(metadata[2]),
+                        CurrentSet = Int32.Parse(metadata[1]),
+                        IsCurrent = true,
                         IsStale = metadata.Length > 3 && metadata[3].ToLower().Equals("stale")
                     };
-                    _fileMetadataList.TryAdd(metadata[0], new CalibrationFileMetadata { UserGivenName = metadata[0], NumofSets = 1, CurrentSet = currentset, IsStale = metadata.Length > 3 && metadata[3].ToLower().Equals("stale") });
+                    _fileMetadataList.TryAdd(metadata[0], _currentCalibrationFile);
                 }
             }
         }
