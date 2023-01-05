@@ -37,7 +37,7 @@
                     <Button Style="{StaticResource ButtonStyle}" Content="Resume Calibrating" HorizontalAlignment="Center" Width="200" Height="70" FontSize="20" VerticalAlignment="Center" Command="{Binding ResumeCmd}" Visibility="{Binding EnableResume,Converter={StaticResource booltoVisibilityConverter}}"></Button>
                     <StackPanel Orientation="Horizontal" Visibility="{Binding EnableResume,Converter={StaticResource booltoVisibilityConverter}}" HorizontalAlignment="Center">
                         <Label Margin="2,2,0,0" Style="{StaticResource MediumLabelStyle}" DataContext="{Binding CurrentFileMetadata}">
-                            <TextBlock Text="{Binding NumofSets, StringFormat='({0}/5 sets completed)'}"/>
+                            <TextBlock Text="{Binding CurrentSet, StringFormat='({0}/4 sets completed)'}"/>
                         </Label>
                         <!--Label Content="/5 sets completed" Margin="0,2,2,2" Style="{StaticResource MediumLabelStyle}" DataContext="{Binding CurrentFileMetadata}"></Label-->
                     </StackPanel>

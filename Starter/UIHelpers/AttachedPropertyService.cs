@@ -1,4 +1,5 @@
-﻿using Starter.Calibration;
+﻿using CoreServices;
+using Starter.Calibration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,8 +14,35 @@ namespace Starter.UIHelpers
     {
         public static readonly DependencyProperty ChildWindowPrefereceProperty = DependencyProperty.RegisterAttached("ChildWindowPreferece", typeof(ChildWindowSettings), typeof(AttachedPropertyService), new FrameworkPropertyMetadata(OnChildWindowPreferenceChange));
         public static readonly DependencyProperty WindowSizeProperty = DependencyProperty.RegisterAttached("WindowSize", typeof(WindowSizeProperties), typeof(AttachedPropertyService), new FrameworkPropertyMetadata(OnChildWindowSizeChange));
+        public static readonly DependencyProperty WindowTopMostProperty = DependencyProperty.RegisterAttached("WindowTopMost", typeof(bool), typeof(AttachedPropertyService), new FrameworkPropertyMetadata(OnWindowTopMostChange));
 
-       
+        private static void OnWindowTopMostChange(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            try
+            {
+                if (e.NewValue == null) return;
+                if (d == null || !(d is Window)) return;
+                var window = (Window)d;
+                var topmost = (bool)e.NewValue;
+                if(topmost)
+                {
+                    window.Topmost = true;
+                    window.Activate();
+                }
+            }
+            catch(Exception ex)
+            {
+                Logger.Error("AttachedPropertyService", ex.ToString());
+            }
+        }
+
+        // Declare a get accessor method.
+        public static bool GetWindowTopMost(UIElement target) =>
+            (bool)target.GetValue(WindowTopMostProperty);
+
+        // Declare a set accessor method.
+        public static void SetWindowTopMost(UIElement target, bool value) =>
+            target.SetValue(WindowTopMostProperty, value);
 
         private static Dictionary<Window, Window> windowCollection = new Dictionary<Window, Window>();
         private static void OnChildWindowPreferenceChange(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -39,6 +67,15 @@ namespace Starter.UIHelpers
                     }
                     childWindow.DataContext = childWindowPref.DataContext;
                     childWindow.Visibility = Visibility.Visible;
+                    childWindow.Topmost = true;
+                }
+                else
+                {
+                    if (childWindow != null)
+                    {
+                        childWindow.Close();
+                        windowCollection.Remove(window);
+                    }
                 }
             }
             catch (Exception ex)

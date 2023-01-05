@@ -89,6 +89,9 @@ namespace ViewModels.Calibration
 
         private void _calibrationService_RaiseExitCalibrationEvent(object? sender, EventArgs e)
         {
+            //start the calibration
+            var childWindowpref = new ChildWindowSettings { ShowWindow = false };
+            _showorHideChildWindow(childWindowpref);
             if (_showorHideMainWindow != null) _showorHideMainWindow(true);
         }
 
@@ -147,7 +150,15 @@ namespace ViewModels.Calibration
 
         private void ResumeCalibration(object obj)
         {
-            
+            PopupContentViewModel = null;
+            ShowPopup = false;
+            Opacity = 1;
+            if (_showorHideMainWindow != null) _showorHideMainWindow(false);
+
+            //start the calibration
+            var childWindowpref = new ChildWindowSettings { ShowWindow = true, DataContext = _flashStimulusViewModel };
+            _showorHideChildWindow(childWindowpref);
+            _calibrationService.User_Actual_Start();
         }
 
         private void LoadCalibrationFilesMetadata()
@@ -176,7 +187,7 @@ namespace ViewModels.Calibration
         private void StartCalibrationPreCheck(object obj)
         {   
             //check to see if any current calibration in progress
-            if(CurrentFileMetadata != default(CalibrationFileMetadata) && CurrentFileMetadata.NumofSets < 5)
+            if(CurrentFileMetadata != default(CalibrationFileMetadata) && CurrentFileMetadata.CurrentSet < CurrentFileMetadata.NumofSets)
             {
                 DisplayPopup(_deleteConfirmationViewModel);
                 return;
