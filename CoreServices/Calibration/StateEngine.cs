@@ -466,7 +466,7 @@ namespace CoreServices.Calibration
 
                             elementList = remoteDisplay.GetRemoteDisplayedElements();
 
-                            if (elementList == null)
+                            if (elementList.Count == 0)
                             {
                                 // Sometimes MUIA does not find the children elements of the desktop (root) element on the first try.
                                 if (numGetElementRetries == 0)
@@ -477,7 +477,8 @@ namespace CoreServices.Calibration
                                 }
                                 else
                                 {
-                                    MessagingService.SendMessage(this, "Failed to fetch displayed elements using Microsoft UAI... ", MessageType.Popup);
+                                    logString = "Failed to fetch displayed elements using Microsoft UAI ... \n";
+                                    Logger.Info(this, logString);
                                     modeState = CalibrationStates.Clean_Up;
                                 }
                             }
@@ -538,6 +539,9 @@ namespace CoreServices.Calibration
                             // Using the row and column position on the grid, assign each key a unique keyID for flashing.
                             Keyboard keyboardGrid = new Keyboard();
 
+                            logString = "Number of list elements = " + elementList.Count.ToString() + "\n";
+                            Logger.Info(this, logString);
+
                             gridData = keyboardGrid.ExtractGridData(elementList);
 
                             List<List<int>> listOfRows = keyboardGrid.CreateListOfRows(elementList);
@@ -545,16 +549,28 @@ namespace CoreServices.Calibration
                             gridData.maxKeyRows = listOfRows.Count;
                             gridData.maxKeyCols = listOfColumns.Count;
 
+                            logString = "Number of columns = " + listOfColumns.Count.ToString() + "\n";
+                            Logger.Info(this, logString);
+
                             bool PRC_mode = true;
 
                             // Create a KeyID map of all the keys based on the mapping method and grid size
                             keyIDMap = keyboardGrid.CreateKeyIDMap(gridData, PRC_mode);
 
+                            logString = "CreateKeyIDMap() ... \n";
+                            Logger.Info(this, logString);
+
                             //flashableKeys = keyboardGrid.AssignKeyMapping(elementList, gridData, keyIDMap, out crossReferenceLookupTable);
                             flashableKeys = keyboardGrid.AssignKeyMapping(elementList, gridData, keyIDMap);
 
+                            logString = "AssignKeyMapping() ... \n";
+                            Logger.Info(this, logString);
+
                             // Create cross reference lookup table between the keyID value and buttonIndex value used in flashing keys.
                             flashStimulus.CreateCrossReferenceTable(flashableKeys);
+
+                            logString = "CreateCrossReferenceTable() ... \n";
+                            Logger.Info(this, logString);
 
                             modeState = CalibrationStates.Create_Grouping;
                             break;
