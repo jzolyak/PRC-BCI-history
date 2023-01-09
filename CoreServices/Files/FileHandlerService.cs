@@ -23,7 +23,7 @@ namespace CoreServices.Files
             BinaryWriter? binaryWriter = null;
             if(!currentWriterList.ContainsKey(name) || !currentWriterList.TryGetValue(name, out binaryWriter))
             {
-               binaryWriter = new BinaryWriter(new FileStream(name, FileMode.Append, FileAccess.Write));
+               binaryWriter = new BinaryWriter(new FileStream(name, FileMode.OpenOrCreate, FileAccess.Write,FileShare.ReadWrite));
                 if (!currentWriterList.ContainsKey(name))
                 {
                     currentWriterList.TryAdd(name, binaryWriter);
@@ -88,7 +88,9 @@ namespace CoreServices.Files
             var keyValuePair = currentWriterList.FirstOrDefault(x => x.Value.Equals(binaryWriter));
             var name = keyValuePair.Key;
             if (string.IsNullOrEmpty(name)) return false;
+            binaryWriter.BaseStream.Close();
             binaryWriter.Close();
+            binaryWriter.Dispose();
             currentWriterList.TryRemove(name, out binaryWriter);
             return true;
         }
@@ -102,6 +104,17 @@ namespace CoreServices.Files
                 // Create all directories on the path that don't already exist
                 Directory.CreateDirectory(directoryName);
             }
+        }
+
+        public static void MoveFiles(string filename,string subdirectory,string destinationDirectory)
+        {
+            if(string.IsNullOrEmpty(filename) || string.IsNullOrEmpty(subdirectory) || string.IsNullOrEmpty(destinationDirectory)) return;    
+           var sourcefilename = Path.Combine(subdirectory, filename);
+            string deleteFilepath = Path.Combine(subdirectory, destinationDirectory)+Path.DirectorySeparatorChar;
+            EnsureFolder(deleteFilepath);
+            if (!File.Exists(sourcefilename)) return;
+            string destinationFilename = Path.Combine(deleteFilepath, filename);
+            File.Move(sourcefilename, destinationFilename, true);
         }
     }
 }

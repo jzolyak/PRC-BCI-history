@@ -75,7 +75,7 @@ namespace ViewModels.Calibration
             EnableResume = CurrentFileMetadata != default(CalibrationFileMetadata) && CurrentFileMetadata != null;
             ShowPopup = false;
             PopupContentViewModel = null;
-            _deleteConfirmationViewModel = new DeleteConfirmationViewModel(GetFileNameFromUser, ClosePopup, CurrentFileMetadata);
+            _deleteConfirmationViewModel = new DeleteConfirmationViewModel(DeleteCurrentCalibFileandStartNew, ClosePopup, CurrentFileMetadata);
             _fileNameEntryViewModel = new FileNameEntryViewModel(DisplayDemoVideo, ClosePopup, _calibrationFileMetadataColl);
             _demoVideoViewModel = new DemoVideoViewModel(ShowCalibrationInstructions, ClosePopup);
             _calibrationInstructionsViewModel = new CalibrationInstructionsViewModel(StartActualCalibration, ClosePopup);
@@ -88,11 +88,17 @@ namespace ViewModels.Calibration
         }
 
         private void _calibrationService_RaiseExitCalibrationEvent(object? sender, EventArgs e)
-        {
-            //start the calibration
+        {  
             var childWindowpref = new ChildWindowSettings { ShowWindow = false };
             _showorHideChildWindow(childWindowpref);
             if (_showorHideMainWindow != null) _showorHideMainWindow(true);
+            OnPropertyChanged(nameof(CurrentFileMetadata));
+        }
+
+        private void DeleteCurrentCalibFileandStartNew()
+        {
+            _calibrationService.UpdateCurrentCalibrationFileState("Deleted");
+            GetFileNameFromUser();
         }
 
         private void _calibrationService_RaiseFileMetadataChange(object? sender, EventArgs<CalibrationFileMetadata> e)
@@ -154,7 +160,7 @@ namespace ViewModels.Calibration
             ShowPopup = false;
             Opacity = 1;
             if (_showorHideMainWindow != null) _showorHideMainWindow(false);
-
+            _currentFileMetadata.CurrentSet = _currentFileMetadata.CurrentSet + 1;
             //start the calibration
             var childWindowpref = new ChildWindowSettings { ShowWindow = true, DataContext = _flashStimulusViewModel };
             _showorHideChildWindow(childWindowpref);

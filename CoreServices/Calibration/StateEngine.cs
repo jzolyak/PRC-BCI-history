@@ -25,6 +25,8 @@ namespace CoreServices.Calibration
 
 
         private Action exitAction;
+        private Action completeAction;
+
         public enum CalibrationStates
         {
             Show_Instructions, Open_Files, Read_Command, Remote_Display, Get_Remote_Elements,
@@ -42,12 +44,12 @@ namespace CoreServices.Calibration
             "Notify_UI", "Wait_On_UI", "Process_UI_Notification"
         };
 
-        public StateEngine(Action<UIInstruction> notifyUIAction,Action<ScreenOverlay> notifyScreenOverLayChange, Action exitAction)
+        public StateEngine(Action<UIInstruction> notifyUIAction,Action<ScreenOverlay> notifyScreenOverLayChange, Action exitAction,Action completeAction)
         {
             this.notifyUIAction = notifyUIAction;
             this.notifyScreenOverLayChange = notifyScreenOverLayChange;
             this.exitAction = exitAction;
-            
+            this.completeAction = completeAction;
         }
 
         public async Task CalibrationMode()
@@ -66,6 +68,7 @@ namespace CoreServices.Calibration
             inputParam.boardDivision = BoardDivision.Checkerboard;
             inputParam.arrangement = Arrangement.Magic;
             inputParam.indexMapping = IndexMapping.GridSize;
+            bool calibrationCompleted = false;
 
             int startSetNum = 1;
             int totalSetNum = 0;
@@ -243,9 +246,11 @@ namespace CoreServices.Calibration
                                     if (startSetNum > totalSetNum)
                                     {
                                         // Reached last set in the script file. Inform user calibration is finished.
+                                        //Handover the calib files to generate coef and move the bin files to completed folder
                                         uiInstruction.Type = UIType.CalibrationComplete;
                                         uiInstruction.Result = false;
                                         NotifyUI(uiInstruction);
+                                        calibrationCompleted = true;
                                         modeState = CalibrationStates.Clean_Up;
                                     }
                                     else
@@ -882,7 +887,10 @@ namespace CoreServices.Calibration
                 {
                     FileHandlerService.CloseBinaryWriter(binaryWriter);
                 }
-
+                if(calibrationCompleted&&completeAction!=null)
+                {
+                    completeAction();
+                }
                 //return Task.CompletedTask;
             }
             catch (Exception ex)

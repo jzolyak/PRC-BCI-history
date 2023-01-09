@@ -1,4 +1,5 @@
-﻿using CoreServices.Models;
+﻿using CoreServices.Files;
+using CoreServices.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -24,6 +25,7 @@ namespace CoreServices.Calibration
         public event EventHandler<EventArgs<ScreenOverlay>>? RaiseScreenOverLayChange;
         public event EventHandler<EventArgs<UIInstruction>>? RaiseUIRequestChange;
         public event EventHandler<EventArgs>? RaiseExitCalibrationEvent;
+      
 
         private StateEngine _stateEngine;
 
@@ -34,7 +36,7 @@ namespace CoreServices.Calibration
         {
             _fileMetadataList = new ConcurrentDictionary<String,CalibrationFileMetadata>();
             _calibrationFilePath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)+ "\\CalibrationFiles\\";
-            _stateEngine = new StateEngine(NotifyUI, NotifyScreenOverLayChange, ExitCalibration);
+            _stateEngine = new StateEngine(NotifyUI, NotifyScreenOverLayChange, ExitCalibration, OnCalibrationComplete);
             LoadCalibrationFiles();
         }
 
@@ -168,6 +170,7 @@ namespace CoreServices.Calibration
             _fileMetadataList.TryAdd(_calibrationFilePath, calibrationFileMetadata);
             //NotifyFileMetadataChange(calibrationFileMetadata);
             _currentCalibrationFile = calibrationFileMetadata;
+            NotifyFileMetadataChange(calibrationFileMetadata);
             return calibrationFileMetadata;
         }
 
@@ -215,6 +218,34 @@ namespace CoreServices.Calibration
         {
             _stateEngine.SetCalibrationFile(_currentCalibrationFile);
             Task.Run(_stateEngine.CalibrationMode);
+        }
+
+        public void MoveCurrentCalibrationFiles(string userGivenName,string destinationFolder)
+        {
+            if(_currentCalibrationFile == null || string.IsNullOrEmpty(userGivenName)) return;
+            if(!userGivenName.Equals(_currentCalibrationFile.UserGivenName))
+            {
+                Logger.Error(this, "Unable to delete the calibration file:" + userGivenName);
+                return;
+            }
+            var files = Directory.GetFiles(_calibrationFilePath, userGivenName+"*.bin");
+            foreach (var file in files)
+            {
+                var fileName = Path.GetFileName(file);
+                FileHandlerService.MoveFiles(fileName, _calibrationFilePath, destinationFolder);
+            }
+        }
+        public void UpdateCurrentCalibrationFileState(string destinationFolder)
+        {
+            CalibrationFileMetadata calibrationFileMetadata = null;
+            _fileMetadataList.TryRemove(_currentCalibrationFile.UserGivenName, out calibrationFileMetadata);
+            MoveCurrentCalibrationFiles(_currentCalibrationFile.UserGivenName, destinationFolder);
+            _currentCalibrationFile = null;
+            NotifyFileMetadataChange(_currentCalibrationFile);
+        }
+        public void OnCalibrationComplete()
+        {
+            UpdateCurrentCalibrationFileState("Completed");
         }
     }
 
