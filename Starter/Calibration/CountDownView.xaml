@@ -4,9 +4,17 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Starter.Calibration"
-             x:Class="Starter.Calibration.CountDownView" Background="White" Height="150" Width="300">
+             x:Class="Starter.Calibration.CountDownView" Background="White" Height="200" Width="300">
         <Grid>
-            <Label x:Name="countDownLabel" Content="{Binding Title}" FontSize="20" Margin="20,20,0,0" />
-            <TextBox x:Name="countDownValue" Text="{Binding Text}" FontSize="30" BorderThickness="0"  Height="60" Width="60" Margin="20,40,0,0"  />
-        </Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"></RowDefinition>
+            <RowDefinition Height="50"></RowDefinition>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Label x:Name="countDownLabel" Content="{Binding Title}" FontSize="20" Margin="20,20,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <TextBox x:Name="countDownValue" Text="{Binding Text}" FontSize="30" BorderThickness="0"  Height="60" Width="60" Margin="20,40,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"  />
+        </StackPanel>
+        <Button x:Name="noButton" Grid.Row="1" Height="40" Width="140" Content="Cancel" FontSize="25" FontWeight="Bold" Style="{StaticResource ButtonStyle}" Command="{Binding CancelCommand}"/>
+
+    </Grid>
 </UserControl>

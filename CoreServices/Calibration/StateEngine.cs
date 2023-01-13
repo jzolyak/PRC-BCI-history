@@ -293,6 +293,7 @@ namespace CoreServices.Calibration
                                     // Need to create and open new file for next new calibration data set
 
                                     // Proceed with reading commands from the script file for next calibration set
+                                    showCountDownTimer = true;
                                     modeState = CalibrationStates.Read_Command;
                                 }
                                 else
@@ -303,8 +304,16 @@ namespace CoreServices.Calibration
                             }
                             else if (uiInstruction.Type == UIType.CountDownWindow)
                             {
-                                showCountDownTimer = false;
-                                modeState = CalibrationStates.Highlight_Target;
+                                if (uiInstruction.Result == true)
+                                {
+                                    showCountDownTimer = false;
+                                    modeState = CalibrationStates.Highlight_Target;
+                                }
+                                else
+                                {
+                                    // Clean up and return to Calibration submenu (not main BCI menu)
+                                    modeState = CalibrationStates.Clean_Up;
+                                }
                             }
                             break;
                         case CalibrationStates.Read_Command:
@@ -411,7 +420,7 @@ namespace CoreServices.Calibration
                                     targetsReadFromSet++;
                                     // Advance index to next command in the script
                                     currentLine++;
-                                    modeState = CalibrationStates.Assign_Key_Mapping;
+                                    modeState = CalibrationStates.Get_Remote_Elements;
                                 }
 
                                 else if (fields[0] == "SELECT")
@@ -432,10 +441,21 @@ namespace CoreServices.Calibration
                                         }
                                     }
 
-                                    remoteDisplay.SelectElement(elementIndex);
+									logString = "  ******  targetkeyIDvalue  = " + targetkeyIDvalue.ToString() + "\n";
+                                    Logger.Info(this, logString);
+
+                                    if (elementIndex == 0)
+                                    {
+                                        logString = "Matching targetkeyIDvalue NOT FOUND!!! = " + targetkeyIDvalue.ToString() + "\n";
+                                        Logger.Info(this, logString);
+                                    }
+                                    else
+                                    {
+                                        remoteDisplay.SelectElement(elementIndex);
+                                    }
 
                                     // Give other app time to respond to command
-                                    // await Task.Delay(2000);
+                                    //await Task.Delay(2000);
 
                                     // Advance index to next command in the script
                                     currentLine++;
@@ -461,7 +481,7 @@ namespace CoreServices.Calibration
                             // Do what is necessary so that current displayed BCI app page is a transparent window
                             // in order to view displayed screen of other application (e.g. Empower).
 
-                            modeState = CalibrationStates.Get_Remote_Elements;
+                            modeState = CalibrationStates.Read_Command;
                             break;
 
                         case CalibrationStates.Get_Remote_Elements:
@@ -517,7 +537,7 @@ namespace CoreServices.Calibration
 
                                 // Ready to fetch next target from calibration commands
                                 // modeState = CalibrationStates.Click_Key;     // <== This is second time I've fixed same error. JAZ 12/2/22
-                                modeState = CalibrationStates.Read_Command;
+                                modeState = CalibrationStates.Assign_Key_Mapping;
                             }
                             break;
 
@@ -527,7 +547,7 @@ namespace CoreServices.Calibration
                             // when using the BCI with non PRC applications.
                             // TO BE DONE: This functionality will be added after MVP
 
-                            modeState = CalibrationStates.Get_Local_Elements;
+                            modeState = CalibrationStates.Read_Command;
                             break;
 
                         case CalibrationStates.Get_Local_Elements:
@@ -535,7 +555,7 @@ namespace CoreServices.Calibration
                             // TO BE DONE: This functionality will be added after MVP
 
                             // Ready to fetch next target from calibration commands
-                            modeState = CalibrationStates.Read_Command;
+                            modeState = CalibrationStates.Assign_Key_Mapping;
                             break;
 
                         case CalibrationStates.Assign_Key_Mapping:
@@ -826,7 +846,18 @@ namespace CoreServices.Calibration
                                 }
                             }
 
-                            remoteDisplay.SelectElement(elementIndex);
+							logString = "  ******  targetkeyIDvalue  = " + targetkeyIDvalue.ToString() + "\n";
+                            Logger.Info(this, logString);
+
+                            if (elementIndex == 0)
+                            {
+                                logString = "Matching targetkeyIDvalue NOT FOUND!!! = " + targetkeyIDvalue.ToString() + "\n";
+                                Logger.Info(this, logString);
+                            }
+                            else
+                            {
+                                remoteDisplay.SelectElement(elementIndex);
+                            }
 
                             // if (displayType == REMOTE)
                             //    - Call Microsoft UIA function to click key and let Empower do the work

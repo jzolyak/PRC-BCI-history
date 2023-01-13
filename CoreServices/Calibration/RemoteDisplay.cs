@@ -134,6 +134,7 @@ namespace CoreServices.Calibration
 
             List<ElementProperties> clickableElements = new List<ElementProperties>();
 
+			 automationElementList.Clear();							  
             while (index < numElements)
             {
                 IUIAutomationElement b1 = automationArray.GetElement(index++);
