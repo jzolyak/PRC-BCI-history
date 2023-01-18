@@ -92,6 +92,7 @@ namespace CoreServices.Files
             binaryWriter.Close();
             binaryWriter.Dispose();
             currentWriterList.TryRemove(name, out binaryWriter);
+            Logger.Info(name, "Closed binary writer for:" + name);
             return true;
         }
 
@@ -114,7 +115,28 @@ namespace CoreServices.Files
             EnsureFolder(deleteFilepath);
             if (!File.Exists(sourcefilename)) return;
             string destinationFilename = Path.Combine(deleteFilepath, filename);
-            File.Move(sourcefilename, destinationFilename, true);
+           Task.Run(()=> Movefile(sourcefilename, destinationFilename));
+        }
+
+        private static async void Movefile(string filename,string destinationFilename)
+        {
+            int retry = 0;
+            while (retry < 5)
+            {
+                try
+                {
+                    File.Move(filename, destinationFilename, true);
+                    Logger.Info(filename, "moved file from:" + filename + " to " + destinationFilename);
+                    retry = 5;
+                }
+                catch (Exception ex)
+                {
+                    await Task.Delay(10000);
+                    retry = retry + 1;
+                    Logger.Error(filename,"Unable to move file from:" + filename + " to " + destinationFilename + " attempt:" + retry);
+                }
+            }
+
         }
     }
 }

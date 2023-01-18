@@ -240,18 +240,21 @@ namespace CoreServices.Calibration
                                     //    // User selected Keep button to save raw data collected in the Calibration set.
                                     //    // Advance startSetNum to indicate which is the next set in the script to run.
                                     startSetNum++;
-
+                                    if (binaryWriter != null)
+                                    {
+                                        FileHandlerService.CloseBinaryWriter(binaryWriter);
+                                    }
                                     // Close raw data file for this calibration set
 
                                     if (startSetNum > totalSetNum)
                                     {
                                         // Reached last set in the script file. Inform user calibration is finished.
                                         //Handover the calib files to generate coef and move the bin files to completed folder
+                                        modeState = CalibrationStates.Wait_On_UI;
                                         uiInstruction.Type = UIType.CalibrationComplete;
+                                        calibrationCompleted = true;
                                         uiInstruction.Result = false;
                                         NotifyUI(uiInstruction);
-                                        calibrationCompleted = true;
-                                        modeState = CalibrationStates.Clean_Up;
                                     }
                                     else
                                     {
@@ -314,6 +317,10 @@ namespace CoreServices.Calibration
                                     // Clean up and return to Calibration submenu (not main BCI menu)
                                     modeState = CalibrationStates.Clean_Up;
                                 }
+                            }
+                            else if(uiInstruction.Type == UIType.CalibrationComplete)
+                            {
+                                modeState = CalibrationStates.Clean_Up;
                             }
                             break;
                         case CalibrationStates.Read_Command:
@@ -455,7 +462,7 @@ namespace CoreServices.Calibration
                                     }
 
                                     // Give other app time to respond to command
-                                    //await Task.Delay(2000);
+                                    await Task.Delay(2000);
 
                                     // Advance index to next command in the script
                                     currentLine++;
@@ -728,6 +735,7 @@ namespace CoreServices.Calibration
                                 Logger.Error(this, "calibration file meta data is not available.unable to proceed");
                                 modeState = CalibrationStates.Clean_Up; break;
                             }    
+                           
                             binaryWriter = FileHandlerService.CreateAndOpenBinaryFile(calibrationFileMetadata.GetCurrentBinFileName(), "CalibrationFiles");
                             if (binaryWriter == null)
                             {
@@ -926,7 +934,7 @@ namespace CoreServices.Calibration
             }
             catch (Exception ex)
             {
-
+                Logger.Error(this, "Exception in state engine" + ex.ToString());
             }
         }
 

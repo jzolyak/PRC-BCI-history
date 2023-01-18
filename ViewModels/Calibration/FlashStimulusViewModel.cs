@@ -46,7 +46,7 @@ namespace ViewModels.Calibration
             _calibrationService.RaiseUIRequestChange += _calibrationService_RaiseUIRequestChange;
             _stopQueryViewModel = new CalibrationStopQueryViewModel(NotificationFromUI);
             _beginQueryViewModel = new CalibrationBeginQueryViewModel(NotificationFromUI);
-            _completeViewModel = new CalibrationCompleteViewModel();
+            _completeViewModel = new CalibrationCompleteViewModel(NotificationFromUI);
             _repeatQueryViewModel = new CalibrationRepeatQueryViewModel(NotificationFromUI);
             _countDownViewModel = new CountDownViewModel(ClosePopup, NotificationFromUI);
             WindowSizeProp = null;
