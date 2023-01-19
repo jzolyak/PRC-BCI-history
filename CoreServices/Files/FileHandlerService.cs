@@ -59,7 +59,7 @@ namespace CoreServices.Files
             {
                 return false;
             }
-            if (currentWriterList.TryGetValue(name, out binaryWriter))
+            if (!currentWriterList.TryGetValue(name, out binaryWriter))
             {
                 return false;
             }
@@ -84,7 +84,8 @@ namespace CoreServices.Files
 
         public static bool CloseBinaryWriter(BinaryWriter binaryWriter)
         {
-            if(binaryWriter == null) return false;
+            Logger.Error("", "close binarywriter");
+            if (binaryWriter == null) return false;
             var keyValuePair = currentWriterList.FirstOrDefault(x => x.Value.Equals(binaryWriter));
             var name = keyValuePair.Key;
             if (string.IsNullOrEmpty(name)) return false;

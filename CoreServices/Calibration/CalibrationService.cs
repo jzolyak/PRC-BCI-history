@@ -36,7 +36,7 @@ namespace CoreServices.Calibration
         {
             _fileMetadataList = new ConcurrentDictionary<String,CalibrationFileMetadata>();
             _calibrationFilePath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)+ "\\CalibrationFiles\\";
-            _stateEngine = new StateEngine(NotifyUI, NotifyScreenOverLayChange, ExitCalibration, OnCalibrationComplete);
+            _stateEngine = new StateEngine(NotifyUI, NotifyScreenOverLayChange, ExitCalibration, OnCalibrationComplete,OnCalibrationPaused);
             LoadCalibrationFiles();
         }
 
@@ -246,6 +246,11 @@ namespace CoreServices.Calibration
         public void OnCalibrationComplete()
         {
             UpdateCurrentCalibrationFileState("Completed");
+        }
+
+        public void OnCalibrationPaused()
+        {
+            NotifyFileMetadataChange(_currentCalibrationFile);
         }
     }
 

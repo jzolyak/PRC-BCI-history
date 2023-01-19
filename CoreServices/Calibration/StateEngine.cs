@@ -26,6 +26,7 @@ namespace CoreServices.Calibration
 
         private Action exitAction;
         private Action completeAction;
+        private Action pauseAction;
 
         public enum CalibrationStates
         {
@@ -44,12 +45,13 @@ namespace CoreServices.Calibration
             "Notify_UI", "Wait_On_UI", "Process_UI_Notification"
         };
 
-        public StateEngine(Action<UIInstruction> notifyUIAction,Action<ScreenOverlay> notifyScreenOverLayChange, Action exitAction,Action completeAction)
+        public StateEngine(Action<UIInstruction> notifyUIAction,Action<ScreenOverlay> notifyScreenOverLayChange, Action exitAction,Action completeAction,Action pauseAction)
         {
             this.notifyUIAction = notifyUIAction;
             this.notifyScreenOverLayChange = notifyScreenOverLayChange;
             this.exitAction = exitAction;
             this.completeAction = completeAction;
+            this.pauseAction = pauseAction;
         }
 
         public async Task CalibrationMode()
@@ -264,6 +266,7 @@ namespace CoreServices.Calibration
                                 }
                                 else
                                 {
+                                    Logger.Info(this, "deleting the current calibration set file:" + calibrationFileMetadata.GetCurrentBinFileName());
                                     FileHandlerService.DeleteBinaryFile(calibrationFileMetadata.GetCurrentBinFileName(), "CalibrationFiles");
                                     modeState = CalibrationStates.Wait_On_UI;
                                     uiInstruction.Type = UIType.CalibrationRepeatQuery;
@@ -284,6 +287,8 @@ namespace CoreServices.Calibration
                                 else
                                 {
                                     // Clean up and return to Calibration submenu (not main BCI menu)
+                                    calibrationFileMetadata.CurrentSet = calibrationFileMetadata.CurrentSet - 1;
+                                    if (pauseAction != null) pauseAction();
                                     modeState = CalibrationStates.Clean_Up;
                                 }
                             }
@@ -302,6 +307,7 @@ namespace CoreServices.Calibration
                                 else
                                 {   // User selected Cancel button to halt further raw data collection and will resume later.
                                     // Clean up and return to Calibration submenu (not main BCI menu)
+                                    if (pauseAction != null) pauseAction();
                                     modeState = CalibrationStates.Clean_Up;
                                 }
                             }
