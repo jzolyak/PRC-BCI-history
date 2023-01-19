@@ -343,6 +343,7 @@ namespace CoreServices.Calibration
                                     totalSetNum = Int32.Parse(fields[2]);
                                     calibrationFileMetadata.NumofSets = totalSetNum;
                                     calibrationFileMetadata.CurrentSet = currentSetNum;
+                                    calibrationFileMetadata.IsCurrent = true;
                                     if (currentSetNum == startSetNum)
                                     {
                                         // Found where we need to start. Advance to next command in list
