@@ -36,10 +36,10 @@
                 <StackPanel Grid.Row="1">
                     <Button Style="{StaticResource ButtonStyle}" Content="Resume Calibrating" HorizontalAlignment="Center" Width="200" Height="70" FontSize="20" VerticalAlignment="Center" Command="{Binding ResumeCmd}" Visibility="{Binding EnableResume,Converter={StaticResource booltoVisibilityConverter}}"></Button>
                     <StackPanel Orientation="Horizontal" Visibility="{Binding EnableResume,Converter={StaticResource booltoVisibilityConverter}}" HorizontalAlignment="Center">
-                        <Label Margin="2,2,0,0" Style="{StaticResource MediumLabelStyle}" DataContext="{Binding CurrentFileMetadata}">
+                        <Label Margin="2,2,0,0" Style="{StaticResource MediumLabelStyle}">
                             <TextBlock>
                                 <TextBlock.Text>
-                                    <MultiBinding StringFormat="({0}/{1} sets completed)'">
+                                    <MultiBinding StringFormat="({0}/{1} sets completed)">
                                         <Binding Path="CurrentSet" />
                                         <Binding Path="NumofSets" />
                                     </MultiBinding>

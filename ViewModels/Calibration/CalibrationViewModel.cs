@@ -22,6 +22,7 @@ namespace ViewModels.Calibration
         private bool _isCalibrationInProgress;
         private bool _enableResume;
         private int _currentSet;
+        private int _numofSets;
         private CalibrationFileMetadata _currentFileMetadata;
         private CalibrationFileMetadata _selectedFileMetadata;
 
@@ -49,6 +50,8 @@ namespace ViewModels.Calibration
         public CalibrationFileMetadata CurrentFileMetadata { get => _currentFileMetadata; set { _currentFileMetadata = value; OnPropertyChanged(nameof(CurrentFileMetadata)); } }
         public CalibrationFileMetadata SelectedFileMetadata { get => _selectedFileMetadata; set { _selectedFileMetadata = value; OnPropertyChanged(nameof(SelectedFileMetadata)); } }
         public int CurrentSet { get => _currentSet; set { _currentSet = value; OnPropertyChanged(nameof(CurrentSet)); } }
+        public int NumofSets { get => _numofSets; set { _numofSets = value; OnPropertyChanged(nameof(NumofSets)); } }
+
         public bool EnableResume { get => _enableResume; set { _enableResume = value; OnPropertyChanged(nameof(EnableResume)); } }
         public bool HasFiles { get => _hasFiles;set { _hasFiles = value; OnPropertyChanged(nameof(HasFiles)); } }
         public bool ShowPopup { get => _showPopup; set { _showPopup = value; OnPropertyChanged(nameof(ShowPopup)); } }
@@ -71,7 +74,8 @@ namespace ViewModels.Calibration
             LoadCalibrationFilesMetadata();
             CurrentFileMetadata = FileNamesCollection.FirstOrDefault(x => x.IsCurrent);
             SelectedFileMetadata = CurrentFileMetadata ?? FileNamesCollection?.FirstOrDefault();
-            CurrentSet = CurrentFileMetadata != default(CalibrationFileMetadata) && CurrentFileMetadata != null ? CurrentFileMetadata.CurrentSet : -1;
+            CurrentSet = CurrentFileMetadata != default(CalibrationFileMetadata) && CurrentFileMetadata != null ? CurrentFileMetadata.CurrentSet : 1;
+            NumofSets = CurrentFileMetadata != default(CalibrationFileMetadata) && CurrentFileMetadata != null ? CurrentFileMetadata.NumofSets : 5;
             EnableResume = CurrentFileMetadata != default(CalibrationFileMetadata) && CurrentFileMetadata != null;
             ShowPopup = false;
             PopupContentViewModel = null;
@@ -105,7 +109,8 @@ namespace ViewModels.Calibration
         {
             LoadCalibrationFilesMetadata();
             CurrentFileMetadata = FileNamesCollection.FirstOrDefault(x => x.IsCurrent);
-            CurrentSet = CurrentFileMetadata != default(CalibrationFileMetadata) && CurrentFileMetadata != null ? CurrentFileMetadata.CurrentSet : -1;
+            CurrentSet = CurrentFileMetadata != default(CalibrationFileMetadata) && CurrentFileMetadata != null ? CurrentFileMetadata.CurrentSet : 1;
+            NumofSets = CurrentFileMetadata != default(CalibrationFileMetadata) && CurrentFileMetadata != null ? CurrentFileMetadata.NumofSets : 5;
             EnableResume = CurrentFileMetadata != default(CalibrationFileMetadata) && CurrentFileMetadata != null;
 
         }
