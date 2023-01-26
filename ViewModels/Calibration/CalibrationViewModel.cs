@@ -74,8 +74,8 @@ namespace ViewModels.Calibration
             LoadCalibrationFilesMetadata();
             CurrentFileMetadata = FileNamesCollection.FirstOrDefault(x => x.IsCurrent);
             SelectedFileMetadata = CurrentFileMetadata ?? FileNamesCollection?.FirstOrDefault();
-            CurrentSet = CurrentFileMetadata != default(CalibrationFileMetadata) && CurrentFileMetadata != null ? CurrentFileMetadata.CurrentSet : 1;
-            NumofSets = CurrentFileMetadata != default(CalibrationFileMetadata) && CurrentFileMetadata != null ? CurrentFileMetadata.NumofSets : 5;
+            CurrentSet = ((CurrentFileMetadata != default(CalibrationFileMetadata)) && (CurrentFileMetadata != null)) ? CurrentFileMetadata.CurrentSet : 1;
+            NumofSets = ((CurrentFileMetadata != default(CalibrationFileMetadata)) && (CurrentFileMetadata != null)) ? CurrentFileMetadata.NumofSets : 5;
             EnableResume = CurrentFileMetadata != default(CalibrationFileMetadata) && CurrentFileMetadata != null;
             ShowPopup = false;
             PopupContentViewModel = null;
@@ -109,9 +109,9 @@ namespace ViewModels.Calibration
         {
             LoadCalibrationFilesMetadata();
             CurrentFileMetadata = FileNamesCollection.FirstOrDefault(x => x.IsCurrent);
-            CurrentSet = CurrentFileMetadata != default(CalibrationFileMetadata) && CurrentFileMetadata != null ? CurrentFileMetadata.CurrentSet : 1;
-            NumofSets = CurrentFileMetadata != default(CalibrationFileMetadata) && CurrentFileMetadata != null ? CurrentFileMetadata.NumofSets : 5;
-            EnableResume = CurrentFileMetadata != default(CalibrationFileMetadata) && CurrentFileMetadata != null;
+            CurrentSet = ((CurrentFileMetadata != default(CalibrationFileMetadata)) && (CurrentFileMetadata != null)) ? CurrentFileMetadata.CurrentSet : 1;
+            NumofSets = ((CurrentFileMetadata != default(CalibrationFileMetadata)) && (CurrentFileMetadata != null)) ? CurrentFileMetadata.NumofSets : 5;
+            EnableResume = ((CurrentFileMetadata != default(CalibrationFileMetadata)) && CurrentFileMetadata != null);
 
         }
 

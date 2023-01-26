@@ -255,6 +255,8 @@ namespace CoreServices.Calibration
                                         modeState = CalibrationStates.Wait_On_UI;
                                         uiInstruction.Type = UIType.CalibrationComplete;
                                         calibrationCompleted = true;
+                                        calibrationFileMetadata.CurrentSet = calibrationFileMetadata.NumofSets;
+                                        calibrationFileMetadata.IsCurrent = false;
                                         uiInstruction.Result = false;
                                         NotifyUI(uiInstruction);
                                     }
