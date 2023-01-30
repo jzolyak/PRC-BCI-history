@@ -91,7 +91,8 @@ namespace CoreServices.Calibration
             int flash_ON_time_msec = 90;
             int flash_OFF_time_msec = 60;
 
-            int programmable_delay_msec = 2000;
+            int UI_delay_msec = 200;
+            int programmable_delay_msec = 1000;
             //int programmable_delay_msec = 10;
 
             string targetKeyName;
@@ -227,7 +228,7 @@ namespace CoreServices.Calibration
                         case CalibrationStates.Wait_On_UI:
                             do
                             {
-                                await Task.Delay(programmable_delay_msec);
+                                await Task.Delay(UI_delay_msec);
 
                             } while (CalibrationStates.Wait_On_UI == modeState);
                             break;
@@ -471,7 +472,7 @@ namespace CoreServices.Calibration
                                     }
 
                                     // Give other app time to respond to command
-                                    await Task.Delay(2000);
+                                    await Task.Delay(UI_delay_msec);
 
                                     // Advance index to next command in the script
                                     currentLine++;
@@ -995,7 +996,7 @@ namespace CoreServices.Calibration
 
             const int samplesPerBatch = 9;          // 9 samples = 30 msec @ Fs=300 Hz
 
-            const double PRESET_1 = 1000.0;         // 1.0 second
+            const double PRESET_1 = 100.0;          // 0.1 second
             const double PRESET_2 = 1000.0;         // 1.0 second
             const double PRESET_3 = 90.0;           // 90 msec = Flash ON
             const double PRESET_4 = 60.0;           // 60 msec = Flash OFF
@@ -1008,6 +1009,8 @@ namespace CoreServices.Calibration
             int sampleIndex;
 
             int numEntries = flashSequenceTable.Count;
+
+            int numFlashSeqPerTarget = 1;
 
             int listIndex = 0;
             int flashCycleCount = 0;
@@ -1202,7 +1205,7 @@ namespace CoreServices.Calibration
 
                                     // Need to keep count of entire # times passed thru entire flash sequence list
                                     //                                if (++flashCycleCount > 4)
-                                    if (++flashCycleCount > 4)
+                                    if (++flashCycleCount == numFlashSeqPerTarget)
                                     {
                                         phaseInSequence = 3;
                                         batchCounter = 0;
