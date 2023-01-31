@@ -17,14 +17,15 @@ namespace ViewModels.Calibration
     {
         private CalibrationService _calibrationService;
         private UserSettingsService _userSettingsService;
-        private IEnumerable<CalibrationFileMetadata> _calibrationFileMetadataColl;
-        private ObservableCollection<CalibrationFileMetadata> _fileNamesCollection;
+        private IEnumerable<PredictionFileMetadata> _predictionFileMetadataColl;
+        private ObservableCollection<PredictionFileMetadata> _fileNamesCollection;
         private bool _isCalibrationInProgress;
         private bool _enableResume;
         private int _currentSet;
         private int _numofSets;
+        private string _calibrationName;
         private CalibrationFileMetadata _currentFileMetadata;
-        private CalibrationFileMetadata _selectedFileMetadata;
+        private PredictionFileMetadata _selectedFileMetadata;
 
         private DeleteConfirmationViewModel _deleteConfirmationViewModel;
         private FileNameEntryViewModel _fileNameEntryViewModel;
@@ -46,11 +47,13 @@ namespace ViewModels.Calibration
         public ICommand HelpCmd { get; set; }
         public ICommand SelectedFileChangeCmd { get; set; }
 
-        public ObservableCollection<CalibrationFileMetadata> FileNamesCollection { get => _fileNamesCollection; set { _fileNamesCollection = value; OnPropertyChanged(nameof(FileNamesCollection)); } }
+        public ObservableCollection<PredictionFileMetadata> FileNamesCollection { get => _fileNamesCollection; set { _fileNamesCollection = value; OnPropertyChanged(nameof(FileNamesCollection)); } }
         public CalibrationFileMetadata CurrentFileMetadata { get => _currentFileMetadata; set { _currentFileMetadata = value; OnPropertyChanged(nameof(CurrentFileMetadata)); } }
-        public CalibrationFileMetadata SelectedFileMetadata { get => _selectedFileMetadata; set { _selectedFileMetadata = value; OnPropertyChanged(nameof(SelectedFileMetadata)); } }
+        public PredictionFileMetadata SelectedFileMetadata { get => _selectedFileMetadata; set { _selectedFileMetadata = value; OnPropertyChanged(nameof(SelectedFileMetadata)); } }
         public int CurrentSet { get => _currentSet; set { _currentSet = value; OnPropertyChanged(nameof(CurrentSet)); } }
         public int NumofSets { get => _numofSets; set { _numofSets = value; OnPropertyChanged(nameof(NumofSets)); } }
+
+        public string CalibrationName { get => _calibrationName; set { _calibrationName = value; OnPropertyChanged(nameof(CalibrationName)); } }
 
         public bool EnableResume { get => _enableResume; set { _enableResume = value; OnPropertyChanged(nameof(EnableResume)); } }
         public bool HasFiles { get => _hasFiles;set { _hasFiles = value; OnPropertyChanged(nameof(HasFiles)); } }
@@ -71,16 +74,17 @@ namespace ViewModels.Calibration
             _calibrationService.RaiseFileMetadataChange += _calibrationService_RaiseFileMetadataChange;
             _calibrationService.RaiseExitCalibrationEvent += _calibrationService_RaiseExitCalibrationEvent;
             _userSettingsService = ServiceLocator.UserSettingsService;
-            LoadCalibrationFilesMetadata();
-            CurrentFileMetadata = FileNamesCollection.FirstOrDefault(x => x.IsCurrent);
-            SelectedFileMetadata = CurrentFileMetadata ?? FileNamesCollection?.FirstOrDefault();
-            CurrentSet = ((CurrentFileMetadata != default(CalibrationFileMetadata)) && (CurrentFileMetadata != null)) ? CurrentFileMetadata.CurrentSet : 1;
-            NumofSets = ((CurrentFileMetadata != default(CalibrationFileMetadata)) && (CurrentFileMetadata != null)) ? CurrentFileMetadata.NumofSets : 5;
-            EnableResume = CurrentFileMetadata != default(CalibrationFileMetadata) && CurrentFileMetadata != null;
+            LoadPredictionFilesMetadata();
+            CurrentFileMetadata = _calibrationService.GetCurrentCalibrationFileMetadata();
+            SelectedFileMetadata =  FileNamesCollection.FirstOrDefault(x=>x.IsCurrent);
+            CurrentSet = (CurrentFileMetadata != null) ? CurrentFileMetadata.CurrentSet : 1;
+            NumofSets =  (CurrentFileMetadata != null) ? CurrentFileMetadata.NumofSets : 5;
+            EnableResume = (CurrentFileMetadata != null) ? CurrentFileMetadata.IsCurrent : false;
+            CalibrationName = (CurrentFileMetadata != null) ? CurrentFileMetadata.UserGivenName : "";
             ShowPopup = false;
             PopupContentViewModel = null;
             _deleteConfirmationViewModel = new DeleteConfirmationViewModel(DeleteCurrentCalibFileandStartNew, ClosePopup, CurrentFileMetadata);
-            _fileNameEntryViewModel = new FileNameEntryViewModel(DisplayDemoVideo, ClosePopup, _calibrationFileMetadataColl);
+            _fileNameEntryViewModel = new FileNameEntryViewModel(DisplayDemoVideo, ClosePopup, CurrentFileMetadata);
             _demoVideoViewModel = new DemoVideoViewModel(ShowCalibrationInstructions, ClosePopup);
             _calibrationInstructionsViewModel = new CalibrationInstructionsViewModel(StartActualCalibration, ClosePopup);
             _calibrationHelpViewModel = new CalibrationHelpViewModel(ClosePopup);
@@ -96,7 +100,7 @@ namespace ViewModels.Calibration
             var childWindowpref = new ChildWindowSettings { ShowWindow = false };
             _showorHideChildWindow(childWindowpref);
             if (_showorHideMainWindow != null) _showorHideMainWindow(true);
-            OnPropertyChanged(nameof(CurrentFileMetadata));
+           
         }
 
         private void DeleteCurrentCalibFileandStartNew()
@@ -107,12 +111,21 @@ namespace ViewModels.Calibration
 
         private void _calibrationService_RaiseFileMetadataChange(object? sender, EventArgs<CalibrationFileMetadata> e)
         {
-            LoadCalibrationFilesMetadata();
-            CurrentFileMetadata = FileNamesCollection.FirstOrDefault(x => x.IsCurrent);
-            CurrentSet = ((CurrentFileMetadata != default(CalibrationFileMetadata)) && (CurrentFileMetadata != null)) ? CurrentFileMetadata.CurrentSet : 1;
-            NumofSets = ((CurrentFileMetadata != default(CalibrationFileMetadata)) && (CurrentFileMetadata != null)) ? CurrentFileMetadata.NumofSets : 5;
-            EnableResume = ((CurrentFileMetadata != default(CalibrationFileMetadata)) && CurrentFileMetadata != null);
-
+            CurrentFileMetadata = e.Value;
+            if (CurrentFileMetadata != null)
+            {
+                CurrentSet = CurrentFileMetadata.CurrentSet;
+                NumofSets = CurrentFileMetadata.NumofSets;
+                EnableResume = CurrentFileMetadata.IsCurrent;
+                CalibrationName = CurrentFileMetadata.UserGivenName;
+            }
+            else
+            {
+                CurrentSet = 1;
+                NumofSets = 5;
+                EnableResume= false;
+                CalibrationName = "";
+            }
         }
 
         private void MoveFileMetadataIndexUp(object obj)
@@ -144,18 +157,7 @@ namespace ViewModels.Calibration
         private void OnSelectedFileChange(object obj)
         {
             if (CurrentFileMetadata == null || obj == null) return;
-            var selectedFileMetadata = (CalibrationFileMetadata)obj;
-            if (!string.IsNullOrEmpty(CurrentFileMetadata.UserGivenName)  && selectedFileMetadata != null && !string.IsNullOrEmpty(selectedFileMetadata.UserGivenName))
-            {
-                if(!selectedFileMetadata.UserGivenName.ToLower().Equals(CurrentFileMetadata.UserGivenName))
-                {
-                    EnableResume = false;
-                }
-                else
-                {
-                    EnableResume = true;
-                }
-            }
+           
             
         }
 
@@ -172,13 +174,13 @@ namespace ViewModels.Calibration
             _calibrationService.User_Actual_Start();
         }
 
-        private void LoadCalibrationFilesMetadata()
+        private void LoadPredictionFilesMetadata()
         {
             if (_calibrationService == null) { Logger.Error(this, "CalibrationService is null"); return; }
-            _calibrationFileMetadataColl = _calibrationService.GetCalibrationFilesMetadata();
-            var sortedList = _calibrationFileMetadataColl.ToList();
+            _predictionFileMetadataColl = _calibrationService.GetPredictionFilesMetadata();
+            var sortedList = _predictionFileMetadataColl.ToList();
             sortedList.Sort((one, two) => { return two.LastUpdatedTime.CompareTo(one.LastUpdatedTime); });
-            FileNamesCollection = new ObservableCollection<CalibrationFileMetadata>(sortedList);
+            FileNamesCollection = new ObservableCollection<PredictionFileMetadata>(sortedList);
             HasFiles = FileNamesCollection.Count > 0;
         }
 

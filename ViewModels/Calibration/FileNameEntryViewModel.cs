@@ -10,13 +10,13 @@ namespace ViewModels.Calibration
     public class FileNameEntryViewModel : StartCalibrationViewModel
     {
         private string _fileName;
-        private IEnumerable<CalibrationFileMetadata> _calibrationFileMetadataColl;
+        private CalibrationFileMetadata _calibrationFileMetadata;
         public string FileName { get { return _fileName; } set { _fileName = value; OnPropertyChanged(nameof(FileName)); } }
         public ICommand OkCommand { get; set; }
         public ICommand ClearCommand { get; set; }
-        public FileNameEntryViewModel(Action startCalibrationAction,Action closePopup,IEnumerable<CalibrationFileMetadata> calibrationFileMetadataColl) : base(startCalibrationAction,closePopup)
+        public FileNameEntryViewModel(Action startCalibrationAction,Action closePopup,CalibrationFileMetadata calibrationFileMetadata) : base(startCalibrationAction,closePopup)
         {
-            _calibrationFileMetadataColl = calibrationFileMetadataColl;
+            _calibrationFileMetadata = calibrationFileMetadata;
             OkCommand = new RelayCommand(CheckFileName);
             ClearCommand = new RelayCommand((x) => { FileName = String.Empty; });
         }
@@ -26,10 +26,10 @@ namespace ViewModels.Calibration
             {
                 throw new Exception("Please enter valid file name");
             }
-            if(_calibrationFileMetadataColl!=null)
+            if(_calibrationFileMetadata != null)
             {
-                var existingFile = _calibrationFileMetadataColl.FirstOrDefault(x=>x.UserGivenName.ToLower().Equals(FileName.ToLower()));
-                if(existingFile!=null && existingFile!=default(CalibrationFileMetadata))
+                var existingFile = _calibrationFileMetadata.UserGivenName.ToLower().Equals(FileName.ToLower());
+                if(existingFile)
                 {
                     throw new Exception("File name already exists. Please provide different file name");
                 }

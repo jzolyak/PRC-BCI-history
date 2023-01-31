@@ -18,7 +18,7 @@ namespace CoreServices.Calibration
         // - Dictate the calibration steps when calibration is in progress - core loop
         // - Talks to Headset to record the data while calibration is in progress
 
-        private ConcurrentDictionary<String,CalibrationFileMetadata> _fileMetadataList;
+        private ConcurrentDictionary<String,PredictionFileMetadata> _predictionMetadataList;
 
         public event EventHandler<EventArgs<CalibrationFileMetadata>>? RaiseFileMetadataChange;
 
@@ -29,21 +29,25 @@ namespace CoreServices.Calibration
 
         private StateEngine _stateEngine;
 
-        private CalibrationFileMetadata _currentPredictionFile;
+        private PredictionFileMetadata _currentPredictionFile;
         private CalibrationFileMetadata _currentCalibrationFile;
 
         public CalibrationService()
         {
-            _fileMetadataList = new ConcurrentDictionary<String,CalibrationFileMetadata>();
+            _predictionMetadataList = new ConcurrentDictionary<String, PredictionFileMetadata>();
             _calibrationFilePath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)+ "\\CalibrationFiles\\";
             _stateEngine = new StateEngine(NotifyUI, NotifyScreenOverLayChange, ExitCalibration, OnCalibrationComplete,OnCalibrationPaused);
             LoadCalibrationFiles();
         }
 
-        public IEnumerable<CalibrationFileMetadata> GetCalibrationFilesMetadata()
+        public IEnumerable<PredictionFileMetadata> GetPredictionFilesMetadata()
         {
-            if(_fileMetadataList==null || _fileMetadataList.Count == 0) return new List<CalibrationFileMetadata>();
-           return _fileMetadataList.Values;
+            if(_predictionMetadataList == null || _predictionMetadataList.Count == 0) return new List<PredictionFileMetadata>();
+           return _predictionMetadataList.Values;
+        }
+        public CalibrationFileMetadata GetCurrentCalibrationFileMetadata()
+        {
+            return _currentCalibrationFile;
         }
         private void LoadCalibrationFiles()
         {
@@ -59,7 +63,7 @@ namespace CoreServices.Calibration
                 LoadCalibrationFileMetadata(files);
                 var calfiles = Directory.GetFiles(_calibrationFilePath, "*.COEF");
                 //filename pattern - usergivenname_setnum_status
-                LoadCalibrationFileMetadata(calfiles);
+                LoadPredictionFileMetadata(calfiles);
 
             }
             catch (Exception ex)
@@ -77,60 +81,50 @@ namespace CoreServices.Calibration
                 var lastUpdatedTime = File.GetLastWriteTime(file);
                 var metadata = Path.GetFileNameWithoutExtension(fileName).Split("_");
                 if (metadata.Length < 3) continue;
-                if (_fileMetadataList.ContainsKey(metadata[0]))
+                if (_currentCalibrationFile == null)
                 {
-                    var calibrationFileMetadata = _fileMetadataList[metadata[0]];
-                    if (calibrationFileMetadata.LastUpdatedTime < lastUpdatedTime) calibrationFileMetadata.LastUpdatedTime = lastUpdatedTime;
-                    var thirdParam = metadata[2].ToLower();
-                    if (thirdParam.StartsWith("current"))
-                    {
-                        calibrationFileMetadata.CurrentSet = Int32.Parse(metadata[1]);
-                        calibrationFileMetadata.IsCurrent = true;                     
-                    }
-                    else if (thirdParam.StartsWith("prediction"))
-                    {
-                        calibrationFileMetadata.IsCurrentPredictionFile = true;
-                        _currentPredictionFile = calibrationFileMetadata;
-                    }
-                    if( file.EndsWith(".bin"))
-                    {
-                        int setNum = Int32.Parse(metadata[1]);
-                        if (setNum > calibrationFileMetadata.CurrentSet)
-                        {
-                            calibrationFileMetadata.CurrentSet = setNum;
-                        }
-                        calibrationFileMetadata.IsCurrent = true;
-                    }
-                    if (metadata.Length > 3)
-                    {
-                        if (metadata[3].ToLower().Equals("stale"))
-                        {
-                            calibrationFileMetadata.IsStale = true;
-                        }
-                        else if (metadata[3].ToLower().Equals("currentfile"))
-                        {
-                            calibrationFileMetadata.IsCurrent = true;
-                        }
-                        //revisit - need to deal with stale
-                    }
-                    if (file.EndsWith(".bin"))
-                    {
-                        _currentCalibrationFile = calibrationFileMetadata;
-                    }
-                }
-                else
-                {
-                   
                     _currentCalibrationFile = new CalibrationFileMetadata
                     {
                         UserGivenName = metadata[0],
                         NumofSets = Int32.Parse(metadata[2]),
                         CurrentSet = Int32.Parse(metadata[1]),
-                        IsCurrent = true,
-                        IsStale = metadata.Length > 3 && metadata[3].ToLower().Equals("stale")
+                        IsCurrent = true
                     };
-                    _fileMetadataList.TryAdd(metadata[0], _currentCalibrationFile);
                 }
+                else
+                {
+                    if (!_currentCalibrationFile.UserGivenName.Equals(metadata[0]))
+                    {
+                        Logger.Error(this, "Multiple calibration file names exist. pleas check");
+                    }
+                    _currentCalibrationFile.UserGivenName = metadata[0];
+                    _currentCalibrationFile.NumofSets = Int32.Parse(metadata[1]);
+                    if(Int32.Parse(metadata[1]) > _currentCalibrationFile.CurrentSet)
+                    {
+                        _currentCalibrationFile.CurrentSet = Int32.Parse(metadata[1]);
+                    }
+                }
+            }
+        }
+
+        private void LoadPredictionFileMetadata(string[] files)
+        {
+            foreach (var file in files)
+            {
+                if (string.IsNullOrEmpty(file)) continue;
+                var fileName = Path.GetFileName(file);
+                var lastUpdatedTime = File.GetLastWriteTime(file);
+                var metadata = Path.GetFileNameWithoutExtension(fileName).Split("_");
+
+                var predictionFile = new PredictionFileMetadata
+                {
+                    Name = metadata[0],
+                };
+                if (metadata.Length > 1 && metadata[1].ToLower().Equals("current"))
+                {
+                    predictionFile.IsCurrent = true;
+                }
+                _predictionMetadataList.TryAdd(metadata[0], predictionFile);
             }
         }
         public void StartCalibration()
@@ -145,29 +139,10 @@ namespace CoreServices.Calibration
             return _stateEngine ==null ? false : _stateEngine.CheckEmpowerIsAlive();
         }
 
-        public CalibrationFileMetadata CreateDummyCalibrationFiles(string name)
-        {
-            //usergivenname_setnum_status
-            string fileName1 = Path.Combine(_calibrationFilePath, name + "_1_Complete.COEF");
-            string fileName2 = Path.Combine(_calibrationFilePath, name + "_2_Complete.COEF");
-            string fileName3 = Path.Combine(_calibrationFilePath, name + "_3_Complete.COEF");
-            string fileName4 = Path.Combine(_calibrationFilePath, name + "_4_Complete.COEF");
-            string fileName5 = Path.Combine(_calibrationFilePath, name + "_5_Complete.COEF");
-            File.WriteAllLines(fileName1, new string[] { "Test" });
-            File.WriteAllLines(fileName2, new string[] { "Test" });
-            File.WriteAllLines(fileName3, new string[] { "Test" });
-            File.WriteAllLines(fileName4, new string[] { "Test" });
-            File.WriteAllLines(fileName5, new string[] { "Test" });
-            var calibrationFileMetadata = new CalibrationFileMetadata { UserGivenName = name, NumofSets = 5, CurrentSet = 5, IsStale = false };
-            _fileMetadataList.TryAdd(_calibrationFilePath, calibrationFileMetadata);
-            NotifyFileMetadataChange(calibrationFileMetadata);
-            return calibrationFileMetadata;
-        }
-
+      
         public CalibrationFileMetadata CreateNewCalibrationFile(string name)
         {
-            var calibrationFileMetadata = new CalibrationFileMetadata { UserGivenName = name, NumofSets = 5, CurrentSet = 1, IsStale = false };
-            _fileMetadataList.TryAdd(_calibrationFilePath, calibrationFileMetadata);
+            var calibrationFileMetadata = new CalibrationFileMetadata { UserGivenName = name, NumofSets = 5, CurrentSet = 1, IsCurrent = true, IsStale =false };
             //NotifyFileMetadataChange(calibrationFileMetadata);
             _currentCalibrationFile = calibrationFileMetadata;
             NotifyFileMetadataChange(calibrationFileMetadata);
@@ -178,13 +153,6 @@ namespace CoreServices.Calibration
         {
 
      
-        }
-
-        public void UpdatePredictionFile(CalibrationFileMetadata newFile)
-        {
-            if (newFile == null || string.IsNullOrEmpty(newFile.UserGivenName) || !newFile.IsCurrentPredictionFile || _currentPredictionFile.UserGivenName.ToLower().Equals(newFile.UserGivenName.ToLower())) return;
-            //rename filenames or use another calibration settings file to store the current prediction file name
-            
         }
 
         private void NotifyFileMetadataChange(CalibrationFileMetadata calibrationFileMetadata)
@@ -238,7 +206,6 @@ namespace CoreServices.Calibration
         public void UpdateCurrentCalibrationFileState(string destinationFolder)
         {
             CalibrationFileMetadata calibrationFileMetadata = null;
-            _fileMetadataList.TryRemove(_currentCalibrationFile.UserGivenName, out calibrationFileMetadata);
             MoveCurrentCalibrationFiles(_currentCalibrationFile.UserGivenName, destinationFolder);
             _currentCalibrationFile = null;
             NotifyFileMetadataChange(_currentCalibrationFile);

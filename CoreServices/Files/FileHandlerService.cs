@@ -84,7 +84,6 @@ namespace CoreServices.Files
 
         public static bool CloseBinaryWriter(BinaryWriter binaryWriter)
         {
-            Logger.Error("", "close binarywriter");
             if (binaryWriter == null) return false;
             var keyValuePair = currentWriterList.FirstOrDefault(x => x.Value.Equals(binaryWriter));
             var name = keyValuePair.Key;

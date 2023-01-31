@@ -12,9 +12,9 @@
             <RowDefinition Height="1*"></RowDefinition>
             <RowDefinition Height="9*"></RowDefinition>
         </Grid.RowDefinitions>
-        <StackPanel Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding EnableResume,Converter={StaticResource booltoVisibilityConverter}}" Orientation="Horizontal">
-            <Label Style="{StaticResource HeaderLabelStyle}" Content="Current Calibration:" Foreground="#449DD1"></Label>
-            <Label Style="{StaticResource HeaderLabelStyle}" DataContext="{Binding CurrentFileMetadata}" Content="{Binding UserGivenName}" Foreground="#449DD1"></Label>
+        <StackPanel Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+            <Label Style="{StaticResource HeaderLabelStyle}" Content="Current Prediction File:" Foreground="#449DD1"></Label>
+            <Label Style="{StaticResource HeaderLabelStyle}" DataContext="{Binding SelectedFileMetadata}"  Content="{Binding Name}" Foreground="#449DD1"></Label>
         </StackPanel>
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
@@ -39,7 +39,8 @@
                         <Label Margin="2,2,0,0" Style="{StaticResource MediumLabelStyle}">
                             <TextBlock>
                                 <TextBlock.Text>
-                                    <MultiBinding StringFormat="({0}/{1} sets completed)">
+                                    <MultiBinding StringFormat="Calibration File: {0} - ({1}/{2} sets completed)">
+                                        <Binding Path="CalibrationName" />
                                         <Binding Path="CurrentSet" />
                                         <Binding Path="NumofSets" />
                                     </MultiBinding>
