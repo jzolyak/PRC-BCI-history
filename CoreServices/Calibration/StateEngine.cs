@@ -324,6 +324,11 @@ namespace CoreServices.Calibration
                                 else
                                 {
                                     // Clean up and return to Calibration submenu (not main BCI menu)
+                                    if (calibrationFileMetadata!=null && calibrationFileMetadata.CurrentSet > 1)
+                                    {
+                                        calibrationFileMetadata.CurrentSet = calibrationFileMetadata.CurrentSet - 1;
+                                    }
+                                    if (pauseAction != null) pauseAction();
                                     modeState = CalibrationStates.Clean_Up;
                                 }
                             }
