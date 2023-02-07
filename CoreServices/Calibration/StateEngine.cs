@@ -113,7 +113,6 @@ namespace CoreServices.Calibration
             const int samplesPerBatch = 9;              // 9 samples = 30 msec @ Fs=300 Hz
             const double bufferAheadSec = 0.100;        // 100 msec
 
-            bool passTest;
             int numTargets = 1;
 
             int messageType;
@@ -151,8 +150,6 @@ namespace CoreServices.Calibration
             **   *****************************
             */
 
-
-
             string currentDirectory = Directory.GetCurrentDirectory();
             string scriptFilename = "CalibrationCommands.txt";
             string filePath = System.IO.Path.Combine(currentDirectory, scriptFilename);
@@ -164,9 +161,40 @@ namespace CoreServices.Calibration
             headset.SetMessageVerbosity(2);
 
             string port = headset.GetDefaultHeadsetComPort();
-            passTest = headset.ConnectPort(port);
 
-            if (passTest == true)
+            bool done = false;
+            bool passedTest = false;
+            int failedCOunt = 0;
+
+            while (!done)
+            {
+                headset.ConnectPort(port);
+                await Task.Delay(100);
+
+                passedTest = headset.IsConnected();
+
+                if (passedTest == false)
+                {
+                    // Increment the number of failed connection attempts
+                    if (++failedCOunt > 3)
+                    {
+                        // Just give up and tell user of problem for now.
+                        done = true;
+                    }
+                    else
+                    {
+                        // Retry making the connection
+                        headset.Disconnect();
+                        await Task.Delay(100);
+                    }
+                }
+                else
+                {   // Connected properly
+                    done = true;
+                }
+            }
+
+            if (passedTest == true)
             {
                 Logger.Info(this, "\nConnection made to headset...\n");
             }
@@ -212,6 +240,7 @@ namespace CoreServices.Calibration
                 {
                     startSetNum = calibrationFileMetadata.CurrentSet;
                 }
+
                 // Continue performing calibration until either:
                 //   - Script runs to completion, user exits at end of set, or error occurs
                 while (!modeExit)
@@ -232,6 +261,7 @@ namespace CoreServices.Calibration
 
                             } while (CalibrationStates.Wait_On_UI == modeState);
                             break;
+
                         case CalibrationStates.Process_UI_Notification:
 
                             if (uiInstruction == null) { modeState = CalibrationStates.Clean_Up; break; }
@@ -337,6 +367,7 @@ namespace CoreServices.Calibration
                                 modeState = CalibrationStates.Clean_Up;
                             }
                             break;
+
                         case CalibrationStates.Read_Command:
 
                             // Check if reached end of script file yet
@@ -442,7 +473,9 @@ namespace CoreServices.Calibration
                                     targetsReadFromSet++;
                                     // Advance index to next command in the script
                                     currentLine++;
-                                    modeState = CalibrationStates.Get_Remote_Elements;
+
+                                    //modeState = CalibrationStates.Get_Remote_Elements;
+                                    modeState = CalibrationStates.Create_Grouping;
                                 }
 
                                 else if (fields[0] == "SELECT")
@@ -481,7 +514,11 @@ namespace CoreServices.Calibration
 
                                     // Advance index to next command in the script
                                     currentLine++;
-                                    modeState = CalibrationStates.Read_Command;
+
+                                    // After selecting a key on the display, restart the processing of fetching new set of
+                                    // elements and creating a new overlay because key locations may have changed.
+                                    // modeState = CalibrationStates.Read_Command;
+                                    modeState = CalibrationStates.Remote_Display;
                                 }
 
                                 else if (fields[0] == "STOP")
@@ -503,7 +540,8 @@ namespace CoreServices.Calibration
                             // Do what is necessary so that current displayed BCI app page is a transparent window
                             // in order to view displayed screen of other application (e.g. Empower).
 
-                            modeState = CalibrationStates.Read_Command;
+                            // modeState = CalibrationStates.Read_Command;
+                            modeState = CalibrationStates.Get_Remote_Elements;
                             break;
 
                         case CalibrationStates.Get_Remote_Elements:
@@ -619,7 +657,8 @@ namespace CoreServices.Calibration
                             logString = "CreateCrossReferenceTable() ... \n";
                             Logger.Info(this, logString);
 
-                            modeState = CalibrationStates.Create_Grouping;
+                            // modeState = CalibrationStates.Create_Grouping;
+                            modeState = CalibrationStates.Read_Command;
                             break;
 
                         case CalibrationStates.Create_Grouping:
@@ -982,6 +1021,8 @@ namespace CoreServices.Calibration
             this.calibrationFileMetadata = calibrationFileMetadata;
         }
 
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
         public void FlashControlAsync(IHeadset headset, CancellationToken cts, List<FlashTableEntry> flashSequenceTable,
                                       ITargetBlock<int[]> messageBufferBlock, ITargetBlock<double[]> dataBufferBlock)
