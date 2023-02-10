@@ -36,7 +36,7 @@ namespace ViewModels
 
         public MainViewModel(Action closeAction)
         {
-            Title = "Brain Computer Interface";
+            Title = "Brain-Computer Interface - MVP.Beta.v1.0";
             _mainMenuViewModel = new MainMenuViewModel(Open,Close);
             _connectivityViewModel = new ConnectivityViewModel(ExitToMainMenu, ShoworHideMainWindow);
             _mainMenuViewModel.HeadsetConnectionStatusViewModel = _connectivityViewModel.HeadsetConnectionStatusViewModel;
