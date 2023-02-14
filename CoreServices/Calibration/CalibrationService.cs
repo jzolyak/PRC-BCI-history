@@ -98,7 +98,7 @@ namespace CoreServices.Calibration
                         Logger.Error(this, "Multiple calibration file names exist. pleas check");
                     }
                     _currentCalibrationFile.UserGivenName = metadata[0];
-                    _currentCalibrationFile.NumofSets = Int32.Parse(metadata[1]);
+                    _currentCalibrationFile.NumofSets = Int32.Parse(metadata[2]);
                     if(Int32.Parse(metadata[1]) > _currentCalibrationFile.CurrentSet)
                     {
                         _currentCalibrationFile.CurrentSet = Int32.Parse(metadata[1]);

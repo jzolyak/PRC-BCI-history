@@ -35,6 +35,7 @@ namespace ViewModels.Calibration
         private CalibrationInstructionsViewModel _calibrationInstructionsViewModel;
         private object? _popupContentViewModel;
         private bool _showPopup;
+        private bool _enablePredictionSelection;
         private double _opacity;
         private bool _showDemoVideo;
         private int _currentFileMetadataIdx;
@@ -46,7 +47,9 @@ namespace ViewModels.Calibration
         public ICommand ResumeCmd { get; set; }
         public ICommand HelpCmd { get; set; }
         public ICommand SelectedFileChangeCmd { get; set; }
+        public ICommand ChangePredictionFileCmd { get; set; }
 
+        
         public ObservableCollection<PredictionFileMetadata> FileNamesCollection { get => _fileNamesCollection; set { _fileNamesCollection = value; OnPropertyChanged(nameof(FileNamesCollection)); } }
         public CalibrationFileMetadata CurrentFileMetadata { get => _currentFileMetadata; set { _currentFileMetadata = value; OnPropertyChanged(nameof(CurrentFileMetadata)); } }
         public PredictionFileMetadata SelectedFileMetadata { get => _selectedFileMetadata; set { _selectedFileMetadata = value; OnPropertyChanged(nameof(SelectedFileMetadata)); } }
@@ -58,7 +61,8 @@ namespace ViewModels.Calibration
         public bool EnableResume { get => _enableResume; set { _enableResume = value; OnPropertyChanged(nameof(EnableResume)); } }
         public bool HasFiles { get => _hasFiles;set { _hasFiles = value; OnPropertyChanged(nameof(HasFiles)); } }
         public bool ShowPopup { get => _showPopup; set { _showPopup = value; OnPropertyChanged(nameof(ShowPopup)); } }
-
+        public bool EnablePredictionSelection { get => _enablePredictionSelection; set { _enablePredictionSelection = value; OnPropertyChanged(nameof(EnablePredictionSelection)); } }
+        
         public double Opacity { get => _opacity; set { _opacity = value; OnPropertyChanged(nameof(Opacity)); } }
 
         public int CurrentFileMetadataIdx { set { _currentFileMetadataIdx = value; OnPropertyChanged(nameof(CurrentFileMetadataIdx)); } get { return _currentFileMetadataIdx; } }
@@ -69,6 +73,7 @@ namespace ViewModels.Calibration
         {
             StartCmd = new RelayCommand(StartCalibrationPreCheck);
             ResumeCmd = new RelayCommand(ResumeCalibration);
+            ChangePredictionFileCmd = new RelayCommand(ChangePredictionFile);
             SelectedFileChangeCmd = new RelayCommand(OnSelectedFileChange);
             _calibrationService = ServiceLocator.CalibrationService;
             _calibrationService.RaiseFileMetadataChange += _calibrationService_RaiseFileMetadataChange;
@@ -93,6 +98,11 @@ namespace ViewModels.Calibration
             MoveUpCmd = new RelayCommand(MoveFileMetadataIndexUp);
             MoveDownCmd = new RelayCommand(MoveFileMetadataIndexDown);
             _flashStimulusViewModel = new FlashStimulusViewModel();
+        }
+
+        private void ChangePredictionFile(object obj)
+        {
+            
         }
 
         private void _calibrationService_RaiseExitCalibrationEvent(object? sender, EventArgs e)
