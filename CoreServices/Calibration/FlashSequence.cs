@@ -23,7 +23,7 @@ namespace CoreServices.Calibration
     }
     public class FlashSequence
     {
-        public const int MAX_KEYS_PER_FLASH = 16;
+        public const int MAX_KEYS_PER_FLASH = 10;
 
         public const int NOT_ASSIGNED = 0;
         public const int HIDDEN1_ROW = 1;

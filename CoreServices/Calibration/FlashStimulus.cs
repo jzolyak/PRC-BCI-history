@@ -41,7 +41,8 @@ namespace CoreServices.Calibration
             screenOverlay.Height = displayProperties.bottom - displayProperties.top;
             screenOverlay.Width = displayProperties.right - displayProperties.left;
 
-            
+            screenOverlay.Top = displayProperties.top;
+            screenOverlay.Left = displayProperties.left;
             var topOffset = displayProperties.top;
             var leftOffset = displayProperties.left;
             //Canvas.SetTop(screenOverlay, TOP_OFFSET);

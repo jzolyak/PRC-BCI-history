@@ -6,7 +6,7 @@ namespace ViewModels.Validation
 {
     public class ValidationViewModel : ExitToMainMenuViewModel
     {
-        public ValidationViewModel(Action exitAction) : base(exitAction)
+        public ValidationViewModel(Action exitAction,Action<bool> showorHideMainWindow) : base(exitAction, showorHideMainWindow)
         {
 
         }

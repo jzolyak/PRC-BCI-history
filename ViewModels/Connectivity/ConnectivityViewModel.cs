@@ -1,4 +1,5 @@
 ﻿using CoreServices;
+using CoreServices.Common;
 using CoreServices.Connectivity;
 using CoreServices.Models;
 using System;
@@ -12,12 +13,14 @@ namespace ViewModels.Connectivity
 {
     public class ConnectivityViewModel : ExitToMainMenuViewModel
     {
+        private const string portKey= "HeadSetPort";
         public HeadsetConnectionStatusViewModel? HeadsetConnectionStatusViewModel { get; set; }
         public ObservableCollection<SensorMeasurementViewModel>? MeasurementList { get; set; }
-        private List<SensorMeasurementViewModel> _measurements; 
-
+        private List<SensorMeasurementViewModel> _measurements;
+        private UserSettingsService _userSettingsService;
         private HeadSetConnectivityService _headSetConnectivityService;
         private string _recommandation;
+        private string _port;
         public string Recommandation { get { return _recommandation; } set { _recommandation = value; OnPropertyChanged(nameof(Recommandation)); } }
 
         public ICommand StartCommand { get; set; }
@@ -26,7 +29,9 @@ namespace ViewModels.Connectivity
         private bool _enableStart;
         public bool EnableStart { get { return _enableStart; } set { _enableStart = value; OnPropertyChanged(nameof(EnableStart)); } }
 
-        public ConnectivityViewModel(Action exitAction) : base(exitAction)
+        public string Port { get => _port; set { _port = value; ChangePort(); OnPropertyChanged(nameof(Port)); } }
+
+        public ConnectivityViewModel(Action exitAction,Action<bool> showorHideMainWindow) : base(exitAction, showorHideMainWindow)
         {
             StartCommand = new RelayCommand(StartConnection);
             EnableStart = true;
@@ -45,6 +50,20 @@ namespace ViewModels.Connectivity
             ContinueCommand = new RelayCommand(ContinueConnection);
             ResetCommand = new RelayCommand(Reset);
             Recommandation = "Recommended action to take next appears here...";
+            _userSettingsService = ServiceLocator.UserSettingsService;
+            _port = _userSettingsService.GetSettingsValue(portKey);
+            if(Port == null)
+            {
+                _port = "COM4";
+            }
+            _headSetConnectivityService.UpdateHeadsetPort(Port);
+            OnPropertyChanged(nameof(Port));
+        }
+
+        private void ChangePort()
+        {
+            _userSettingsService.SaveUserSettings(portKey,_port);
+            _headSetConnectivityService.UpdateHeadsetPort(_port);
         }
 
         private void Reset(object obj)

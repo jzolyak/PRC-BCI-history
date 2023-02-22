@@ -33,4 +33,13 @@ namespace CoreServices.Models
 
 
     }
+
+    public enum UIType
+    {
+        CalibrationStopQuery,
+        CalibrationRepeatQuery,
+        CalibrationBeginQuery,
+        CountDownWindow,
+        CalibrationComplete
+    }
 }

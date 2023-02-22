@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Starter.Calibration"
+             x:Class="Starter.Calibration.CalibrationStopQueryView" Background="White" Height="400" Width="600">
+        <StackPanel>
+            <Label Content="STOP" HorizontalAlignment="Center" Margin="0,20,0,0" FontSize="56"/>
+            <Label x:Name="queryLabel" Content="{Binding Text}" HorizontalAlignment="Center" Margin="0,40,0,0" FontSize="16"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button x:Name="keepButton"  Height="40" Width="140" Margin="0,40,40,40" Content="Keep" FontFamily="Arial" FontSize="25"  Style="{StaticResource ButtonStyle}" Command="{Binding KeepCommand}"/>
+                <Button x:Name="discardButton" Height="40" Width="140" Content="Discard" FontFamily="Arial" FontSize="25"  Style="{StaticResource ButtonStyle}" Command="{Binding DiscardCommand}"/>
+            </StackPanel>
+        </StackPanel>
+</UserControl>

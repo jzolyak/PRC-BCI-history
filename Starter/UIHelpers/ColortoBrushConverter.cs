@@ -17,6 +17,10 @@ namespace Starter.UIHelpers
             try
             {
                 var color = (System.Drawing.Color)value;
+                if(color == System.Drawing.Color.Transparent)
+                {
+                    return Brushes.Transparent;
+                }
                 return new SolidColorBrush((System.Windows.Media.Color.FromRgb(color.R, color.G, color.B)));
             }
             catch (Exception ex)
