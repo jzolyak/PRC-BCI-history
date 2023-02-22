@@ -26,5 +26,10 @@ namespace CoreServices.Models
             if (isCurrent) return UserGivenName + "(Current)";
             else return UserGivenName;
         }
+
+        public string GetCurrentBinFileName()
+        {
+            return _userGivenName + "_" + _currentSet + "_" + _numofSets + ".bin";
+        }
     }
 }

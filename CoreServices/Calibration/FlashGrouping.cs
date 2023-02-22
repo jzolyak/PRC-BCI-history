@@ -292,7 +292,7 @@ namespace CoreServices.Calibration
                 if (magic.IsValidDimension(hiddenSize1) == false)
                 {
                     // Eventually throw an exception, but for now print an error message.
-                    Console.WriteLine("BCI ERROR: Dimension out of range for Magic Square");
+                   Logger.Error(this,"BCI ERROR: Dimension out of range for Magic Square");
                 }
 
                 placementOrder1 = magic.GetMagicTable(hiddenSize1);

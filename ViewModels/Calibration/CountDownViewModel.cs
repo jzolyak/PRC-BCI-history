@@ -13,10 +13,14 @@ namespace ViewModels.Calibration
     public class CountDownViewModel:ViewModelBase
     {
         private string _text;
+        private string _title;
         private Action _closeAction;
         private Timer _timer;
         private int _counter;
         public string Text { get { return _text; } set { _text = value; OnPropertyChanged(nameof(Text)); } }
+        public string Title { get { return _title; } set { _title = value; OnPropertyChanged(nameof(Title)); } }
+        public ICommand CancelCommand { get; set; }
+
         public ICommand OkCommand { get; set; }
         private Action<UIInstruction> _resultAction;
         public CountDownViewModel(Action closeAction, Action<UIInstruction> resultAction)
@@ -25,7 +29,17 @@ namespace ViewModels.Calibration
             _closeAction = closeAction;           
             _timer= new Timer(1000);
             _timer.Elapsed += _timer_Elapsed;
-            _resultAction = resultAction;   
+            _resultAction = resultAction;
+            CancelCommand = new RelayCommand(Cancel);
+            Title = "Calibration Set 1 will begin in ... ";
+        }
+        public void UpdateTitle(CalibrationFileMetadata calibrationFileMetadata)
+        {
+            if (calibrationFileMetadata == null)
+            {
+                return;
+            }
+            Title = "Calibration Set " + calibrationFileMetadata.CurrentSet + " will begin in ... ";
         }
 
         public void Reset()
@@ -55,6 +69,12 @@ namespace ViewModels.Calibration
         {
             if(_closeAction != null) _closeAction();
             _resultAction(new UIInstruction { Type = UIType.CountDownWindow, Result = true });
+        }
+
+        private void Cancel(object obj)
+        {
+            if (_closeAction != null) _closeAction();
+            _resultAction(new UIInstruction { Type = UIType.CountDownWindow, Result = false });
         }
     }
 }

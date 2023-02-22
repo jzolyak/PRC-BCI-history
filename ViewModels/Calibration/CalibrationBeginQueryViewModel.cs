@@ -24,6 +24,15 @@ namespace ViewModels.Calibration
             Text = "Are you ready to begin Calibration Set 1?";
         }
 
+        public void UpdateText(CalibrationFileMetadata calibrationFileMetadata)
+        {
+            if (calibrationFileMetadata == null)
+            {
+                return;
+            }
+            Text = "Are you ready to begin Calibration Set " + (calibrationFileMetadata.CurrentSet+1) + " ?";
+        }
+
         private void StartCalibrationSet(Object obj)
         {
             _resultAction(new UIInstruction { Type = UIType.CalibrationBeginQuery, Result = true });

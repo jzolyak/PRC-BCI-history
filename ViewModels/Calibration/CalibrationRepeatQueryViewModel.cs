@@ -21,6 +21,16 @@ namespace ViewModels.Calibration
             YesCommand = new RelayCommand(RepeatCalibrationSet);
             NoCommand = new RelayCommand(KeepCalibrationSet);
             _resultAction = resultAction;
+            RepeatText = "Do you want to repeat collecting Calibration set 1 of 5?";
+        }
+
+        public void UpdateText(CalibrationFileMetadata calibrationFileMetadata)
+        {
+            if (calibrationFileMetadata == null)
+            {
+                return;
+            }
+            RepeatText = "Do you want to repeat collecting Calibration set " + calibrationFileMetadata.CurrentSet + " of " + calibrationFileMetadata.NumofSets + " ?";
         }
 
         private void RepeatCalibrationSet(Object obj)

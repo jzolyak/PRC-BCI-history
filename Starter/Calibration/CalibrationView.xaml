@@ -12,9 +12,9 @@
             <RowDefinition Height="1*"></RowDefinition>
             <RowDefinition Height="9*"></RowDefinition>
         </Grid.RowDefinitions>
-        <StackPanel Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding EnableResume,Converter={StaticResource booltoVisibilityConverter}}" Orientation="Horizontal">
-            <Label Style="{StaticResource HeaderLabelStyle}" Content="Current Calibration:" Foreground="#449DD1"></Label>
-            <Label Style="{StaticResource HeaderLabelStyle}" DataContext="{Binding CurrentFileMetadata}" Content="{Binding UserGivenName}" Foreground="#449DD1"></Label>
+        <StackPanel Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+            <Label Style="{StaticResource HeaderLabelStyle}" Content="Current Prediction File:" Foreground="#449DD1"></Label>
+            <Label Style="{StaticResource HeaderLabelStyle}" DataContext="{Binding SelectedFileMetadata}"  Content="{Binding Name}" Foreground="#449DD1"></Label>
         </StackPanel>
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
@@ -36,8 +36,16 @@
                 <StackPanel Grid.Row="1">
                     <Button Style="{StaticResource ButtonStyle}" Content="Resume Calibrating" HorizontalAlignment="Center" Width="200" Height="70" FontSize="20" VerticalAlignment="Center" Command="{Binding ResumeCmd}" Visibility="{Binding EnableResume,Converter={StaticResource booltoVisibilityConverter}}"></Button>
                     <StackPanel Orientation="Horizontal" Visibility="{Binding EnableResume,Converter={StaticResource booltoVisibilityConverter}}" HorizontalAlignment="Center">
-                        <Label Margin="2,2,0,0" Style="{StaticResource MediumLabelStyle}" DataContext="{Binding CurrentFileMetadata}">
-                            <TextBlock Text="{Binding NumofSets, StringFormat='({0}/5 sets completed)'}"/>
+                        <Label Margin="2,2,0,0" Style="{StaticResource MediumLabelStyle}">
+                            <TextBlock>
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="Calibration File: {0} - ({1}/{2} sets completed)">
+                                        <Binding Path="CalibrationName" />
+                                        <Binding Path="CurrentSet" />
+                                        <Binding Path="NumofSets" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
                         </Label>
                         <!--Label Content="/5 sets completed" Margin="0,2,2,2" Style="{StaticResource MediumLabelStyle}" DataContext="{Binding CurrentFileMetadata}"></Label-->
                     </StackPanel>

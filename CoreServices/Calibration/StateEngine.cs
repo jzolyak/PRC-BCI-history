@@ -1,11 +1,15 @@
-﻿using CoreServices.Common;
+﻿using BCI_Headset;
+using CoreServices.Common;
+using CoreServices.Files;
 using CoreServices.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 
 namespace CoreServices.Calibration
 {
@@ -17,8 +21,13 @@ namespace CoreServices.Calibration
         private UIInstruction uiInstruction;
         private Action<UIInstruction> notifyUIAction;
         private Action<ScreenOverlay> notifyScreenOverLayChange;
+        private CalibrationFileMetadata calibrationFileMetadata;
+
 
         private Action exitAction;
+        private Action completeAction;
+        private Action pauseAction;
+
         public enum CalibrationStates
         {
             Show_Instructions, Open_Files, Read_Command, Remote_Display, Get_Remote_Elements,
@@ -36,12 +45,13 @@ namespace CoreServices.Calibration
             "Notify_UI", "Wait_On_UI", "Process_UI_Notification"
         };
 
-        public StateEngine(Action<UIInstruction> notifyUIAction,Action<ScreenOverlay> notifyScreenOverLayChange, Action exitAction)
+        public StateEngine(Action<UIInstruction> notifyUIAction,Action<ScreenOverlay> notifyScreenOverLayChange, Action exitAction,Action completeAction,Action pauseAction)
         {
             this.notifyUIAction = notifyUIAction;
             this.notifyScreenOverLayChange = notifyScreenOverLayChange;
             this.exitAction = exitAction;
-            
+            this.completeAction = completeAction;
+            this.pauseAction = pauseAction;
         }
 
         public async Task CalibrationMode()
@@ -60,6 +70,7 @@ namespace CoreServices.Calibration
             inputParam.boardDivision = BoardDivision.Checkerboard;
             inputParam.arrangement = Arrangement.Magic;
             inputParam.indexMapping = IndexMapping.GridSize;
+            bool calibrationCompleted = false;
 
             int startSetNum = 1;
             int totalSetNum = 0;
@@ -80,7 +91,8 @@ namespace CoreServices.Calibration
             int flash_ON_time_msec = 90;
             int flash_OFF_time_msec = 60;
 
-            int programmable_delay_msec = 2000;
+            int UI_delay_msec = 200;
+            int programmable_delay_msec = 1000;
             //int programmable_delay_msec = 10;
 
             string targetKeyName;
@@ -90,7 +102,28 @@ namespace CoreServices.Calibration
             bool foundMatch = false;
 
             bool testScriptEnabled = false;
+
+            const int MAX_MSG_LENGTH = 8;
+
+            const int FLASH_ON = 1;
+            const int FLASH_OFF = 2;
+            const int END_SEQUENCE = 3;
+
             //bool testScriptEnabled = true;
+            const int samplesPerBatch = 9;              // 9 samples = 30 msec @ Fs=300 Hz
+            const double bufferAheadSec = 0.100;        // 100 msec
+
+            int numTargets = 1;
+
+            int messageType;
+            int indexValue;
+            int phaseInSequence;
+            int elapsedTime;
+            int sourceTimer;
+
+            int[] messageBuffer = new int[MAX_MSG_LENGTH];
+
+            string currentTime;
 
 
             modeState = CalibrationStates.Read_Command;
@@ -117,12 +150,70 @@ namespace CoreServices.Calibration
             **   *****************************
             */
 
-
-
             string currentDirectory = Directory.GetCurrentDirectory();
             string scriptFilename = "CalibrationCommands.txt";
             string filePath = System.IO.Path.Combine(currentDirectory, scriptFilename);
+            WearableSensingVR300 headset = new WearableSensingVR300();
 
+            Logger.Info(this,"\nEntered program... \n");
+
+            headset.CreateNew();
+            headset.SetMessageVerbosity(2);
+
+            string port = headset.GetDefaultHeadsetComPort();
+
+            bool done = false;
+            bool passedTest = false;
+            int failedCOunt = 0;
+
+            while (!done)
+            {
+                headset.ConnectPort(port);
+                await Task.Delay(100);
+
+                passedTest = headset.IsConnected();
+
+                if (passedTest == false)
+                {
+                    // Increment the number of failed connection attempts
+                    if (++failedCOunt > 3)
+                    {
+                        // Just give up and tell user of problem for now.
+                        done = true;
+                    }
+                    else
+                    {
+                        // Retry making the connection
+                        headset.Disconnect();
+                        await Task.Delay(100);
+                    }
+                }
+                else
+                {   // Connected properly
+                    done = true;
+                }
+            }
+
+            if (passedTest == true)
+            {
+                Logger.Info(this, "\nConnection made to headset...\n");
+            }
+            else
+            {
+                Logger.Info(this, "\nFailed connecting to headset...\n");
+            }
+
+            string montage = headset.GetDefaultHeadsetMontage();
+            string reference = headset.GetDefaultHeadsetReference();
+            headset.ChooseChannels(montage, reference);
+
+            //string info = headset.GetInfoString();
+            //Console.WriteLine(info);
+
+            headset.StartAnalogReset();
+            await Task.Delay(100);
+
+            headset.ConfigureBatch(samplesPerBatch, bufferAheadSec);
             /*
             // Need to replace this code with try/catch block to check for file exists and can be opened.
             if (File.Exists(filePath))
@@ -134,7 +225,7 @@ namespace CoreServices.Calibration
             }
             else
             {
-                Console.WriteLine(filePath + " does not exist!");
+               Logger.Info(this,filePath + " does not exist!");
                 modeState = CalibrationStates.Clean_Up;
             }
             */
@@ -144,6 +235,11 @@ namespace CoreServices.Calibration
                 maxLinesInFile = commandLines.Length;
                 currentLine = 0;
                 repeatCalibrationLine = 0;
+                BinaryWriter? binaryWriter=null;
+                if(calibrationFileMetadata != null)
+                {
+                    startSetNum = calibrationFileMetadata.CurrentSet;
+                }
 
                 // Continue performing calibration until either:
                 //   - Script runs to completion, user exits at end of set, or error occurs
@@ -161,10 +257,11 @@ namespace CoreServices.Calibration
                         case CalibrationStates.Wait_On_UI:
                             do
                             {
-                                await Task.Delay(programmable_delay_msec);
+                                await Task.Delay(UI_delay_msec);
 
                             } while (CalibrationStates.Wait_On_UI == modeState);
                             break;
+
                         case CalibrationStates.Process_UI_Notification:
 
                             if (uiInstruction == null) { modeState = CalibrationStates.Clean_Up; break; }
@@ -176,16 +273,23 @@ namespace CoreServices.Calibration
                                     //    // User selected Keep button to save raw data collected in the Calibration set.
                                     //    // Advance startSetNum to indicate which is the next set in the script to run.
                                     startSetNum++;
-
+                                    if (binaryWriter != null)
+                                    {
+                                        FileHandlerService.CloseBinaryWriter(binaryWriter);
+                                    }
                                     // Close raw data file for this calibration set
 
                                     if (startSetNum > totalSetNum)
                                     {
                                         // Reached last set in the script file. Inform user calibration is finished.
+                                        //Handover the calib files to generate coef and move the bin files to completed folder
+                                        modeState = CalibrationStates.Wait_On_UI;
                                         uiInstruction.Type = UIType.CalibrationComplete;
+                                        calibrationCompleted = true;
+                                        calibrationFileMetadata.CurrentSet = calibrationFileMetadata.NumofSets;
+                                        calibrationFileMetadata.IsCurrent = false;
                                         uiInstruction.Result = false;
                                         NotifyUI(uiInstruction);
-                                        modeState = CalibrationStates.Clean_Up;
                                     }
                                     else
                                     {
@@ -195,6 +299,8 @@ namespace CoreServices.Calibration
                                 }
                                 else
                                 {
+                                    Logger.Info(this, "deleting the current calibration set file:" + calibrationFileMetadata.GetCurrentBinFileName());
+                                    FileHandlerService.DeleteBinaryFile(calibrationFileMetadata.GetCurrentBinFileName(), "CalibrationFiles");
                                     modeState = CalibrationStates.Wait_On_UI;
                                     uiInstruction.Type = UIType.CalibrationRepeatQuery;
                                     uiInstruction.Result = false;
@@ -214,6 +320,8 @@ namespace CoreServices.Calibration
                                 else
                                 {
                                     // Clean up and return to Calibration submenu (not main BCI menu)
+                                    calibrationFileMetadata.CurrentSet = calibrationFileMetadata.CurrentSet - 1;
+                                    if (pauseAction != null) pauseAction();
                                     modeState = CalibrationStates.Clean_Up;
                                 }
                             }
@@ -226,20 +334,40 @@ namespace CoreServices.Calibration
                                     // Need to create and open new file for next new calibration data set
 
                                     // Proceed with reading commands from the script file for next calibration set
+                                    showCountDownTimer = true;
                                     modeState = CalibrationStates.Read_Command;
                                 }
                                 else
                                 {   // User selected Cancel button to halt further raw data collection and will resume later.
                                     // Clean up and return to Calibration submenu (not main BCI menu)
+                                    if (pauseAction != null) pauseAction();
                                     modeState = CalibrationStates.Clean_Up;
                                 }
                             }
                             else if (uiInstruction.Type == UIType.CountDownWindow)
                             {
-                                showCountDownTimer = false;
-                                modeState = CalibrationStates.Highlight_Target;
+                                if (uiInstruction.Result == true)
+                                {
+                                    showCountDownTimer = false;
+                                    modeState = CalibrationStates.Highlight_Target;
+                                }
+                                else
+                                {
+                                    // Clean up and return to Calibration submenu (not main BCI menu)
+                                    if (calibrationFileMetadata!=null && calibrationFileMetadata.CurrentSet > 1)
+                                    {
+                                        calibrationFileMetadata.CurrentSet = calibrationFileMetadata.CurrentSet - 1;
+                                    }
+                                    if (pauseAction != null) pauseAction();
+                                    modeState = CalibrationStates.Clean_Up;
+                                }
+                            }
+                            else if(uiInstruction.Type == UIType.CalibrationComplete)
+                            {
+                                modeState = CalibrationStates.Clean_Up;
                             }
                             break;
+
                         case CalibrationStates.Read_Command:
 
                             // Check if reached end of script file yet
@@ -258,6 +386,9 @@ namespace CoreServices.Calibration
                                     // Determine which set number you are at in the script
                                     currentSetNum = Int32.Parse(fields[1]);
                                     totalSetNum = Int32.Parse(fields[2]);
+                                    calibrationFileMetadata.NumofSets = totalSetNum;
+                                    calibrationFileMetadata.CurrentSet = currentSetNum;
+                                    calibrationFileMetadata.IsCurrent = true;
                                     if (currentSetNum == startSetNum)
                                     {
                                         // Found where we need to start. Advance to next command in list
@@ -285,6 +416,7 @@ namespace CoreServices.Calibration
                                             if (nextLine[0] == "START")
                                             {
                                                 currentSetNum = Int32.Parse(nextLine[1]);
+                                                calibrationFileMetadata.CurrentSet = currentSetNum;
                                                 if (currentSetNum == startSetNum)
                                                 {
                                                     foundMatch = true;
@@ -299,7 +431,7 @@ namespace CoreServices.Calibration
 
                                         if (foundMatch == false)
                                         {
-                                            Console.WriteLine("ERROR: Can't find starting set number in calibration commands");
+                                            Logger.Error(this, "ERROR: Can't find starting set number in calibration commands");
                                             modeState = CalibrationStates.Clean_Up;
                                         }
                                     }
@@ -321,7 +453,7 @@ namespace CoreServices.Calibration
                                     }
                                     else
                                     {
-                                        Console.WriteLine("ERROR: Invalid DISPLAY calibration command");
+                                        Logger.Error(this, "ERROR: Invalid DISPLAY calibration command");
                                         modeState = CalibrationStates.Clean_Up;
                                     }
 
@@ -341,7 +473,9 @@ namespace CoreServices.Calibration
                                     targetsReadFromSet++;
                                     // Advance index to next command in the script
                                     currentLine++;
-                                    modeState = CalibrationStates.Assign_Key_Mapping;
+
+                                    //modeState = CalibrationStates.Get_Remote_Elements;
+                                    modeState = CalibrationStates.Create_Grouping;
                                 }
 
                                 else if (fields[0] == "SELECT")
@@ -362,14 +496,29 @@ namespace CoreServices.Calibration
                                         }
                                     }
 
-                                    remoteDisplay.SelectElement(elementIndex);
+									logString = "  ******  targetkeyIDvalue  = " + targetkeyIDvalue.ToString() + "\n";
+                                    Logger.Info(this, logString);
+
+                                    if (elementIndex == 0)
+                                    {
+                                        logString = "Matching targetkeyIDvalue NOT FOUND!!! = " + targetkeyIDvalue.ToString() + "\n";
+                                        Logger.Info(this, logString);
+                                    }
+                                    else
+                                    {
+                                        remoteDisplay.SelectElement(elementIndex);
+                                    }
 
                                     // Give other app time to respond to command
-                                    // await Task.Delay(2000);
+                                    await Task.Delay(UI_delay_msec);
 
                                     // Advance index to next command in the script
                                     currentLine++;
-                                    modeState = CalibrationStates.Read_Command;
+
+                                    // After selecting a key on the display, restart the processing of fetching new set of
+                                    // elements and creating a new overlay because key locations may have changed.
+                                    // modeState = CalibrationStates.Read_Command;
+                                    modeState = CalibrationStates.Remote_Display;
                                 }
 
                                 else if (fields[0] == "STOP")
@@ -381,7 +530,7 @@ namespace CoreServices.Calibration
 
                                 else
                                 {
-                                    Console.WriteLine("ERROR: Unrecognized calibration command found in script");
+                                    Logger.Error(this, "ERROR: Unrecognized calibration command found in script");
                                     modeState = CalibrationStates.Clean_Up;
                                 }
                             }
@@ -391,6 +540,7 @@ namespace CoreServices.Calibration
                             // Do what is necessary so that current displayed BCI app page is a transparent window
                             // in order to view displayed screen of other application (e.g. Empower).
 
+                            // modeState = CalibrationStates.Read_Command;
                             modeState = CalibrationStates.Get_Remote_Elements;
                             break;
 
@@ -401,7 +551,7 @@ namespace CoreServices.Calibration
 
                             elementList = remoteDisplay.GetRemoteDisplayedElements();
 
-                            if (elementList == null)
+                            if (elementList.Count == 0)
                             {
                                 // Sometimes MUIA does not find the children elements of the desktop (root) element on the first try.
                                 if (numGetElementRetries == 0)
@@ -412,7 +562,8 @@ namespace CoreServices.Calibration
                                 }
                                 else
                                 {
-                                    MessagingService.SendMessage(this, "Failed to fetch displayed elements using Microsoft UAI... ", MessageType.Popup);
+                                    logString = "Failed to fetch displayed elements using Microsoft UAI ... \n";
+                                    Logger.Info(this, logString);
                                     modeState = CalibrationStates.Clean_Up;
                                 }
                             }
@@ -446,7 +597,7 @@ namespace CoreServices.Calibration
 
                                 // Ready to fetch next target from calibration commands
                                 // modeState = CalibrationStates.Click_Key;     // <== This is second time I've fixed same error. JAZ 12/2/22
-                                modeState = CalibrationStates.Read_Command;
+                                modeState = CalibrationStates.Assign_Key_Mapping;
                             }
                             break;
 
@@ -456,7 +607,7 @@ namespace CoreServices.Calibration
                             // when using the BCI with non PRC applications.
                             // TO BE DONE: This functionality will be added after MVP
 
-                            modeState = CalibrationStates.Get_Local_Elements;
+                            modeState = CalibrationStates.Read_Command;
                             break;
 
                         case CalibrationStates.Get_Local_Elements:
@@ -464,7 +615,7 @@ namespace CoreServices.Calibration
                             // TO BE DONE: This functionality will be added after MVP
 
                             // Ready to fetch next target from calibration commands
-                            modeState = CalibrationStates.Read_Command;
+                            modeState = CalibrationStates.Assign_Key_Mapping;
                             break;
 
                         case CalibrationStates.Assign_Key_Mapping:
@@ -473,6 +624,9 @@ namespace CoreServices.Calibration
                             // Using the row and column position on the grid, assign each key a unique keyID for flashing.
                             Keyboard keyboardGrid = new Keyboard();
 
+                            logString = "Number of list elements = " + elementList.Count.ToString() + "\n";
+                            Logger.Info(this, logString);
+
                             gridData = keyboardGrid.ExtractGridData(elementList);
 
                             List<List<int>> listOfRows = keyboardGrid.CreateListOfRows(elementList);
@@ -480,18 +634,31 @@ namespace CoreServices.Calibration
                             gridData.maxKeyRows = listOfRows.Count;
                             gridData.maxKeyCols = listOfColumns.Count;
 
+                            logString = "Number of columns = " + listOfColumns.Count.ToString() + "\n";
+                            Logger.Info(this, logString);
+
                             bool PRC_mode = true;
 
                             // Create a KeyID map of all the keys based on the mapping method and grid size
                             keyIDMap = keyboardGrid.CreateKeyIDMap(gridData, PRC_mode);
 
+                            logString = "CreateKeyIDMap() ... \n";
+                            Logger.Info(this, logString);
+
                             //flashableKeys = keyboardGrid.AssignKeyMapping(elementList, gridData, keyIDMap, out crossReferenceLookupTable);
                             flashableKeys = keyboardGrid.AssignKeyMapping(elementList, gridData, keyIDMap);
+
+                            logString = "AssignKeyMapping() ... \n";
+                            Logger.Info(this, logString);
 
                             // Create cross reference lookup table between the keyID value and buttonIndex value used in flashing keys.
                             flashStimulus.CreateCrossReferenceTable(flashableKeys);
 
-                            modeState = CalibrationStates.Create_Grouping;
+                            logString = "CreateCrossReferenceTable() ... \n";
+                            Logger.Info(this, logString);
+
+                            // modeState = CalibrationStates.Create_Grouping;
+                            modeState = CalibrationStates.Read_Command;
                             break;
 
                         case CalibrationStates.Create_Grouping:
@@ -584,24 +751,133 @@ namespace CoreServices.Calibration
 
                         case CalibrationStates.Core_Loop:
 
-                            int maxTableEntries = flashSequenceTable.Count;
+                            //int maxTableEntries = flashSequenceTable.Count;
 
-                            for (int iteration = 0; iteration < maxFlashSequences; iteration++)
+                            //for (int iteration = 0; iteration < maxFlashSequences; iteration++)
+                            //{
+                            //    for (int entry = 0; entry < maxTableEntries; entry++)
+                            //    {
+                            //        flashStimulus.FlashStimulusON(targetkeyIDvalue, entry, flashSequenceTable);
+
+                            //        // Pause to see flash color change
+                            //        await Task.Delay(flash_ON_time_msec);
+
+                            //        flashStimulus.FlashStimulusOFF(targetkeyIDvalue, entry, flashSequenceTable);
+                            //        await Task.Delay(flash_OFF_time_msec);
+                            //    }
+                            //}
+
+                            //modeState = CalibrationStates.Unhighlight_Target;
+                            //break;
+
+                            bool displayStatus = true;
+                            bool exitFlag = false;
+
+                            int flashCount = 0;
+                            int numIterations = 0;
+                            int numEntries = flashSequenceTable.Count;
+
+
+                            headset.StartBackgroundAcquisition();
+
+                            CancellationTokenSource tokenSource = new CancellationTokenSource();
+
+                            var messageBufferBlock = new BufferBlock<int[]>();
+                            var dataBufferBlock = new BufferBlock<double[]>();
+                            if(calibrationFileMetadata ==null)
                             {
-                                for (int entry = 0; entry < maxTableEntries; entry++)
-                                {
-                                    flashStimulus.FlashStimulusON(targetkeyIDvalue, entry, flashSequenceTable);
-
-                                    // Pause to see flash color change
-                                    await Task.Delay(flash_ON_time_msec);
-
-                                    flashStimulus.FlashStimulusOFF(targetkeyIDvalue, entry, flashSequenceTable);
-                                    await Task.Delay(flash_OFF_time_msec);
-                                }
+                                Logger.Error(this, "calibration file meta data is not available.unable to proceed");
+                                modeState = CalibrationStates.Clean_Up; break;
+                            }    
+                           
+                            binaryWriter = FileHandlerService.CreateAndOpenBinaryFile(calibrationFileMetadata.GetCurrentBinFileName(), "CalibrationFiles");
+                            if (binaryWriter == null)
+                            {
+                                Logger.Error(this, "unable to create binary writer.");
+                                modeState = CalibrationStates.Clean_Up; break;
                             }
+                            // Start separate tasks that fetch sensor samples from headset while flashing keys
+                            // on display screen and recording the raw data.
+                            Task t1 = Task.Run(() => FlashControlAsync(headset, tokenSource.Token, flashSequenceTable, messageBufferBlock, dataBufferBlock));
+
+                            Task t2 = Task.Run(() => RecordDataAsync(tokenSource.Token, dataBufferBlock, binaryWriter));
+
+                            while (exitFlag == false)
+                            {
+                                messageBuffer = await GetFlashControlMessageAsync(messageBufferBlock);
+
+                                string flashTime = DateTime.Now.ToString("HH:mm:ss:ffff");
+
+                                messageType = messageBuffer[0];
+
+                                if (messageType == FLASH_ON)
+                                {
+                                    indexValue = messageBuffer[1] - 1;
+                                    phaseInSequence = messageBuffer[2];
+                                    elapsedTime = messageBuffer[3];
+
+                                    flashStimulus.FlashStimulusON(targetkeyIDvalue, indexValue, flashSequenceTable);
+
+                                    sourceTimer = elapsedTime % 65536;
+                                    //Console.WriteLine("{0}  Flash ON,  seq num = {1},  phase = {2},   time = {3} \n", flashTime, indexValue, phaseInSequence, sourceTimer);
+
+                                    if (displayStatus == true)
+                                    {
+                                        //Console.WriteLine("{0}  Start flashing for Target {1} \n", flashTime, numTargets);
+                                        displayStatus = false;
+                                    }
+                                }
+                                else if (messageType == FLASH_OFF)
+                                {
+                                    indexValue = messageBuffer[1] - 1;
+                                    phaseInSequence = messageBuffer[2];
+                                    elapsedTime = messageBuffer[3];
+
+                                    flashStimulus.FlashStimulusOFF(targetkeyIDvalue, indexValue, flashSequenceTable);
+
+                                    sourceTimer = elapsedTime % 65536;
+                                    //Console.WriteLine("{0}  Flash OFF,  seq num = {1},  phase = {2},   time = {3}  \n", flashTime, indexValue, phaseInSequence, sourceTimer);
+
+                                    if (++flashCount >= numEntries)
+                                    {
+                                        flashCount = 0;
+                                        ++numIterations;
+                                        //Console.WriteLine("{0}  ... End flash iteration {1} \n", flashTime, numIterations);
+                                    }
+                                }
+                                else if (messageType == END_SEQUENCE)
+                                {
+                                    indexValue = messageBuffer[1];
+                                    //Console.WriteLine("{0}  ... End flashing for Target {1} \n", flashTime, numTargets);
+                                    exitFlag = true;
+                                }
+                                else
+                                {
+                                    
+                                    Logger.Info(this, flashTime + "OH !!!  messageType = "+ messageType);
+                                    exitFlag = true;
+                                }
+
+                            }  // while (exitFlag == false)
+
+                            ++numTargets;
+
+                            // Stop task that is fetching sensor samples from headset
+                            tokenSource.Cancel();
+
+                            //await Task.Delay(50);
+                            headset.StopBackgroundAcquisition();
+                            headset.Idle(0.200);
+
+                            messageBufferBlock.Complete();
+                            dataBufferBlock.Complete();
 
                             modeState = CalibrationStates.Unhighlight_Target;
                             break;
+
+                        /* ********************************* */
+                        /*  End Core Loop                    */
+                        /* ********************************* */
 
                         /* ********************************* */
                         /*  End Core Loop                    */
@@ -632,7 +908,18 @@ namespace CoreServices.Calibration
                                 }
                             }
 
-                            remoteDisplay.SelectElement(elementIndex);
+							logString = "  ******  targetkeyIDvalue  = " + targetkeyIDvalue.ToString() + "\n";
+                            Logger.Info(this, logString);
+
+                            if (elementIndex == 0)
+                            {
+                                logString = "Matching targetkeyIDvalue NOT FOUND!!! = " + targetkeyIDvalue.ToString() + "\n";
+                                Logger.Info(this, logString);
+                            }
+                            else
+                            {
+                                remoteDisplay.SelectElement(elementIndex);
+                            }
 
                             // if (displayType == REMOTE)
                             //    - Call Microsoft UIA function to click key and let Empower do the work
@@ -686,11 +973,22 @@ namespace CoreServices.Calibration
 
                 // this.Close();
 
+                headset.Disconnect();
+                headset.Delete();
+
+                if (binaryWriter != null)
+                {
+                    FileHandlerService.CloseBinaryWriter(binaryWriter);
+                }
+                if(calibrationCompleted&&completeAction!=null)
+                {
+                    completeAction();
+                }
                 //return Task.CompletedTask;
             }
             catch (Exception ex)
             {
-
+                Logger.Error(this, "Exception in state engine" + ex.ToString());
             }
         }
 
@@ -711,10 +1009,386 @@ namespace CoreServices.Calibration
 
         private void NotifyUI(UIInstruction uiInstruction)
         {
+            if (calibrationFileMetadata != null) uiInstruction.Param = calibrationFileMetadata;
             if(notifyUIAction!=null)
             {
                 notifyUIAction(uiInstruction);
             }
         }
+
+        public void SetCalibrationFile(CalibrationFileMetadata calibrationFileMetadata)
+        {
+            this.calibrationFileMetadata = calibrationFileMetadata;
+        }
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+        public void FlashControlAsync(IHeadset headset, CancellationToken cts, List<FlashTableEntry> flashSequenceTable,
+                                      ITargetBlock<int[]> messageBufferBlock, ITargetBlock<double[]> dataBufferBlock)
+        {
+            const int MAX_CHANNELS = 7;             // Assumes no TRIG channel in montage, just (sensor - ref) values
+            const int CIRCULAR_BUF_LEN = 512;       // Num sensor samples per chan in the circular buffer
+
+            const int MAX_MSG_LENGTH = 8;
+            const int MARKER_LENGTH = 5;
+
+            const int FLASH_ON = 1;
+            const int FLASH_OFF = 2;
+            const int END_SEQUENCE = 3;
+
+            const int msecPerSecond = 1000;
+            const int sampleRate = 300;             // 300 samples per second
+
+            const int samplesPerBatch = 9;          // 9 samples = 30 msec @ Fs=300 Hz
+
+            const double PRESET_1 = 100.0;          // 0.1 second
+            const double PRESET_2 = 1000.0;         // 1.0 second
+            const double PRESET_3 = 90.0;           // 90 msec = Flash ON
+            const double PRESET_4 = 60.0;           // 60 msec = Flash OFF
+                                                    //            const double PRESET_5 = 800.0;          // 800 msec delay after last flash
+            const double PRESET_5 = 800.0;          // 800 msec delay after last flash
+
+            const double batchIntervalMsec = (double)((samplesPerBatch * msecPerSecond) / sampleRate);
+
+            int channelIndex;
+            int sampleIndex;
+
+            int numEntries = flashSequenceTable.Count;
+
+            int numFlashSeqPerTarget = 1;
+
+            int listIndex = 0;
+            int flashCycleCount = 0;
+
+            int batchCounter = 0;           // Track # of batches in 1.0 second
+            int phaseInSequence = 0;
+            int sequenceCounter = 0;
+
+            int bufferIndex;
+            int dataIndex;
+            int circBufReadIndex = 0;
+            int circBufWriteIndex = 0;
+
+            int[] messageBuffer = new int[MAX_MSG_LENGTH];
+
+            double t0;
+
+            double timeElapsed;
+            double signalValue;
+
+            // Markers stored with every raw data sensor sample value
+            double phInSeq = 0.0;
+            double matrixPos = 0.0;
+            double sequenceNum = 0.0;
+            double target = 0.0;
+            double stimulusON = 0.0;
+            double dataValue = 0.0;
+
+
+            double[] keyIDs = new double[FlashSequence.MAX_KEYS_PER_FLASH] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+
+            double[,] CircularBuffer = new double[MAX_CHANNELS, CIRCULAR_BUF_LEN];
+
+            double[] dataBuffer = new double[(MAX_CHANNELS + MARKER_LENGTH + FlashSequence.MAX_KEYS_PER_FLASH) * samplesPerBatch];
+
+            // Stopwatch stopwatch = new Stopwatch();
+
+            /* +++++++++++++++++++++++++++++++++++++++ */
+
+            int numberOfChannels = headset.GetNumberOfChannels();
+
+            while (!cts.IsCancellationRequested)
+            {
+                // This blocking call aims to ensure that batches of samples are picked
+                // up at exactly regular intervals (t0 timestamps should be very regular)
+                t0 = headset.WaitForBatch();
+
+                // stopwatch.Start();
+
+                batchCounter++;
+
+                timeElapsed = batchCounter * batchIntervalMsec;
+
+                for (channelIndex = 0; channelIndex < numberOfChannels; channelIndex++)
+                {
+                    IntPtr c = headset.GetChannel(channelIndex);
+
+                    bufferIndex = circBufWriteIndex;
+
+                    for (sampleIndex = 0; sampleIndex < samplesPerBatch; sampleIndex++)
+                    {
+                        // The background thread is filling the buffers. This is where you empty them:
+                        signalValue = headset.ReadBuffered(c);
+
+                        // Store the signal value in an array for processing.
+                        CircularBuffer[channelIndex, bufferIndex] = signalValue;
+
+                        //dataValue += 1.0;
+                        //dataValue = (double)((channelIndex * 10) + sampleIndex);
+                        //CircularBuffer[channelIndex, bufferIndex] = dataValue;
+
+                        bufferIndex = (++bufferIndex) & (CIRCULAR_BUF_LEN - 1);
+                        //bufferIndex += 1;
+                        //bufferIndex = (bufferIndex) & (CIRCULAR_BUF_LEN - 1);
+                    }
+                }
+
+                circBufWriteIndex = (circBufWriteIndex + samplesPerBatch) & (CIRCULAR_BUF_LEN - 1);
+
+                /* ++++++++++++++++++++++++++++++++++++++ */
+
+                // NOTE:  Rather than pass a mix of floating point raw sensor data and integer marker values
+                // between tasks and file storage, the marker and key index data are sent as doubles.
+
+                switch (phaseInSequence)
+                {
+                    case 0:
+                        // Assign default value to markers for Phase 0
+                        if (batchCounter == 1)
+                        {
+                            phInSeq = (double)phaseInSequence;
+                            matrixPos = 0.0;
+                            sequenceNum = 0.0;
+                            target = 0.0;
+                            stimulusON = 0.0;
+
+                            for (int i = 0; i < FlashSequence.MAX_KEYS_PER_FLASH; i++)
+                            {
+                                keyIDs[i] = 0.0;
+                            }
+                        }
+
+                        if (timeElapsed >= PRESET_1)
+                        {
+                            phaseInSequence = 1;
+                            batchCounter = 0;
+                        }
+                        break;
+
+                    case 1:
+                        // Assign default value to markers for Phase 1
+                        if (batchCounter == 1)
+                        {
+                            phInSeq = (double)phaseInSequence;
+                            matrixPos = 0.0;
+                            sequenceNum = 0.0;
+                            target = 0.0;
+                            stimulusON = 0.0;
+
+                            for (int i = 0; i < FlashSequence.MAX_KEYS_PER_FLASH; i++)
+                            {
+                                keyIDs[i] = 0.0;
+                            }
+                        }
+
+                        if (timeElapsed >= PRESET_2)
+                        {   // Advance to next phase with stimulus flashing
+                            phaseInSequence = 2;
+                            batchCounter = 0;
+                        }
+                        break;
+
+                    case 2:
+                        // Fetch marker values from Flash Sequence table
+                        if (batchCounter == 1)
+                        {
+                            phInSeq = (double)phaseInSequence;
+                            stimulusON = 1.0;
+
+                            // Fetch marker value and convert them to double at start of each new flash
+                            matrixPos = (double)flashSequenceTable[listIndex].matrixPosition;
+                            sequenceNum = (double)flashSequenceTable[listIndex].sequenceNum;
+                            target = (double)flashSequenceTable[listIndex].target;
+
+                            for (int i = 0; i < FlashSequence.MAX_KEYS_PER_FLASH; i++)
+                            {
+                                keyIDs[i] = (double)flashSequenceTable[listIndex].keyIDgrouping[i];
+                            }
+
+                            messageBuffer[0] = FLASH_ON;
+                            messageBuffer[1] = flashSequenceTable[listIndex].sequenceNum;
+                            messageBuffer[2] = phaseInSequence;
+                            // messageBuffer[3] = batchCounter;
+                            // messageBuffer[3] = (int)(t0 * 10000.0);
+                            messageBuffer[3] = (int)(t0 * 1000.0);
+                            // messageBuffer[3] = (int)(timeElapsed * 100.0);
+
+                            messageBufferBlock.Post(messageBuffer);
+                        }
+
+                        // NOTE: Value for Preset3 (Flash ON) must be >= Preset4 (Flash OFF)
+                        // if ( (timeElapsed > PRESET_3) && (stimulusON == 1.0) )
+                        if (stimulusON == 1.0)
+                        {
+                            if (timeElapsed > PRESET_3)
+                            {
+                                // batchCounter = 0;
+                                stimulusON = 0.0;
+
+                                messageBuffer[0] = FLASH_OFF;
+                                messageBuffer[1] = flashSequenceTable[listIndex].sequenceNum;
+                                messageBuffer[2] = phaseInSequence;
+                                // messageBuffer[3] = batchCounter;
+                                // messageBuffer[3] = (int)(t0 * 10000.0);
+                                messageBuffer[3] = (int)(t0 * 1000.0);
+                                // messageBuffer[3] = (int)(timeElapsed * 100.0);
+
+                                messageBufferBlock.Post(messageBuffer);
+                            }
+                        }
+
+                        else
+                        {
+                            if (timeElapsed >= (PRESET_3 + PRESET_4))
+                            {
+                                batchCounter = 0;
+
+                                // Need to increment index into Stimulus table to read next entry
+                                if (++listIndex == numEntries)
+                                {
+                                    listIndex = 0;
+
+                                    // Need to keep count of entire # times passed thru entire flash sequence list
+                                    //                                if (++flashCycleCount > 4)
+                                    if (++flashCycleCount == numFlashSeqPerTarget)
+                                    {
+                                        phaseInSequence = 3;
+                                        batchCounter = 0;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+
+                    case 3:
+                        // Assign default value to markers for Phase 3
+                        if (batchCounter == 1)
+                        {
+                            phInSeq = (double)phaseInSequence;
+                            matrixPos = 0.0;
+                            sequenceNum = 0.0;
+                            target = 0.0;
+                            stimulusON = 0.0;
+
+                            for (int i = 0; i < FlashSequence.MAX_KEYS_PER_FLASH; i++)
+                            {
+                                keyIDs[i] = 0.0;
+                            }
+                        }
+
+                        if (timeElapsed >= PRESET_5)
+                        {
+                            phaseInSequence = 0;
+                            batchCounter = 0;
+
+                            listIndex = 0;
+                            flashCycleCount = 0;
+                            dataValue = 0.0;
+
+                            messageBuffer[0] = END_SEQUENCE;
+                            messageBuffer[1] = sequenceCounter;
+                            messageBufferBlock.Post(messageBuffer);
+                        }
+                        break;
+                }  // switch(phaseInSequence)
+
+                /* ++++++++++++++++++++++++++++++++++++++ */
+
+                // 
+                dataIndex = 0;
+                double bufferLevel = (double)headset.GetNumberOfBufferedSamples();
+
+                bufferIndex = circBufReadIndex;
+                for (sampleIndex = 0; sampleIndex < samplesPerBatch; sampleIndex++)
+                {
+                    for (channelIndex = 0; channelIndex < numberOfChannels; channelIndex++)
+                    {
+                        signalValue = CircularBuffer[channelIndex, bufferIndex];
+                        dataBuffer[dataIndex++] = signalValue;
+
+                        //dataValue += 1.0;
+                        //dataBuffer[dataIndex++] = dataValue;
+                    }
+
+                    dataBuffer[dataIndex++] = phInSeq;
+
+                    //dataBuffer[dataIndex++] = matrixPos;
+                    //dataBuffer[dataIndex++] = t0;
+                    dataBuffer[dataIndex++] = bufferLevel;
+
+                    dataBuffer[dataIndex++] = sequenceNum;
+                    dataBuffer[dataIndex++] = target;
+                    dataBuffer[dataIndex++] = stimulusON;
+
+                    for (int i = 0; i < FlashSequence.MAX_KEYS_PER_FLASH; i++)
+                    {
+                        dataBuffer[dataIndex++] = keyIDs[i];
+                    }
+
+                    bufferIndex = (++bufferIndex) & (CIRCULAR_BUF_LEN - 1);
+                    //bufferIndex = (bufferIndex++) & (CIRCULAR_BUF_LEN - 1);
+                }
+
+                dataBufferBlock.Post(dataBuffer);
+
+                circBufReadIndex = (circBufReadIndex + samplesPerBatch) & (CIRCULAR_BUF_LEN - 1);
+
+                /* ++++++++++++++++++++++++++++++++++++++ */
+
+                /*
+                // stopwatch.Stop();
+                // int stopwatchElasped = stopwatch.Elapsed.Milliseconds;
+                */
+
+                /* ++++++++++++++++++++++++++++++++++++++ */
+
+            }  // while (!cts.IsCancellationRequested)
+
+        }  // FlashControlAsync()
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+        public async Task RecordDataAsync(CancellationToken cts, ISourceBlock<double[]> dataBufferBlock, BinaryWriter bw)
+        {
+            int blockSize;
+
+            while (!cts.IsCancellationRequested)
+            {
+                double[] rawDataBuffer = await dataBufferBlock.ReceiveAsync();
+
+
+                // Store raw data into binary file
+                try
+                {
+                    blockSize = rawDataBuffer.Length;
+
+                    for (int i = 0; i < blockSize; i++)
+                    {
+                        bw.Write(rawDataBuffer[i]);
+                    }
+                }
+                catch (IOException e)
+                {
+                    Logger.Error(this,e.Message + "\n Cannot record binary data to file.");
+                    return;
+                }
+
+            }
+        }
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+        public async Task<int[]> GetFlashControlMessageAsync(ISourceBlock<int[]> messageBufferBlock)
+        {
+            int[] messageBuffer = await messageBufferBlock.ReceiveAsync();
+
+            return messageBuffer;
+        }
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
     }
 }

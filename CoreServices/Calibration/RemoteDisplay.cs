@@ -42,7 +42,15 @@ namespace CoreServices.Calibration
             int right;
             int bottom;
 
+            string logString;
+
+            // Declare handle to an empty array. If MUIA fails to return an array of elements
+            // then the length of automationArray[] will be zero.
+            // IUIAutomationElementArray automationArray = new IUIAutomationElement[] { };
+            // IUIAutomationElementArray automationArray = Array.Empty<IUIAutomationElement>();
+            
             IUIAutomationElementArray automationArray;
+
 
             IUIAutomation automation = new CUIAutomation();
             IUIAutomationElement rootElement = automation.GetRootElement();
@@ -70,19 +78,28 @@ namespace CoreServices.Calibration
                     if (automationArray.Length == 0)
                     {   // Indicate to calling routine that there were no elements found.
                         automationArray = null;
-                        MessagingService.SendMessage(this,"Microsoft UIA can't find any children elements!",MessageType.Popup);
+
+                        // MessagingService.SendMessage(this,"Microsoft UIA can't find any children elements!",MessageType.Popup);
+                        logString = "Microsoft UIA can't find any children elements ... \n";
+                        Logger.Info(this, logString);
                     }
                 }
                 else
                 {
                     automationArray = null;
-                    MessagingService.SendMessage(this, "Microsoft UIA can't find appElement!", MessageType.Popup);
+
+                    // MessagingService.SendMessage(this, "Microsoft UIA can't find appElement!", MessageType.Popup);
+                    logString = "Microsoft UIA can't find appElement ... \n";
+                    Logger.Info(this, logString);
                 }
             }
             else
             {
                 automationArray = null;
-                MessagingService.SendMessage(this, "Microsoft UIA can't find rootElement!", MessageType.Popup);
+
+                // MessagingService.SendMessage(this, "Microsoft UIA can't find rootElement!", MessageType.Popup);
+                logString = "Microsoft UIA can't find rootElement ... \n";
+                Logger.Info(this, logString);
             }
 
             return automationArray;
@@ -117,6 +134,7 @@ namespace CoreServices.Calibration
 
             List<ElementProperties> clickableElements = new List<ElementProperties>();
 
+			 automationElementList.Clear();							  
             while (index < numElements)
             {
                 IUIAutomationElement b1 = automationArray.GetElement(index++);
@@ -156,7 +174,7 @@ namespace CoreServices.Calibration
             automationElementArray = GetAutomationElementArray();
 
             // Check returned value and return empty list if MUIA failed to access remote app.
-            if (automationElementArray == null)
+            if (automationElementArray.Length == 0)
             {
                 clickableElements = null;
             }
