@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 
-namespace CoreServices.Calibration
+namespace CoreServices.Stimulus
 {
     public struct GridLayout
     {

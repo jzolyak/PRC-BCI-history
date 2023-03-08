@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Drawing;
 
-namespace CoreServices.Calibration
+namespace CoreServices.Stimulus
 {
     public class ButtonElement: INotifyPropertyChanged
     {
