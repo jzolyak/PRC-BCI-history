@@ -10,7 +10,7 @@ using UIAutomationClient;
 
 
 
-namespace CoreServices.Calibration
+namespace CoreServices.Stimulus
 { 
     public class RemoteDisplay
     {
