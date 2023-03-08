@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 
 
-namespace CoreServices.Calibration
+namespace CoreServices.Stimulus
 {
     public struct GroupingParam
     {

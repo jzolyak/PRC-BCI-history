@@ -23,7 +23,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Stimulus\" />
     <Folder Include="Validation\" />
     <Folder Include="Prediction\" />
   </ItemGroup>
