@@ -88,13 +88,8 @@ namespace CoreServices.Calibration
 
             int elementIndex = 0;
 
-            int maxFlashSequences = 3;
-            int flash_ON_time_msec = 90;
-            int flash_OFF_time_msec = 60;
-
             int UI_delay_msec = 200;
             int programmable_delay_msec = 1000;
-            //int programmable_delay_msec = 10;
 
             string targetKeyName;
             string[] commandLines = null;
@@ -124,10 +119,8 @@ namespace CoreServices.Calibration
 
             int[] messageBuffer = new int[MAX_MSG_LENGTH];
 
-            string currentTime;
-
-
             modeState = CalibrationStates.Read_Command;
+
 
             /*   ***************************************
             **   ***  Instantiate container objects  ***   
@@ -146,11 +139,11 @@ namespace CoreServices.Calibration
 
             List<FlashTableEntry> flashSequenceTable = new List<FlashTableEntry>();
 
+
             /*   *****************************
             **   ***  Instantiate classes  ***   
             **   *****************************
             */
-
             string currentDirectory = Directory.GetCurrentDirectory();
             string scriptFilename = "CalibrationCommands.txt";
             string filePath = System.IO.Path.Combine(currentDirectory, scriptFilename);
@@ -625,9 +618,6 @@ namespace CoreServices.Calibration
                             // Using the row and column position on the grid, assign each key a unique keyID for flashing.
                             Keyboard keyboardGrid = new Keyboard();
 
-                            logString = "Number of list elements = " + elementList.Count.ToString() + "\n";
-                            Logger.Info(this, logString);
-
                             gridData = keyboardGrid.ExtractGridData(elementList);
 
                             List<List<int>> listOfRows = keyboardGrid.CreateListOfRows(elementList);
@@ -635,28 +625,15 @@ namespace CoreServices.Calibration
                             gridData.maxKeyRows = listOfRows.Count;
                             gridData.maxKeyCols = listOfColumns.Count;
 
-                            logString = "Number of columns = " + listOfColumns.Count.ToString() + "\n";
-                            Logger.Info(this, logString);
-
                             bool PRC_mode = true;
 
                             // Create a KeyID map of all the keys based on the mapping method and grid size
                             keyIDMap = keyboardGrid.CreateKeyIDMap(gridData, PRC_mode);
 
-                            logString = "CreateKeyIDMap() ... \n";
-                            Logger.Info(this, logString);
-
-                            //flashableKeys = keyboardGrid.AssignKeyMapping(elementList, gridData, keyIDMap, out crossReferenceLookupTable);
                             flashableKeys = keyboardGrid.AssignKeyMapping(elementList, gridData, keyIDMap);
-
-                            logString = "AssignKeyMapping() ... \n";
-                            Logger.Info(this, logString);
 
                             // Create cross reference lookup table between the keyID value and buttonIndex value used in flashing keys.
                             flashStimulus.CreateCrossReferenceTable(flashableKeys);
-
-                            logString = "CreateCrossReferenceTable() ... \n";
-                            Logger.Info(this, logString);
 
                             // modeState = CalibrationStates.Create_Grouping;
                             modeState = CalibrationStates.Read_Command;
@@ -706,12 +683,11 @@ namespace CoreServices.Calibration
 
                                 if (targetsReadFromSet == 1 && showCountDownTimer)
                                 {
+                                    // Show count down timer for first target in the set
                                     showCountDownTimer = false;
                                     modeState = CalibrationStates.Wait_On_UI;
                                     NotifyUI(new UIInstruction { Type = UIType.CountDownWindow });
                                     break;
-                                    // Show count down timer for first target in the set
-                                    //////////////////show the countdown timer    
                                 }
 
                                 if (testScriptEnabled == true)
@@ -752,25 +728,6 @@ namespace CoreServices.Calibration
 
                         case CalibrationStates.Core_Loop:
 
-                            //int maxTableEntries = flashSequenceTable.Count;
-
-                            //for (int iteration = 0; iteration < maxFlashSequences; iteration++)
-                            //{
-                            //    for (int entry = 0; entry < maxTableEntries; entry++)
-                            //    {
-                            //        flashStimulus.FlashStimulusON(targetkeyIDvalue, entry, flashSequenceTable);
-
-                            //        // Pause to see flash color change
-                            //        await Task.Delay(flash_ON_time_msec);
-
-                            //        flashStimulus.FlashStimulusOFF(targetkeyIDvalue, entry, flashSequenceTable);
-                            //        await Task.Delay(flash_OFF_time_msec);
-                            //    }
-                            //}
-
-                            //modeState = CalibrationStates.Unhighlight_Target;
-                            //break;
-
                             bool displayStatus = true;
                             bool exitFlag = false;
 
@@ -778,14 +735,15 @@ namespace CoreServices.Calibration
                             int numIterations = 0;
                             int numEntries = flashSequenceTable.Count;
 
-
                             headset.StartBackgroundAcquisition();
 
                             CancellationTokenSource tokenSource = new CancellationTokenSource();
 
                             var messageBufferBlock = new BufferBlock<int[]>();
                             var dataBufferBlock = new BufferBlock<double[]>();
-                            if(calibrationFileMetadata ==null)
+                            var filterBufferBlock = new BufferBlock<double[]>();
+
+                            if (calibrationFileMetadata ==null)
                             {
                                 Logger.Error(this, "calibration file meta data is not available.unable to proceed");
                                 modeState = CalibrationStates.Clean_Up; break;
@@ -797,11 +755,13 @@ namespace CoreServices.Calibration
                                 Logger.Error(this, "unable to create binary writer.");
                                 modeState = CalibrationStates.Clean_Up; break;
                             }
-                            // Start separate tasks that fetch sensor samples from headset while flashing keys
-                            // on display screen and recording the raw data.
+                            // Start separate tasks that fetch sensor samples from headset while flashing keys on display screen,
+                            // filtering the data for each sensor channel, and recording the filtered sensor data.
                             Task t1 = Task.Run(() => FlashControlAsync(headset, tokenSource.Token, flashSequenceTable, messageBufferBlock, dataBufferBlock));
 
-                            Task t2 = Task.Run(() => RecordDataAsync(tokenSource.Token, dataBufferBlock, binaryWriter));
+                            Task t2 = Task.Run(() => SensorFilteringAsync(tokenSource.Token, dataBufferBlock, filterBufferBlock));
+
+                            Task t3 = Task.Run(() => RecordDataAsync(tokenSource.Token, filterBufferBlock, binaryWriter));
 
                             while (exitFlag == false)
                             {
@@ -848,14 +808,12 @@ namespace CoreServices.Calibration
                                 }
                                 else if (messageType == END_SEQUENCE)
                                 {
-                                    indexValue = messageBuffer[1];
                                     //Console.WriteLine("{0}  ... End flashing for Target {1} \n", flashTime, numTargets);
                                     exitFlag = true;
                                 }
                                 else
                                 {
-                                    
-                                    Logger.Info(this, flashTime + "OH !!!  messageType = "+ messageType);
+                                    Logger.Info(this, flashTime + "FlashControlAsync() returned invalid message!!!  messageType = "+ messageType);
                                     exitFlag = true;
                                 }
 
@@ -875,10 +833,6 @@ namespace CoreServices.Calibration
 
                             modeState = CalibrationStates.Unhighlight_Target;
                             break;
-
-                        /* ********************************* */
-                        /*  End Core Loop                    */
-                        /* ********************************* */
 
                         /* ********************************* */
                         /*  End Core Loop                    */
@@ -993,6 +947,9 @@ namespace CoreServices.Calibration
             }
         }
 
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
         public void NotificationfromUI(UIInstruction instruction)
         {
             //if (string.IsNullOrEmpty(instruction)) return;
@@ -1028,13 +985,13 @@ namespace CoreServices.Calibration
         public void FlashControlAsync(IHeadset headset, CancellationToken cts, List<FlashTableEntry> flashSequenceTable,
                                       ITargetBlock<int[]> messageBufferBlock, ITargetBlock<double[]> dataBufferBlock)
         {
-            const int MAX_CHANNELS = 7;             // Assumes no TRIG channel in montage, just (sensor - ref) values
             const int CIRCULAR_BUF_LEN = 512;       // Num sensor samples per chan in the circular buffer
 
-            const int MAX_MSG_LENGTH = 8;
-            const int MARKER_LENGTH = 5;
+            const int MAX_CHANNELS = 7;             // Assumes no TRIG channel in montage, just (sensor - ref) values
+            const int MARKER_LENGTH = 13;           // Number of 8 and 16 bit markers sent in header along with sensor data
 
-            const int FLASH_ON = 1;
+            const int MAX_MSG_LENGTH = 8;           // Max message length sent back to main thread
+            const int FLASH_ON = 1;                 // Message ID
             const int FLASH_OFF = 2;
             const int END_SEQUENCE = 3;
 
@@ -1043,28 +1000,29 @@ namespace CoreServices.Calibration
 
             const int samplesPerBatch = 9;          // 9 samples = 30 msec @ Fs=300 Hz
 
-            const double PRESET_1 = 100.0;          // 0.1 second
+            // const double PRESET_1 = 100.0;          // 0.1 second
+            const double PRESET_1 = 500.0;          // 0.5 second
             const double PRESET_2 = 1000.0;         // 1.0 second
             const double PRESET_3 = 90.0;           // 90 msec = Flash ON
             const double PRESET_4 = 60.0;           // 60 msec = Flash OFF
-                                                    //            const double PRESET_5 = 800.0;          // 800 msec delay after last flash
             const double PRESET_5 = 800.0;          // 800 msec delay after last flash
 
             const double batchIntervalMsec = (double)((samplesPerBatch * msecPerSecond) / sampleRate);
 
+            int timeInMsecValue;
             int channelIndex;
             int sampleIndex;
 
-            int numEntries = flashSequenceTable.Count;
+            // Number of flashes in the complete flash sequence is equal to size of the flash table
+            int numStimulusGroups = flashSequenceTable.Count;
 
-            int numFlashSeqPerTarget = 1;
+            int numFlashSeqPerTarget = 15;
 
             int listIndex = 0;
             int flashCycleCount = 0;
 
-            int batchCounter = 0;           // Track # of batches in 1.0 second
+            int batchCounter = 0;           // Track # of batches received from headset over one flash interval
             int phaseInSequence = 0;
-            int sequenceCounter = 0;
 
             int bufferIndex;
             int dataIndex;
@@ -1073,21 +1031,32 @@ namespace CoreServices.Calibration
 
             int[] messageBuffer = new int[MAX_MSG_LENGTH];
 
-            double t0;
-
             double timeElapsed;
             double signalValue;
 
-            // Markers stored with every raw data sensor sample value
+            // Group markers in dataBuffer header that will be eventually stored as unit16 value in file
+            double sourceTime = 0.0;        // Time in msec when data acquired from headset
+            double stimulusTime = 0.0;      // Time in msec (wall clock)
+            double blueToothCode = 0.0;     // Place holder for future diagnostic info
+            double matrixPosCode = 0.0;
+            double attendedTarget = 0.0;    // Key ID that user is supposed to be watching during Calibration or Validation
+
+            // Group markers in dataBuffer header that will be eventually stored as unit8 value in file
+            double bufferLevel = 0.0;       // Number of samples (per chan) left in buffer after fetching packet
+            double running = 1.0;           // Marker only needed for BCI2000 processing binary data file
+            double recording = 1.0;         // Marker only needed for BCI2000 processing binary data file
+
+            double stimulusCode = 0.0;
+            double stimulusBegin = 0.0;
+            double stimulusType = 0.0;
+
             double phInSeq = 0.0;
-            double matrixPos = 0.0;
-            double sequenceNum = 0.0;
-            double target = 0.0;
-            double stimulusON = 0.0;
-            double dataValue = 0.0;
+            //double sequenceNum = 0.0;
+            //double target = 0.0;
+            double stimulusON = 0.0;        // Flag indicating when flash is ON during flash interval
 
 
-            double[] keyIDs = new double[FlashSequence.MAX_KEYS_PER_FLASH] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+            double[] keyIDs = new double[FlashSequence.MAX_KEYS_PER_FLASH];
 
             double[,] CircularBuffer = new double[MAX_CHANNELS, CIRCULAR_BUF_LEN];
 
@@ -1101,14 +1070,16 @@ namespace CoreServices.Calibration
 
             while (!cts.IsCancellationRequested)
             {
-                // This blocking call aims to ensure that batches of samples are picked
-                // up at exactly regular intervals (t0 timestamps should be very regular)
-                t0 = headset.WaitForBatch();
+                // This blocking call aims to ensure that batches of samples are picked up at
+                // regular intervals (timestamps should be +/- 2 msec of expected interval).
+                sourceTime = headset.WaitForBatch();
 
+                // Start separate, independent timer to detect packet receipt errors.
                 // stopwatch.Start();
 
                 batchCounter++;
 
+                // Track time since beginning of individual flash interval (e.g. 150 msec = Flash On + Flash Off)
                 timeElapsed = batchCounter * batchIntervalMsec;
 
                 for (channelIndex = 0; channelIndex < numberOfChannels; channelIndex++)
@@ -1125,13 +1096,7 @@ namespace CoreServices.Calibration
                         // Store the signal value in an array for processing.
                         CircularBuffer[channelIndex, bufferIndex] = signalValue;
 
-                        //dataValue += 1.0;
-                        //dataValue = (double)((channelIndex * 10) + sampleIndex);
-                        //CircularBuffer[channelIndex, bufferIndex] = dataValue;
-
                         bufferIndex = (++bufferIndex) & (CIRCULAR_BUF_LEN - 1);
-                        //bufferIndex += 1;
-                        //bufferIndex = (bufferIndex) & (CIRCULAR_BUF_LEN - 1);
                     }
                 }
 
@@ -1149,9 +1114,10 @@ namespace CoreServices.Calibration
                         if (batchCounter == 1)
                         {
                             phInSeq = (double)phaseInSequence;
-                            matrixPos = 0.0;
-                            sequenceNum = 0.0;
-                            target = 0.0;
+                            matrixPosCode = 0.0;
+                            stimulusCode = 0.0;
+                            stimulusType = 0.0;
+                            stimulusBegin = 0.0;
                             stimulusON = 0.0;
 
                             for (int i = 0; i < FlashSequence.MAX_KEYS_PER_FLASH; i++)
@@ -1172,9 +1138,10 @@ namespace CoreServices.Calibration
                         if (batchCounter == 1)
                         {
                             phInSeq = (double)phaseInSequence;
-                            matrixPos = 0.0;
-                            sequenceNum = 0.0;
-                            target = 0.0;
+                            matrixPosCode = 0.0;
+                            stimulusCode = 0.0;
+                            stimulusType = 0.0;
+                            stimulusBegin = 0.0;
                             stimulusON = 0.0;
 
                             for (int i = 0; i < FlashSequence.MAX_KEYS_PER_FLASH; i++)
@@ -1198,9 +1165,12 @@ namespace CoreServices.Calibration
                             stimulusON = 1.0;
 
                             // Fetch marker value and convert them to double at start of each new flash
-                            matrixPos = (double)flashSequenceTable[listIndex].matrixPosition;
-                            sequenceNum = (double)flashSequenceTable[listIndex].sequenceNum;
-                            target = (double)flashSequenceTable[listIndex].target;
+                            matrixPosCode = (double)flashSequenceTable[listIndex].matrixPosition;
+                            stimulusCode = (double)flashSequenceTable[listIndex].sequenceNum;
+                            stimulusType = (double)flashSequenceTable[listIndex].target;
+
+                            // This is a marker for BCI2000 to indicate the first block of data in flash interval
+                            stimulusBegin = 1.0;
 
                             for (int i = 0; i < FlashSequence.MAX_KEYS_PER_FLASH; i++)
                             {
@@ -1210,35 +1180,32 @@ namespace CoreServices.Calibration
                             messageBuffer[0] = FLASH_ON;
                             messageBuffer[1] = flashSequenceTable[listIndex].sequenceNum;
                             messageBuffer[2] = phaseInSequence;
-                            // messageBuffer[3] = batchCounter;
-                            // messageBuffer[3] = (int)(t0 * 10000.0);
-                            messageBuffer[3] = (int)(t0 * 1000.0);
-                            // messageBuffer[3] = (int)(timeElapsed * 100.0);
+                            messageBuffer[3] = (int)(sourceTime * 1000.0);
 
                             messageBufferBlock.Post(messageBuffer);
                         }
+                        else
+                        {   // Set marker to 0.0 for remainder of flash interval
+                            stimulusBegin = 0.0;
+                        }
 
                         // NOTE: Value for Preset3 (Flash ON) must be >= Preset4 (Flash OFF)
-                        // if ( (timeElapsed > PRESET_3) && (stimulusON == 1.0) )
                         if (stimulusON == 1.0)
                         {
                             if (timeElapsed > PRESET_3)
                             {
-                                // batchCounter = 0;
                                 stimulusON = 0.0;
+                                stimulusCode = 0.0;
+                                stimulusType = 0.0;
 
                                 messageBuffer[0] = FLASH_OFF;
                                 messageBuffer[1] = flashSequenceTable[listIndex].sequenceNum;
                                 messageBuffer[2] = phaseInSequence;
-                                // messageBuffer[3] = batchCounter;
-                                // messageBuffer[3] = (int)(t0 * 10000.0);
-                                messageBuffer[3] = (int)(t0 * 1000.0);
-                                // messageBuffer[3] = (int)(timeElapsed * 100.0);
+                                messageBuffer[3] = (int)(sourceTime * 1000.0);
 
                                 messageBufferBlock.Post(messageBuffer);
                             }
                         }
-
                         else
                         {
                             if (timeElapsed >= (PRESET_3 + PRESET_4))
@@ -1246,12 +1213,12 @@ namespace CoreServices.Calibration
                                 batchCounter = 0;
 
                                 // Need to increment index into Stimulus table to read next entry
-                                if (++listIndex == numEntries)
+                                if (++listIndex == numStimulusGroups)
                                 {
                                     listIndex = 0;
 
-                                    // Need to keep count of entire # times passed thru entire flash sequence list
-                                    //                                if (++flashCycleCount > 4)
+                                    // Need to keep count of entire # times passed thru entire flash sequence list.
+                                    // Value for numFlashSeqPerTarget is a key user preference configuration preset!
                                     if (++flashCycleCount == numFlashSeqPerTarget)
                                     {
                                         phaseInSequence = 3;
@@ -1267,9 +1234,10 @@ namespace CoreServices.Calibration
                         if (batchCounter == 1)
                         {
                             phInSeq = (double)phaseInSequence;
-                            matrixPos = 0.0;
-                            sequenceNum = 0.0;
-                            target = 0.0;
+                            matrixPosCode = 0.0;
+                            stimulusCode = 0.0;
+                            stimulusType = 0.0;
+                            stimulusBegin = 0.0;
                             stimulusON = 0.0;
 
                             for (int i = 0; i < FlashSequence.MAX_KEYS_PER_FLASH; i++)
@@ -1285,10 +1253,8 @@ namespace CoreServices.Calibration
 
                             listIndex = 0;
                             flashCycleCount = 0;
-                            dataValue = 0.0;
 
                             messageBuffer[0] = END_SEQUENCE;
-                            messageBuffer[1] = sequenceCounter;
                             messageBufferBlock.Post(messageBuffer);
                         }
                         break;
@@ -1298,7 +1264,36 @@ namespace CoreServices.Calibration
 
                 // 
                 dataIndex = 0;
-                double bufferLevel = (double)headset.GetNumberOfBufferedSamples();
+                bufferLevel = (double)headset.GetNumberOfBufferedSamples();
+
+                timeInMsecValue = (int)(sourceTime * 1000.0) % 65536;
+                sourceTime = (double)timeInMsecValue;
+
+                // BCI2000 raw data format requires a separate timestamp for when the data is acquired and a wall clock 
+                // time when the data is received. For now just use same time value until settle on wall clock source.
+                stimulusTime = sourceTime;
+
+                dataBuffer[dataIndex++] = sourceTime;
+                dataBuffer[dataIndex++] = stimulusTime;
+                dataBuffer[dataIndex++] = blueToothCode;
+                dataBuffer[dataIndex++] = matrixPosCode;
+                dataBuffer[dataIndex++] = attendedTarget;
+
+                dataBuffer[dataIndex++] = bufferLevel;
+                dataBuffer[dataIndex++] = running;
+                dataBuffer[dataIndex++] = recording;
+
+                dataBuffer[dataIndex++] = stimulusCode;
+                dataBuffer[dataIndex++] = stimulusBegin;
+                dataBuffer[dataIndex++] = stimulusType;
+
+                dataBuffer[dataIndex++] = phInSeq;
+                dataBuffer[dataIndex++] = numStimulusGroups;
+
+                for (int i = 0; i < FlashSequence.MAX_KEYS_PER_FLASH; i++)
+                {
+                    dataBuffer[dataIndex++] = keyIDs[i];
+                }
 
                 bufferIndex = circBufReadIndex;
                 for (sampleIndex = 0; sampleIndex < samplesPerBatch; sampleIndex++)
@@ -1307,28 +1302,9 @@ namespace CoreServices.Calibration
                     {
                         signalValue = CircularBuffer[channelIndex, bufferIndex];
                         dataBuffer[dataIndex++] = signalValue;
-
-                        //dataValue += 1.0;
-                        //dataBuffer[dataIndex++] = dataValue;
-                    }
-
-                    dataBuffer[dataIndex++] = phInSeq;
-
-                    //dataBuffer[dataIndex++] = matrixPos;
-                    //dataBuffer[dataIndex++] = t0;
-                    dataBuffer[dataIndex++] = bufferLevel;
-
-                    dataBuffer[dataIndex++] = sequenceNum;
-                    dataBuffer[dataIndex++] = target;
-                    dataBuffer[dataIndex++] = stimulusON;
-
-                    for (int i = 0; i < FlashSequence.MAX_KEYS_PER_FLASH; i++)
-                    {
-                        dataBuffer[dataIndex++] = keyIDs[i];
                     }
 
                     bufferIndex = (++bufferIndex) & (CIRCULAR_BUF_LEN - 1);
-                    //bufferIndex = (bufferIndex++) & (CIRCULAR_BUF_LEN - 1);
                 }
 
                 dataBufferBlock.Post(dataBuffer);
@@ -1353,21 +1329,76 @@ namespace CoreServices.Calibration
 
         public async Task RecordDataAsync(CancellationToken cts, ISourceBlock<double[]> dataBufferBlock, BinaryWriter bw)
         {
-            int blockSize;
+            // Eventually I need to think of a better way than using constants here.
+            const int NUM_MARKERS_8BIT = 8;
+            const int NUM_MARKERS_16BIT = 5;
+            const int NUM_TAG_MARKERS = 12;
+
+            const int NUM_CHANNELS = 7;
+            const int SAMPLES_PER_BATCH = 9;
+            const int NUM_SAMPLE_SIZE = NUM_CHANNELS * SAMPLES_PER_BATCH;
+
+            int bufferIndex;
+
+            Byte[] markers_8bit = new Byte[NUM_MARKERS_8BIT];
+            UInt16[] markers_16bit = new UInt16[NUM_MARKERS_16BIT];
+            UInt16[] stimulusTags = new UInt16[NUM_TAG_MARKERS];
+            Single[] sensorData = new Single[NUM_SAMPLE_SIZE];
 
             while (!cts.IsCancellationRequested)
             {
                 double[] rawDataBuffer = await dataBufferBlock.ReceiveAsync();
 
+                // First fetch the data from data buffer block and recast to pre-assigned recorded size.
+                bufferIndex = 0;
+                for (int i = 0; i < NUM_MARKERS_16BIT; i++)
+                {
+                    markers_16bit[i] = (UInt16)rawDataBuffer[bufferIndex++];
+                }
 
-                // Store raw data into binary file
+                for (int i = 0; i < NUM_MARKERS_8BIT; i++)
+                {
+                    markers_8bit[i] = (Byte)rawDataBuffer[bufferIndex++];
+                }
+
+                for (int i = 0; i < NUM_TAG_MARKERS; i++)
+                {
+                    stimulusTags[i] = (UInt16)rawDataBuffer[bufferIndex++];
+                }
+
+                for (int i = 0; i < NUM_SAMPLE_SIZE; i++)
+                {
+                    sensorData[i] = (Single)rawDataBuffer[bufferIndex++];
+                }
+
+                // Store raw data into binary file by taking a copy of the marker and tag data and interleaving
+                // a copy with each sample in the batch of sensor data samples. This is the way data is recorded
+                // for BCI2000 input data files.
                 try
                 {
-                    blockSize = rawDataBuffer.Length;
+                    bufferIndex = 0;
 
-                    for (int i = 0; i < blockSize; i++)
+                    for (int i = 0; i < SAMPLES_PER_BATCH; i++)
                     {
-                        bw.Write(rawDataBuffer[i]);
+                        for (int j = 0; j < NUM_CHANNELS; j++)
+                        {
+                            bw.Write(sensorData[bufferIndex++]);
+                        }
+
+                        for (int j = 0; j < NUM_MARKERS_16BIT; j++)
+                        {
+                            bw.Write(markers_16bit[j]);
+                        }
+
+                        for (int j = 0; j < NUM_MARKERS_8BIT; j++)
+                        {
+                            bw.Write(markers_8bit[j]);
+                        }
+
+                        for (int j = 0; j < NUM_TAG_MARKERS; j++)
+                        {
+                            bw.Write(stimulusTags[j]);
+                        }
                     }
                 }
                 catch (IOException e)
@@ -1376,7 +1407,7 @@ namespace CoreServices.Calibration
                     return;
                 }
 
-            }
+            }  // while (!cts.IsCancellationRequested)
         }
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
@@ -1391,5 +1422,242 @@ namespace CoreServices.Calibration
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+        public async Task SensorFilteringAsync(CancellationToken cts, ISourceBlock<double[]> inputBufferBlock,
+                                               ITargetBlock<double[]> outputBufferBlock)
+        {
+            const int MAX_CHANNELS = 7;  // Assumes no TRIG channel in montage, just (sensor - ref) values
+            const int BATCH_SIZE = 9;    // 9 samples = 30 msec @ Fs=300 Hz
+            const int HEADER_SIZE = 25;  // Number of 8-bit and 16-bit markers, plus keyID Tags prefacing each batch of data
+
+            bool filteringDisabled = false;
+
+            int blockSize;
+            int bufferIndex;
+
+            double[] HPF_bcoef = new double[]{ 1.00000000000000, -1.00000000000000 };    // Filter transfer numerator coef
+            double[] HPF_acoef = new double[]{ 1.00000000000000, -0.996378967773846 };   // Filter transfer denominator coef
+
+            double[] Notch_bcoef = new double[]{ 1.00000000000000, -0.618033988749895, 1.00000000000000 };
+            double[] Notch_acoef = new double[]{ 1.00000000000000, -0.556230589874906, 0.810000000000000 };
+
+            double[] LPF_bcoef = new double[]{ 0.00589798046521114, 0.0176939413956334, 0.0176939413956334, 0.00589798046521114 };
+            double[] LPF_acoef = new double[]{ 1.00000000000000, -2.18768735399289, 1.67381733173863, -0.438946134024050 };
+
+            int HPF_order = HPF_acoef.Length - 1;       // IIR Filter order is 1 less than number of denominator coef
+            int Notch_order = Notch_acoef.Length - 1;
+            int LPF_order = LPF_acoef.Length - 1;
+
+            double[] Z1delay = new double[HPF_order];
+            double[] Z2delay = new double[Notch_order];
+            double[] Z3delay = new double[LPF_order];
+
+            double[,] HPF_delay = new double[MAX_CHANNELS, HPF_order];
+            double[,] Notch_delay = new double[MAX_CHANNELS, Notch_order];
+            double[,] LPF_delay = new double[MAX_CHANNELS, LPF_order];
+
+            double[] Xin = new double[BATCH_SIZE];
+            double[] Y1out = new double[BATCH_SIZE];
+            double[] Y2out = new double[BATCH_SIZE];
+            double[] Y3out = new double[BATCH_SIZE];
+
+            double[,] SensorInputData = new double[MAX_CHANNELS, BATCH_SIZE];
+            double[,] SensorOutputData = new double[MAX_CHANNELS, BATCH_SIZE];
+
+            // Stopwatch stopwatch = new Stopwatch();
+
+            while (!cts.IsCancellationRequested)
+            {
+
+                // Start separate, independent timer to measure filter execution time.
+                // stopwatch.Start();
+
+                double[] rawDataBuffer = await inputBufferBlock.ReceiveAsync();
+                blockSize = rawDataBuffer.Length;
+
+                // Check if sensor filtering is disabled. If yes, then directly pass sensor data to next stage.
+                if (filteringDisabled == true)
+                {
+                    outputBufferBlock.Post(rawDataBuffer);
+                }
+                else
+                {
+                    // Leave the packet header in the original buffer and fetch the raw sensor data beyond that point
+                    bufferIndex = HEADER_SIZE;
+
+                    // De-interleave raw data from one sample per sensor into an array row of samples per sensor
+                    for (int sampleIndex = 0; sampleIndex < BATCH_SIZE; sampleIndex++)
+                    {
+                        for (int channelIndex = 0; channelIndex < MAX_CHANNELS; channelIndex++)
+                        {
+                            SensorInputData[channelIndex, sampleIndex] = rawDataBuffer[bufferIndex++];
+                        }
+                    }
+
+                    // Perform the signal processing stages on each sensor channel
+                    for (int channelIndex = 0; channelIndex < MAX_CHANNELS; channelIndex++)
+                    {
+                        // Filter pipeline stage 1
+                        for (int sampleIndex = 0; sampleIndex < BATCH_SIZE; sampleIndex++)
+                        {
+                            Xin[sampleIndex] = SensorInputData[channelIndex, sampleIndex];
+                        }
+                        for (int j = 0; j < HPF_order; j++)
+                        {
+                            Z1delay[j] = HPF_delay[channelIndex, j];
+                        }
+
+                        Y1out = HighpassFilter(HPF_bcoef, HPF_acoef, Xin, Z1delay);
+
+                        for (int j = 0; j < HPF_order; j++)
+                        {
+                            HPF_delay[channelIndex, j] = Z1delay[j];
+                        }
+
+                        // **************************************
+
+                        // Filter pipeline stage 2
+                        for (int j = 0; j < Notch_order; j++)
+                        {
+                            Z2delay[j] = Notch_delay[channelIndex, j];
+                        }
+
+                        // Use the stage 1 filter output as the stage 2 filter input
+                        Y2out = NotchFilter(Notch_bcoef, Notch_acoef, Y1out, Z2delay);
+
+                        for (int j = 0; j < Notch_order; j++)
+                        {
+                            Notch_delay[channelIndex, j] = Z2delay[j];
+                        }
+
+                        // **************************************
+
+                        // Filter pipeline stage 3
+                        for (int j = 0; j < LPF_order; j++)
+                        {
+                            Z3delay[j] = LPF_delay[channelIndex, j];
+                        }
+
+                        Y3out = LowpassFilter(LPF_bcoef, LPF_acoef, Y2out, Z3delay);   // IIR???
+
+                        for (int j = 0; j < LPF_order; j++)
+                        {
+                            LPF_delay[channelIndex, j] = Z3delay[j];
+                        }
+
+                        // **************************************
+
+                        // Copy final filtered output to buffer to be interleaved at the end
+                        for (int sampleIndex = 0; sampleIndex < BATCH_SIZE; sampleIndex++)
+                        {
+                            SensorOutputData[channelIndex, sampleIndex] = Y3out[sampleIndex];
+                        }
+
+                    }  // for (channelIndex)
+
+                    // Interleave filtered data from an array row of samples per sensor into a row of one sample per sensor
+                    bufferIndex = HEADER_SIZE;
+                    for (int sampleIndex = 0; sampleIndex < BATCH_SIZE; sampleIndex++)
+                    {
+                        for (int channelIndex = 0; channelIndex < MAX_CHANNELS; channelIndex++)
+                        {
+                            rawDataBuffer[bufferIndex++] = SensorOutputData[channelIndex, sampleIndex];
+                        }
+                    }
+
+                    /*
+                    // stopwatch.Stop();
+                    // int stopwatchElasped = stopwatch.Elapsed.Milliseconds;
+                    */
+
+                    // Send the filtered data to the next processing task via the buffer block
+                    outputBufferBlock.Post(rawDataBuffer);
+
+                }  // if (filteringDisabled)
+
+            }  // while()
+        }
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+        public double[] HighpassFilter(double[] HPF_bcoef, double[] HPF_acoef,
+                                       double[] filterInput, double[] Zdelay)
+        {
+            int numSamples = filterInput.Length;
+            int filterOrder = HPF_acoef.Length - 1;     // For IIR design filters the filter order is the
+                                                        // number of filter delay taps which is equal to 
+                                                        // the number of acoef minus one.
+
+            double[] filterOutput = new double[numSamples];
+
+            for (int m = 0; m < numSamples; m++)
+            {
+                filterOutput[m] = HPF_bcoef[0] * filterInput[m] + Zdelay[0];
+
+                for (int n = 1; n < filterOrder; n++)
+                {
+                    Zdelay[n - 1] = (HPF_bcoef[n] * filterInput[m]) + Zdelay[n] - (HPF_acoef[n] * filterOutput[m]);
+                }
+                Zdelay[filterOrder - 1] = (HPF_bcoef[filterOrder] * filterInput[m]) - (HPF_acoef[filterOrder] * filterOutput[m]);
+            }
+            return filterOutput;
+        }
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+        public double[] NotchFilter(double[] Notch_bcoef, double[] Notch_acoef,
+                                    double[] filterInput, double[] Zdelay)
+        {
+            int numSamples = filterInput.Length;
+            int filterOrder = Notch_acoef.Length - 1;   // For IIR design filters the filter order is the
+                                                        // number of filter delay taps which is equal to 
+                                                        // the number of acoef minus one.
+
+            double[] filterOutput = new double[numSamples];
+
+            for (int m = 0; m < numSamples; m++)
+            {
+                filterOutput[m] = Notch_bcoef[0] * filterInput[m] + Zdelay[0];
+
+                for (int n = 1; n < filterOrder; n++)
+                {
+                    Zdelay[n - 1] = (Notch_bcoef[n] * filterInput[m]) + Zdelay[n] - (Notch_acoef[n] * filterOutput[m]);
+                }
+                Zdelay[filterOrder - 1] = (Notch_bcoef[filterOrder] * filterInput[m]) - (Notch_acoef[filterOrder] * filterOutput[m]);
+            }
+            return filterOutput;
+        }
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+        public double[] LowpassFilter(double[] LPF_bcoef, double[] LPF_acoef,
+                                      double[] filterInput, double[] Zdelay)
+        {
+            int numSamples = filterInput.Length;
+            int filterOrder = LPF_acoef.Length - 1;     // For IIR design filters the filter order is the
+                                                        // number of filter delay taps which is equal to 
+                                                        // the number of acoef minus one.
+
+            double[] filterOutput = new double[numSamples];
+
+            for (int m = 0; m < numSamples; m++)
+            {
+                filterOutput[m] = LPF_bcoef[0] * filterInput[m] + Zdelay[0];
+
+                for (int n = 1; n < filterOrder; n++)
+                {
+                    Zdelay[n - 1] = (LPF_bcoef[n] * filterInput[m]) + Zdelay[n] - (LPF_acoef[n] * filterOutput[m]);
+                }
+                Zdelay[filterOrder - 1] = (LPF_bcoef[filterOrder] * filterInput[m]) - (LPF_acoef[filterOrder] * filterOutput[m]);
+            }
+            return filterOutput;
+        }
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
     }
 }
