@@ -50,7 +50,7 @@
                 <Button Style="{StaticResource ButtonStyle}" Height="60" Margin="10" Width="90" Content="Start" Command="{Binding StartCommand}" IsEnabled="{Binding EnableStart}" FontSize="20"></Button>
                 <Button Style="{StaticResource ButtonStyle}" Height="60" Margin="10" Width="90" Content="Continue" Command="{Binding ContinueCommand}" IsEnabled="{Binding EnableContinue}" FontSize="20"></Button>
                 <Button Style="{StaticResource ButtonStyle}" Height="60" Margin="10" Width="90" Content="Reset" Command="{Binding ResetCommand}" IsEnabled="{Binding EnableReset}" FontSize="20"></Button>
-                <Button Style="{StaticResource ButtonStyle}" Height="60" Margin="10" Width="90" Content="Exit" Command="{Binding ExitCommand}" IsEnabled="{Binding EnableExit}" FontSize="20"></Button>
+                <Button Style="{StaticResource ButtonStyle}" Height="60" Margin="10" Width="90" Content="Exit" Command="{Binding DisconnectCommand}" IsEnabled="{Binding EnableExit}" FontSize="20"></Button>
             </StackPanel>
         </Grid>
     </Grid>

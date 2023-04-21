@@ -26,6 +26,8 @@ namespace ViewModels.Connectivity
         public ICommand StartCommand { get; set; }
         public ICommand ContinueCommand { get; set; }
         public ICommand ResetCommand { get; set; }
+
+        public ICommand DisconnectCommand { get; set; }
         private bool _enableStart;
         public bool EnableStart { get { return _enableStart; } set { _enableStart = value; OnPropertyChanged(nameof(EnableStart)); } }
 
@@ -58,6 +60,13 @@ namespace ViewModels.Connectivity
             }
             _headSetConnectivityService.UpdateHeadsetPort(Port);
             OnPropertyChanged(nameof(Port));
+            DisconnectCommand = new RelayCommand(Disconnect);
+        }
+
+        private void Disconnect(object obj)
+        {
+            _headSetConnectivityService.Exit();
+            base.OnExit(obj);
         }
 
         private void ChangePort()
