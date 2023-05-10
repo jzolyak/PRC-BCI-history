@@ -29,6 +29,7 @@
                 <RowDefinition Height="80"></RowDefinition>
                 <RowDefinition Height="80"></RowDefinition>
                 <RowDefinition Height="80"></RowDefinition>
+                <RowDefinition Height="*"></RowDefinition>
             </Grid.RowDefinitions>
             <StackPanel Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="300" Margin="8" Orientation="Horizontal" DataContext="{Binding HeadsetConnectionStatusViewModel}">
             <Label Style="{StaticResource MediumLabelStyle}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,0,8,0">Status:</Label>
@@ -50,7 +51,7 @@
             <Button Grid.Row="4" HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="Prediction" Content="Prediction" Style="{StaticResource ButtonStyle}" FontSize="20"></Button>
             <Button Grid.Row="5" HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="Help" Content="Help" Style="{StaticResource ButtonStyle}" FontSize="20"></Button>
             <Button Grid.Row="6" HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="Settings" Content="Settings" Style="{StaticResource ButtonStyle}" FontSize="20"></Button>
-            <StackPanel Grid.Row="7" HorizontalAlignment="Right" VerticalAlignment="Stretch" Orientation="Horizontal">
+            <StackPanel Grid.Row="7" HorizontalAlignment="Center" VerticalAlignment="Stretch" Orientation="Horizontal">
                 <Button HorizontalAlignment="Right" VerticalAlignment="Stretch" Width="150" Margin="8" Command="{Binding CancelCmd}" Content="Cancel" Style="{StaticResource ButtonStyle}" FontSize="20"></Button>
                 <Button HorizontalAlignment="Right" VerticalAlignment="Stretch" Width="150" Margin="20,8,20,8" Command="{Binding FinishCmd}" Content="Finish/Start" Style="{StaticResource ButtonStyle}" FontSize="20"></Button>
             </StackPanel>

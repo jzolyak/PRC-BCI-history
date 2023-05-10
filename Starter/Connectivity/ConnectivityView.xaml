@@ -45,7 +45,7 @@
                 <RowDefinition Height=".5*"></RowDefinition>
             </Grid.RowDefinitions>
 
-            <CustomControls:ScrollingTextBox Text="{Binding Recommandation}" Grid.Row="0" VerticalScrollBarVisibility="Visible" IsReadOnly="True" Margin="5" FontSize="12"></CustomControls:ScrollingTextBox>
+            <CustomControls:ScrollingTextBox Text="{Binding Recommandation}" Grid.Row="0" VerticalScrollBarVisibility="Visible" IsReadOnly="True" Margin="5" FontSize="16"></CustomControls:ScrollingTextBox>
             <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Stretch">
                 <Button Style="{StaticResource ButtonStyle}" Height="60" Margin="10" Width="90" Content="Start" Command="{Binding StartCommand}" IsEnabled="{Binding EnableStart}" FontSize="20"></Button>
                 <Button Style="{StaticResource ButtonStyle}" Height="60" Margin="10" Width="90" Content="Continue" Command="{Binding ContinueCommand}" IsEnabled="{Binding EnableContinue}" FontSize="20"></Button>
