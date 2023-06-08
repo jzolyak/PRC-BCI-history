@@ -245,6 +245,17 @@ namespace ViewModels.Connectivity
 
         private void HeadSetConnectivityService_RaiseRecommendationChange(object sender, EventArgs<string> e)
         {
+            if(!string.IsNullOrEmpty(e.Value))
+            {
+                if(e.Value.Contains("failed"))
+                {
+                    HeadsetConnectionStatusViewModel.HeadsetConnectionStatus = Constants.NotConnected; ;
+                }
+                else if(e.Value.StartsWith("Connection to COM port passed"))
+                {
+                    HeadsetConnectionStatusViewModel.HeadsetConnectionStatus = Constants.Connected;
+                }
+            }
             Recommandation = e.Value;
         }
 

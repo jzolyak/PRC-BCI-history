@@ -19,13 +19,13 @@
             </Grid.ColumnDefinitions>
             <Grid Grid.Column="0">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="*"></RowDefinition>
                     <RowDefinition Height="30"></RowDefinition>
+                    <RowDefinition Height="*"></RowDefinition>
                 </Grid.RowDefinitions>
-            <Canvas  HorizontalAlignment="Stretch" Grid.Row="0" VerticalAlignment="Stretch" Margin="5" DataContext="{Binding HeadsetConnectionStatusViewModel}" Background="Transparent">
+            <Canvas  HorizontalAlignment="Stretch" Grid.Row="1" VerticalAlignment="Stretch" Margin="5" DataContext="{Binding HeadsetConnectionStatusViewModel}" Background="Transparent">
                 <local:HeadSetView HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Canvas.Left="0" Canvas.Top="0" DataContext="{Binding}"></local:HeadSetView>
             </Canvas>
-                <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal" >
+                <StackPanel Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal" >
                     <Label Style="{StaticResource MediumLabelStyle}" Content="Port:"></Label>
                     <TextBox Text="{Binding Port,UpdateSourceTrigger=LostFocus}" FontSize="20" FontWeight="Bold"></TextBox>
                 </StackPanel>

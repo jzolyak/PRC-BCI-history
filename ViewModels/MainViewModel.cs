@@ -1,4 +1,5 @@
-﻿using CoreServices.Models;
+﻿using CoreServices.Common;
+using CoreServices.Models;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -17,6 +18,7 @@ namespace ViewModels
         private object _currentViewModel;
         private bool _isVisible;
         private bool _isTopMost;
+        private string version = "Brain-Computer Interface - MVP.Beta.v1.0";
 
         public object CurrentViewModel { get { return _currentViewModel; } set { _currentViewModel = value; OnPropertyChanged(nameof(CurrentViewModel)); } }
         public bool IsVisible { get { return _isVisible; } set { _isVisible = value; OnPropertyChanged(nameof(IsVisible)); } }
@@ -29,6 +31,7 @@ namespace ViewModels
         private SettingsViewModel _settingsViewModel;
         private Action _closeAction;
         private ChildWindowSettings? _childWindowPref;
+        private UserSettingsService _userSettingsService;
 
         public string Title { get { return _title; } set { _title = value; OnPropertyChanged(nameof(Title));} }
 
@@ -36,7 +39,7 @@ namespace ViewModels
 
         public MainViewModel(Action closeAction)
         {
-            Title = "Brain-Computer Interface - MVP.Beta.v1.0";
+            
             _mainMenuViewModel = new MainMenuViewModel(Open,Close);
             _connectivityViewModel = new ConnectivityViewModel(ExitToMainMenu, ShoworHideMainWindow);
             _mainMenuViewModel.HeadsetConnectionStatusViewModel = _connectivityViewModel.HeadsetConnectionStatusViewModel;
@@ -44,6 +47,9 @@ namespace ViewModels
             _settingsViewModel = new SettingsViewModel(ExitToMainMenu, ShoworHideMainWindow);
             _predictionViewModel = new PredictionViewModel(ExitToMainMenu, ShoworHideMainWindow);
             _validationViewModel = new ValidationViewModel(ExitToMainMenu, ShoworHideMainWindow);
+            _userSettingsService = ServiceLocator.UserSettingsService;
+            Title = _userSettingsService== null ? version : _userSettingsService.GetSettingsValue("Version");
+            if (string.IsNullOrEmpty(Title)) Title = version;
             CurrentViewModel = _mainMenuViewModel;
             _closeAction = closeAction;
             IsVisible = true;
