@@ -111,7 +111,7 @@
                 </StackPanel>
             </Grid>
         </Grid>
-        <Popup Name="myPopup" IsOpen="{Binding ShowPopup}" Placement="Bottom" PlacementTarget="{Binding ElementName=StartButton}" AllowsTransparency="True" >
+        <Popup Name="myPopup" IsOpen="{Binding ShowPopup}" Placement="Center" AllowsTransparency="True" >
             <Border BorderThickness="2" BorderBrush="Black">
                 <ContentControl HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Content="{Binding PopupContentViewModel}" BorderBrush="Black" Margin="2">
 
