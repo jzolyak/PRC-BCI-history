@@ -16,7 +16,7 @@ namespace CoreServices.Common
         public UserSettingsService()
         {
             _userSettings = new ConcurrentDictionary<string, string>();
-            _settingsFileName = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "..\\..\\Settings\\UserSettings.txt";
+            _settingsFileName = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\UserSettings.txt";
             LoadSettings();
         }
 

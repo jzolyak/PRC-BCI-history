@@ -395,6 +395,7 @@ namespace CoreServices.Connectivity
             headset.StopImpedanceDriver();
             await Task.Delay(1000);
 
+            headset.Idle(1.0);
             headset.Disconnect();
             await Task.Delay(1000);
 

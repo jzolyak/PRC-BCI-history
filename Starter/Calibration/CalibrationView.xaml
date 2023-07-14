@@ -30,7 +30,7 @@
                     <RowDefinition Height=".25*"></RowDefinition>
                 </Grid.RowDefinitions>
                 <StackPanel Grid.Row="0">
-                    <Button Style="{StaticResource ButtonStyle}" Content="Start New Calibration" HorizontalAlignment="Center" Width="200" Height="70" FontSize="20" VerticalAlignment="Center" Command="{Binding StartCmd}"></Button>
+                    <Button x:Name="StartButton" Style="{StaticResource ButtonStyle}" Content="Start New Calibration" HorizontalAlignment="Center" Width="200" Height="70" FontSize="20" VerticalAlignment="Center" Command="{Binding StartCmd}"></Button>
                 </StackPanel>
 
                 <StackPanel Grid.Row="1">
@@ -111,7 +111,7 @@
                 </StackPanel>
             </Grid>
         </Grid>
-        <Popup Name="myPopup" IsOpen="{Binding ShowPopup}" Placement="Center" AllowsTransparency="True">
+        <Popup Name="myPopup" IsOpen="{Binding ShowPopup}" Placement="Center" AllowsTransparency="True" >
             <Border BorderThickness="2" BorderBrush="Black">
                 <ContentControl HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Content="{Binding PopupContentViewModel}" BorderBrush="Black" Margin="2">
 
