@@ -6,7 +6,7 @@ namespace ViewModels.Settings
 {
     internal class SettingsViewModel : ExitToMainMenuViewModel
     {
-        public SettingsViewModel(Action exitAction) : base(exitAction)
+        public SettingsViewModel(Action exitAction,Action<bool> showorHideMainWindow) : base(exitAction, showorHideMainWindow)
         {
         }
     }

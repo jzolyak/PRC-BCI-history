@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Starter.Calibration"
+             x:Class="Starter.Calibration.CalibrationRepeatQueryView" Background="White" Height="300" Width="600">
+        <StackPanel>
+            <Label x:Name="queryLabel" Content="{Binding RepeatText}" HorizontalAlignment="Center" Margin="0,80,0,40" FontSize="16"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button x:Name="yesButton" Height="40" Width="140" Margin="0,40,40,40"  Content="Yes" FontSize="25" FontWeight="Bold" Style="{StaticResource ButtonStyle}" Command="{Binding YesCommand}"/>
+                <Button x:Name="noButton" Height="40" Width="140" Content="No" FontSize="25" FontWeight="Bold" Style="{StaticResource ButtonStyle}" Command="{Binding NoCommand}"/>
+            </StackPanel>
+        </StackPanel>
+</UserControl>

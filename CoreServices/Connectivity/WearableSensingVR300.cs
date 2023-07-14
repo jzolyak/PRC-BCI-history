@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 
 namespace BCI_Headset
 {
-    class WearableSensingVR300 : IHeadset
+    public class WearableSensingVR300 : IHeadset
     {
         // NOTE: Update the port string as appropriate for your use
         public static string defaultPort = "COM4";
@@ -147,6 +147,11 @@ namespace BCI_Headset
         public string GetDefaultHeadsetComPort()
         {
             return defaultPort;
+        }
+
+        public void SetDefaultHeadsetComPort(string port)
+        {
+            defaultPort = port;
         }
 
         /* +++++++++++++++++++++ */

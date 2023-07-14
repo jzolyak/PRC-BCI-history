@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Starter.Calibration"
              mc:Ignorable="d" 
-              d:DesignWidth="800" Background="White" Height="340">
+              d:DesignWidth="800" Background="White" Height="340" Width="700">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="140"></RowDefinition>
@@ -18,10 +18,15 @@
             <Button Content="No" Style="{StaticResource ButtonStyle}" FontSize="25" Width="140" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5" Height="70" Command="{Binding PopupCloseCommand}"></Button>
         </StackPanel>
         <StackPanel Grid.Row="2" Orientation="Horizontal" DataContext="{Binding CalibrationFileMetadata}">
-            <Label FontSize="25" HorizontalAlignment="Center" VerticalAlignment="Center" Content="Delete Calibration:"></Label>
-            <Label FontSize="25" HorizontalAlignment="Center" VerticalAlignment="Center" Content="{Binding FileName}"></Label>
-            <Label FontSize="25" HorizontalAlignment="Center" VerticalAlignment="Center" Content="{Binding NumSets}"></Label>
-            <Label FontSize="25" HorizontalAlignment="Center" VerticalAlignment="Center" Content="/5 sets completed"></Label>
+            
+            <Label FontSize="25" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Label.Content>
+                    <MultiBinding StringFormat="(Delete Calibration:{0} {1} sets completed)'">
+                        <Binding Path="UserGivenName" />
+                        <Binding Path="CurrentSet" />
+                    </MultiBinding>
+                </Label.Content>
+            </Label>
         </StackPanel>
     </Grid>
 </UserControl>

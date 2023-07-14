@@ -1,9 +1,11 @@
-﻿using CoreServices.Models;
+﻿using CoreServices.Common;
+using CoreServices.Models;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using ViewModels.Calibration;
 using ViewModels.Connectivity;
+using ViewModels.Help;
 using ViewModels.Prediction;
 using ViewModels.Settings;
 using ViewModels.Validation;
@@ -14,8 +16,13 @@ namespace ViewModels
     {
         private string _title;
         private object _currentViewModel;
+        private bool _isVisible;
+        private bool _isTopMost;
+        private string version = "Brain-Computer Interface - MVP.Beta.v1.0";
 
         public object CurrentViewModel { get { return _currentViewModel; } set { _currentViewModel = value; OnPropertyChanged(nameof(CurrentViewModel)); } }
+        public bool IsVisible { get { return _isVisible; } set { _isVisible = value; OnPropertyChanged(nameof(IsVisible)); } }
+        public bool IsTopMost { get { return _isTopMost; } set { _isTopMost = value; OnPropertyChanged(nameof(IsTopMost)); } }
         private ConnectivityViewModel _connectivityViewModel;
         private CalibrationViewModel _calibrationViewModel;
         private MainMenuViewModel _mainMenuViewModel;
@@ -23,21 +30,31 @@ namespace ViewModels
         private PredictionViewModel _predictionViewModel;
         private SettingsViewModel _settingsViewModel;
         private Action _closeAction;
+        private ChildWindowSettings? _childWindowPref;
+        private UserSettingsService _userSettingsService;
 
         public string Title { get { return _title; } set { _title = value; OnPropertyChanged(nameof(Title));} }
 
+        public ChildWindowSettings? ChildWindowPref { get => _childWindowPref; set { _childWindowPref = value; OnPropertyChanged(nameof(ChildWindowPref)); } }
+
         public MainViewModel(Action closeAction)
         {
-            Title = "Brain Computer Interface";
+            
             _mainMenuViewModel = new MainMenuViewModel(Open,Close);
-            _connectivityViewModel = new ConnectivityViewModel(ExitToMainMenu);
+            _connectivityViewModel = new ConnectivityViewModel(ExitToMainMenu, ShoworHideMainWindow);
             _mainMenuViewModel.HeadsetConnectionStatusViewModel = _connectivityViewModel.HeadsetConnectionStatusViewModel;
-            _calibrationViewModel = new CalibrationViewModel(ExitToMainMenu);
-            _settingsViewModel = new SettingsViewModel(ExitToMainMenu);
-            _predictionViewModel = new PredictionViewModel(ExitToMainMenu);
-            _validationViewModel = new ValidationViewModel(ExitToMainMenu);
+            _calibrationViewModel = new CalibrationViewModel(ExitToMainMenu, ShoworHideMainWindow, ShoworHideChildWindow);
+            _settingsViewModel = new SettingsViewModel(ExitToMainMenu, ShoworHideMainWindow);
+            _predictionViewModel = new PredictionViewModel(ExitToMainMenu, ShoworHideMainWindow);
+            _validationViewModel = new ValidationViewModel(ExitToMainMenu, ShoworHideMainWindow);
+            _userSettingsService = ServiceLocator.UserSettingsService;
+            Title = _userSettingsService== null ? version : _userSettingsService.GetSettingsValue("Version");
+            if (string.IsNullOrEmpty(Title)) Title = version;
             CurrentViewModel = _mainMenuViewModel;
             _closeAction = closeAction;
+            IsVisible = true;
+            IsTopMost = true;
+            ChildWindowPref = null;
         }
 
         private void Open(string mode)
@@ -56,6 +73,16 @@ namespace ViewModels
         private void ExitToMainMenu()
         {
             CurrentViewModel = _mainMenuViewModel;
+        }
+
+        private void ShoworHideMainWindow(bool isVisible)
+        {
+            IsVisible = isVisible;
+        }
+
+        private void ShoworHideChildWindow(ChildWindowSettings childWindowSettings)
+        {
+            ChildWindowPref = childWindowSettings;
         }
     }
 }

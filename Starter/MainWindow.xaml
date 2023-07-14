@@ -4,15 +4,19 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Starter"
+        xmlns:UIHelpers="clr-namespace:Starter.UIHelpers"
         mc:Ignorable="d"
-        Height="800" Width="950" ResizeMode="NoResize" ShowInTaskbar="False" AllowDrop="False" WindowStyle="None" WindowStartupLocation="CenterScreen">
-    <Grid>
+        ResizeMode="NoResize" ShowInTaskbar="True" AllowDrop="False" WindowStyle="None" WindowStartupLocation="CenterScreen" Visibility="{Binding IsVisible,Converter={StaticResource booltoVisibilityConverter},Mode=TwoWay}" UIHelpers:AttachedPropertyService.ChildWindowPreferece="{Binding ChildWindowPref}" Topmost="true" >
+    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
         <Grid.RowDefinitions>
             <RowDefinition Height="50"></RowDefinition>
             <RowDefinition Height="*"></RowDefinition>
         </Grid.RowDefinitions>
-        <Label Grid.Row="0" HorizontalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Style="{StaticResource HeaderLabelStyle}" Content="{Binding Title}"></Label>
-        <Grid Grid.Row="1" Background="{StaticResource ContentScreenBackGroundBrush}">
+        <StackPanel Grid.Row="0" HorizontalAlignment="Center" Orientation="Horizontal">
+            <Label HorizontalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Style="{StaticResource HeaderLabelStyle}" Content="{Binding Title}"></Label>
+            <Button Content="Desktop" Click="Button_Click" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource ButtonStyle}" Width="100" FontSize="16"></Button>
+        </StackPanel>
+        <Grid Grid.Row="1" Background="{StaticResource ContentScreenBackGroundBrush}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <ContentControl HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Content="{Binding CurrentViewModel}"></ContentControl>
         </Grid>
     </Grid>
