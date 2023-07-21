@@ -1,3 +1,0 @@
-HeadSetPort=COM4
-ShowDemoVideo=false
-Version=Brain-Computer Interface - MVP.Beta.v1.0.0

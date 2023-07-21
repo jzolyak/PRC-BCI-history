@@ -22,6 +22,7 @@ namespace ViewModels.Connectivity
         private string _recommandation;
         private string _port;
         public string Recommandation { get { return _recommandation; } set { _recommandation = value; OnPropertyChanged(nameof(Recommandation)); } }
+        public bool IsInTablet { get; set; }
 
         public ICommand StartCommand { get; set; }
         public ICommand ContinueCommand { get; set; }
