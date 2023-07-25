@@ -12,26 +12,29 @@ namespace CoreServices.Common
     {
         private ConcurrentDictionary<string, string> _userSettings;
         private string _settingsFileName;
+        private string _defaultSettingsFileName;
 
         public UserSettingsService()
         {
             _userSettings = new ConcurrentDictionary<string, string>();
+            _defaultSettingsFileName = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\DefaultSettings.txt";
+            LoadSettings(_defaultSettingsFileName);
             _settingsFileName = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\UserSettings.txt";
-            LoadSettings();
+            LoadSettings(_settingsFileName);
         }
 
-        private void LoadSettings()
+        private void LoadSettings(string filename)
         {
             try
             {
                 //Load settings from settings file
-                if (!File.Exists(_settingsFileName))
+                if (!File.Exists(filename))
                 {
                     Logger.Info(this, "Settings File does not exist");
                     return;
                 }
                 _userSettings.Clear();
-                using (StreamReader sr = File.OpenText(_settingsFileName))
+                using (StreamReader sr = File.OpenText(filename))
                 {
                     string s = "";
                     while ((s = sr.ReadLine()) != null)
@@ -55,7 +58,15 @@ namespace CoreServices.Common
             var keyValuePair = s.Split("=");
             if (keyValuePair.Length > 1)
             {
-                _userSettings.TryAdd(keyValuePair[0], keyValuePair[1]);
+                if (_userSettings.ContainsKey(keyValuePair[0]))
+                {
+                    var existingvalue = _userSettings[keyValuePair[0]];
+                    _userSettings.TryUpdate(keyValuePair[0], keyValuePair[1], existingvalue);
+                }
+                else
+                {
+                    _userSettings.TryAdd(keyValuePair[0], keyValuePair[1]);
+                }
             }
         }
 
@@ -76,7 +87,10 @@ namespace CoreServices.Common
 
         public string GetSettingsValue(string key)
         {
-            if (_userSettings.IsEmpty || !_userSettings.ContainsKey(key)) { Logger.Error(this, "Cannot Find Setting " + key); return null; }
+            if (_userSettings.IsEmpty || !_userSettings.ContainsKey(key)) 
+            {
+                Logger.Error(this, "Cannot Find Setting " + key); return null; 
+            }
             return _userSettings[key]; 
         }
     }

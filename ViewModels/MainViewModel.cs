@@ -23,6 +23,8 @@ namespace ViewModels
         public object CurrentViewModel { get { return _currentViewModel; } set { _currentViewModel = value; OnPropertyChanged(nameof(CurrentViewModel)); } }
         public bool IsVisible { get { return _isVisible; } set { _isVisible = value; OnPropertyChanged(nameof(IsVisible)); } }
         public bool IsTopMost { get { return _isTopMost; } set { _isTopMost = value; OnPropertyChanged(nameof(IsTopMost)); } }
+
+        public bool IsInTablet { get; set; }
         private ConnectivityViewModel _connectivityViewModel;
         private CalibrationViewModel _calibrationViewModel;
         private MainMenuViewModel _mainMenuViewModel;
@@ -41,7 +43,7 @@ namespace ViewModels
         {
             
             _mainMenuViewModel = new MainMenuViewModel(Open,Close);
-            _connectivityViewModel = new ConnectivityViewModel(ExitToMainMenu, ShoworHideMainWindow);
+            _connectivityViewModel = new ConnectivityViewModel(ExitToMainMenu, ShoworHideMainWindow);           
             _mainMenuViewModel.HeadsetConnectionStatusViewModel = _connectivityViewModel.HeadsetConnectionStatusViewModel;
             _calibrationViewModel = new CalibrationViewModel(ExitToMainMenu, ShoworHideMainWindow, ShoworHideChildWindow);
             _settingsViewModel = new SettingsViewModel(ExitToMainMenu, ShoworHideMainWindow);
@@ -60,8 +62,9 @@ namespace ViewModels
         private void Open(string mode)
         {
             if (string.IsNullOrEmpty(mode)) return;
-            if (mode == Constants.Connectivity) { CurrentViewModel = _connectivityViewModel; }
-            else if (mode == Constants.Calibration) { CurrentViewModel = _calibrationViewModel; }
+            if (mode == Constants.Connectivity) { CurrentViewModel = _connectivityViewModel;
+                _connectivityViewModel.IsInTablet = IsInTablet; }
+            else if (mode == Constants.Calibration) { CurrentViewModel = _calibrationViewModel; _calibrationViewModel.IsInTablet = IsInTablet; }
             else if (mode == Constants.Validation) { CurrentViewModel = _validationViewModel; }
             else if (mode == Constants.Prediction) { CurrentViewModel = _validationViewModel; }
             else if (mode == Constants.Settings) { CurrentViewModel = _validationViewModel; }

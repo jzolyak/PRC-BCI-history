@@ -27,7 +27,7 @@
             </Canvas>
                 <StackPanel Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal" >
                     <Label Style="{StaticResource MediumLabelStyle}" Content="Port:"></Label>
-                    <TextBox Text="{Binding Port,UpdateSourceTrigger=LostFocus}" FontSize="20" FontWeight="Bold"></TextBox>
+                    <CustomControls:ExtendedTextBox Text="{Binding Port,UpdateSourceTrigger=LostFocus}" FontSize="20" FontWeight="Bold" OnTablet="{Binding IsInTablet,Mode=TwoWay}"></CustomControls:ExtendedTextBox>
                 </StackPanel>
             </Grid>
             <DataGrid Grid.Column="1" x:Name="measurementsGrid" Margin="20" ItemsSource="{Binding MeasurementList}" AutoGenerateColumns="False" IsReadOnly="True" >

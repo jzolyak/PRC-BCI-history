@@ -14,6 +14,7 @@ namespace ViewModels.Calibration
         public string FileName { get { return _fileName; } set { _fileName = value; OnPropertyChanged(nameof(FileName)); } }
         public ICommand OkCommand { get; set; }
         public ICommand ClearCommand { get; set; }
+        public bool IsInTablet { get; set; }
         public FileNameEntryViewModel(Action startCalibrationAction,Action closePopup,CalibrationFileMetadata calibrationFileMetadata) : base(startCalibrationAction,closePopup)
         {
             _calibrationFileMetadata = calibrationFileMetadata;
