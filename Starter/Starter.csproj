@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
-		<TargetFramework>net5.0-Windows</TargetFramework>
+		<TargetFramework>net6.0-Windows</TargetFramework>
 		<Nullable>enable</Nullable>
 		<UseWPF>true</UseWPF>
 		<ApplicationIcon>Images\Eo_circle_red_letter-b.svg.ico</ApplicationIcon>
@@ -42,7 +42,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Folder Include="bin\Debug\net5.0-windows\Images\" />
+		<Folder Include="bin\Debug\net6.0-windows\Images\" />
 		<Folder Include="Validation\" />
 	</ItemGroup>
 

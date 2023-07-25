@@ -1,2 +1,0 @@
-HeadSetPort=COM4
-ShowDemoVideo=false
