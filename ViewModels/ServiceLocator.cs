@@ -1,6 +1,7 @@
 ﻿using CoreServices.Calibration;
 using CoreServices.Connectivity;
 using CoreServices.Common;
+using CoreServices.Prediction;
 
 namespace ViewModels
 {
@@ -25,6 +26,17 @@ namespace ViewModels
                 if (_calibrationService == null)
                     _calibrationService = new CalibrationService();
                 return _calibrationService;
+            }
+        }
+
+        private static PredictionService? _predictionService;
+        public static PredictionService PredictionService
+        {
+            get
+            {
+                if (_predictionService == null)
+                    _predictionService = new PredictionService();
+                return _predictionService;
             }
         }
 

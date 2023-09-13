@@ -1,0 +1,72 @@
+﻿<UserControl x:Class="Starter.Prediction.PredictionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:behavior="http://schemas.microsoft.com/xaml/behaviors" 
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <Grid Opacity="{Binding Opacity}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="1*"></RowDefinition>
+            <RowDefinition Height="9*"></RowDefinition>
+        </Grid.RowDefinitions>
+        
+        <StackPanel Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+            <Label Style="{StaticResource HeaderLabelStyle}" Content="Current Prediction File:" Foreground="#449DD1"></Label>
+            <Label Style="{StaticResource HeaderLabelStyle}" DataContext="{Binding CurrentFileMetadata}"  Content="{Binding Name}" Foreground="#449DD1"></Label>
+            <CheckBox HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="{Binding SimulationModePreference}" Content="Enable Simulation Mode" Margin="10"  Command="{Binding DataContext.SimulationModePreferenceModeChangeCmd,RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type UserControl}}}" >
+            </CheckBox>
+        </StackPanel>
+            
+            <Grid Grid.Row="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*"></RowDefinition>
+                    <RowDefinition Height="6*"></RowDefinition>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="2*"/>
+                </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*"></ColumnDefinition>
+                <ColumnDefinition Width="4*"></ColumnDefinition>
+                <ColumnDefinition Width="3*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+                <Label Style="{StaticResource HeaderLabelStyle}" Content="Available Calibration Files:" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center"></Label>
+            <ListBox Margin="10,0,10,10" Grid.Row="1" x:Name="myListBox" ItemsSource="{Binding FileNamesCollection}" Grid.Column="1" SelectedItem="{Binding SelectedFileMetadata}" SelectedIndex="{Binding CurrentFileMetadataIdx}">
+                    <ListBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Use it for Prediction" Command="{Binding ChangePredictionFileCmd}"></MenuItem>
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <TextBlock Text="{Binding}" FontSize="25"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                    <behavior:Interaction.Triggers>
+                        <behavior:EventTrigger EventName="SelectionChanged">
+                            <behavior:InvokeCommandAction Command="{Binding SelectedFileChangeCmd}"  CommandParameter="{Binding ElementName=myListBox, Path=SelectedItem}"/>
+                        </behavior:EventTrigger>
+                    </behavior:Interaction.Triggers>
+                </ListBox>
+            <StackPanel Grid.Row="2" Grid.Column="1">
+                    <Button Style="{StaticResource ButtonStyle}" Content="Use Selected Calibration File for Prediction" HorizontalAlignment="Center" Width="400" Height="50" FontSize="18" VerticalAlignment="Top" Command="{Binding ChangePredictionFileCmd}"></Button>
+                </StackPanel>
+            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10" Grid.Column="2">
+                <Button Style="{StaticResource ButtonStyle}" Content="Start" HorizontalAlignment="Center" Width="100" Height="70" FontSize="20" VerticalAlignment="Top" Command="{Binding StartCmd}" Margin="10,0,0,0"></Button>
+                <Button Style="{StaticResource ButtonStyle}" Content="Cancel" HorizontalAlignment="Center" Width="100" Height="70" FontSize="20" VerticalAlignment="Top" Command="{Binding ExitCommand}" Margin="10,0,0,0"></Button>
+                    <Button Style="{StaticResource ButtonStyle}" Content="Exit" HorizontalAlignment="Center" Width="100" Height="70" FontSize="20" VerticalAlignment="Top" Command="{Binding ExitCommand}" Margin="10,0,10,0"></Button>
+                </StackPanel>
+            </Grid>
+       
+        <Popup Name="myPopup" IsOpen="{Binding ShowPopup}" Placement="Center" AllowsTransparency="True" >
+            <Border BorderThickness="2" BorderBrush="Black">
+                <ContentControl HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Content="{Binding PopupContentViewModel}" BorderBrush="Black" Margin="2">
+
+                </ContentControl>
+            </Border>
+        </Popup>
+    </Grid>
+</UserControl>
