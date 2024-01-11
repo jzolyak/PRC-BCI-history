@@ -2,10 +2,17 @@
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
-		<TargetFramework>net5.0-windows</TargetFramework>
+		<TargetFramework>net6.0-windows</TargetFramework>
 		<Nullable>enable</Nullable>
 		<UseWPF>true</UseWPF>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Validation\**" />
+	  <EmbeddedResource Remove="Validation\**" />
+	  <None Remove="Validation\**" />
+	  <Page Remove="Validation\**" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<None Remove="Images\headset.PNG" />
@@ -33,10 +40,6 @@
 	<ItemGroup>
 		<ProjectReference Include="..\CoreServices\CoreServices.csproj" />
 		<ProjectReference Include="..\ViewModels\ViewModels.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Folder Include="Validation\" />
 	</ItemGroup>
 
 	<ItemGroup>

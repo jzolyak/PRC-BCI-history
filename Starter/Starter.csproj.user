@@ -37,6 +37,21 @@
     <Compile Update="MainMenuView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Settings\SettingsDetailView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Settings\SettingsView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Startup\FirstScreen.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Startup\HeadsetStartupStatusView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Startup\StartupScreen.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Page Update="Calibration\CalibrationBeginQueryView.xaml">
@@ -85,6 +100,21 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Update="MainWindow.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Settings\SettingsDetailView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Settings\SettingsView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Startup\FirstScreen.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Startup\HeadsetStartupStatusView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Startup\StartupScreen.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>

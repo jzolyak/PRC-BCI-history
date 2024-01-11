@@ -8,19 +8,19 @@ using System.Text;
 
 namespace CoreServices.Common
 {
-    public class UserSettingsService
+    public class SettingsService
     {
-        private ConcurrentDictionary<string, string> _userSettings;
+        protected ConcurrentDictionary<string, string> _userSettings;
         private string _settingsFileName;
 
-        public UserSettingsService()
+        public SettingsService()
         {
             _userSettings = new ConcurrentDictionary<string, string>();
             _settingsFileName = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "..\\..\\Settings\\UserSettings.txt";
             LoadSettings();
         }
 
-        private void LoadSettings()
+        protected void LoadSettings()
         {
             try
             {
@@ -46,7 +46,7 @@ namespace CoreServices.Common
             }
         }
 
-        private void ProcessSettings(string s)
+        protected void ProcessSettings(string s)
         {
             if(string.IsNullOrEmpty(s))
             {
@@ -78,6 +78,14 @@ namespace CoreServices.Common
         {
             if (_userSettings.IsEmpty || !_userSettings.ContainsKey(key)) { Logger.Error(this, "Cannot Find Setting " + key); return null; }
             return _userSettings[key]; 
+        }
+
+        public Dictionary<String, String> GetSettings(string pattern)
+        {
+            if (_userSettings.IsEmpty) { Logger.Error(this, "Settings file is empty. Cannot Find Setting " + pattern); return null; }
+            var matchedsettings = _userSettings.Where(x => x.Key.StartsWith(pattern + ";")).ToList();
+            if (!matchedsettings.Any()) { Logger.Error(this, "Cannot Find Setting " + pattern); return null; }
+            return matchedsettings.ToDictionary(y => y.Key, y => y.Value);
         }
     }
 }
