@@ -1,6 +1,7 @@
 ﻿using CoreServices.Calibration;
 using CoreServices.Connectivity;
 using CoreServices.Common;
+using CoreServices.Headset;
 
 namespace ViewModels
 {
@@ -28,15 +29,27 @@ namespace ViewModels
             }
         }
 
-        private static UserSettingsService? _userSettingsService;
-        public static UserSettingsService UserSettingsService
+        private static SettingsService? _userSettingsService;
+        public static SettingsService UserSettingsService
         {
             get
             {
                 if (_userSettingsService == null)
-                    _userSettingsService = new UserSettingsService();
+                    _userSettingsService = new SettingsService();
                 return _userSettingsService;
             }
         }
+
+        private static HeadsetService? _headsetService;
+        public static HeadsetService HeadsetService
+        {
+            get
+            {
+                if (_headsetService == null)
+                    _headsetService = new HeadsetService();
+                return _headsetService;
+            }
+        }
+
     }
 }

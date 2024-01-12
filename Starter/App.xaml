@@ -4,9 +4,13 @@
              xmlns:local="clr-namespace:Starter"
              xmlns:vm="clr-namespace:ViewModels;assembly=ViewModels"
              xmlns:calibratevm="clr-namespace:ViewModels.Calibration;assembly=ViewModels"
-             xmlns:connectivityvm="clr-namespace:ViewModels.Connectivity;assembly=ViewModels"             
+             xmlns:connectivityvm="clr-namespace:ViewModels.Connectivity;assembly=ViewModels" 
+             xmlns:settingsvm="clr-namespace:ViewModels.Settings;assembly=ViewModels" 
+             xmlns:startupvm="clr-namespace:ViewModels.Startup;assembly=ViewModels" 
              xmlns:connectivityView="clr-namespace:Starter.Connectivity"
              xmlns:calibrationView="clr-namespace:Starter.Calibration"
+             xmlns:settingsView="clr-namespace:Starter.Settings"
+             xmlns:startupView="clr-namespace:Starter.Startup"
              xmlns:UIHelpers="clr-namespace:Starter.UIHelpers"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
@@ -151,6 +155,41 @@
             </Canvas>
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type startupvm:StartupViewModel}">
+            <startupView:StartupScreen DataContext="{Binding}" Height="Auto" Width="Auto"></startupView:StartupScreen>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type startupvm:FirstScreenViewModel}">
+            <startupView:FirstScreen DataContext="{Binding}" Height="Auto" Width="Auto"></startupView:FirstScreen>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type startupvm:HeadsetStartupStatusViewModel}">
+            <startupView:HeadsetStartupStatusView DataContext="{Binding}" Height="Auto" Width="Auto"></startupView:HeadsetStartupStatusView>
+        </DataTemplate>
+
+        <Style x:Key="TextBoxInError" TargetType="{x:Type TextBox}">
+            <Style.Triggers>
+                <Trigger Property="Validation.HasError" Value="true">
+                    <Setter Property="ToolTip"
+              Value="{Binding RelativeSource={x:Static RelativeSource.Self},
+                              Path=(Validation.Errors)[0].ErrorContent}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        <DataTemplate DataType="{x:Type settingsvm:SettingsDetailViewModel}">
+            <settingsView:SettingsDetailView></settingsView:SettingsDetailView>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type settingsvm:SettingsViewModel}">
+            <settingsView:SettingsView/>
+        </DataTemplate>
+
+        <ControlTemplate x:Key="ValidationTemplate">
+            <DockPanel>
+                <TextBlock Foreground="Red" FontSize="20">!</TextBlock>
+                <AdornedElementPlaceholder/>
+            </DockPanel>
+        </ControlTemplate>
+
+       
 
     </Application.Resources>
 </Application>
