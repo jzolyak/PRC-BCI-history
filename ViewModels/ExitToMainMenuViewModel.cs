@@ -13,7 +13,7 @@ namespace ViewModels
         protected Action<bool> _showorHideMainWindow; 
         protected Action<ChildWindowSettings> _showorHideChildWindow;
 
-        private Action _exitAction;
+        protected Action _exitAction;
         public ExitToMainMenuViewModel(Action exitAction,Action<bool> showorHideMainWindow)
         {
             _exitAction = exitAction;

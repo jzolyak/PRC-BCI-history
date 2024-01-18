@@ -17,7 +17,7 @@ namespace ViewModels.Connectivity
         public HeadsetConnectionStatusViewModel? HeadsetConnectionStatusViewModel { get; set; }
         public ObservableCollection<SensorMeasurementViewModel>? MeasurementList { get; set; }
         private List<SensorMeasurementViewModel> _measurements;
-        private UserSettingsService _userSettingsService;
+        private SettingsService _userSettingsService;
         private HeadSetConnectivityService _headSetConnectivityService;
         private string _recommandation;
         private string _port;
