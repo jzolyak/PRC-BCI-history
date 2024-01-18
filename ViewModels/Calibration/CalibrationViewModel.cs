@@ -48,8 +48,9 @@ namespace ViewModels.Calibration
         public ICommand HelpCmd { get; set; }
         public ICommand SelectedFileChangeCmd { get; set; }
         public ICommand ChangePredictionFileCmd { get; set; }
+        public bool IsInTablet { get; set; }
 
-        
+
         public ObservableCollection<PredictionFileMetadata> FileNamesCollection { get => _fileNamesCollection; set { _fileNamesCollection = value; OnPropertyChanged(nameof(FileNamesCollection)); } }
         public CalibrationFileMetadata CurrentFileMetadata { get => _currentFileMetadata; set { _currentFileMetadata = value; OnPropertyChanged(nameof(CurrentFileMetadata)); } }
         public PredictionFileMetadata SelectedFileMetadata { get => _selectedFileMetadata; set { _selectedFileMetadata = value; OnPropertyChanged(nameof(SelectedFileMetadata)); } }
@@ -234,6 +235,7 @@ namespace ViewModels.Calibration
 
         private void GetFileNameFromUser()
         {
+            _fileNameEntryViewModel.IsInTablet = IsInTablet;
             DisplayPopup(_fileNameEntryViewModel);
         }
 

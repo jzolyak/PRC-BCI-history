@@ -23,7 +23,7 @@ namespace CoreServices.Stimulus
     }
     public class FlashSequence
     {
-        public const int MAX_KEYS_PER_FLASH = 10;
+        public const int MAX_KEYS_PER_FLASH = 12;
 
         public const int NOT_ASSIGNED = 0;
         public const int HIDDEN1_ROW = 1;

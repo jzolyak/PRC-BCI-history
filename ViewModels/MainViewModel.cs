@@ -1,4 +1,5 @@
-﻿using CoreServices.Models;
+﻿using CoreServices.Common;
+using CoreServices.Models;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -18,10 +19,13 @@ namespace ViewModels
         private object _currentViewModel;
         private bool _isVisible;
         private bool _isTopMost;
+        private string version = "Brain-Computer Interface - MVP.Beta.v1.0";
 
         public object CurrentViewModel { get { return _currentViewModel; } set { _currentViewModel = value; OnPropertyChanged(nameof(CurrentViewModel)); } }
         public bool IsVisible { get { return _isVisible; } set { _isVisible = value; OnPropertyChanged(nameof(IsVisible)); } }
         public bool IsTopMost { get { return _isTopMost; } set { _isTopMost = value; OnPropertyChanged(nameof(IsTopMost)); } }
+
+        public bool IsInTablet { get; set; }
         private ConnectivityViewModel _connectivityViewModel;
         private CalibrationViewModel _calibrationViewModel;
         private MainMenuViewModel _mainMenuViewModel;
@@ -32,6 +36,7 @@ namespace ViewModels
         private StartupViewModel _startupViewModel;
         private Action _closeAction;
         private ChildWindowSettings? _childWindowPref;
+        private UserSettingsService _userSettingsService;
 
         public string Title { get { return _title; } set { _title = value; OnPropertyChanged(nameof(Title));} }
 
@@ -39,17 +44,16 @@ namespace ViewModels
 
         public MainViewModel(Action closeAction)
         {
-            Title = "Brain-Computer Interface - MVP.Beta.v1.0";
+            
             _mainMenuViewModel = new MainMenuViewModel(Open,Close);
             _connectivityViewModel = new ConnectivityViewModel(ExitToMainMenu, ShoworHideMainWindow);
-            _startupViewModel= new StartupViewModel(ExitToMainMenu, ShoworHideMainWindow,Close);
             _mainMenuViewModel.HeadsetConnectionStatusViewModel = _connectivityViewModel.HeadsetConnectionStatusViewModel;
             _calibrationViewModel = new CalibrationViewModel(ExitToMainMenu, ShoworHideMainWindow, ShoworHideChildWindow);
             _settingsViewModel = new SettingsViewModel(Open, ExitToMainMenu, ShoworHideMainWindow);
             _settingsDetailViewModel = new SettingsDetailViewModel(Open);
             _predictionViewModel = new PredictionViewModel(ExitToMainMenu, ShoworHideMainWindow);
             _validationViewModel = new ValidationViewModel(ExitToMainMenu, ShoworHideMainWindow);
-            CurrentViewModel = _startupViewModel;
+            CurrentViewModel = _mainMenuViewModel;
             _closeAction = closeAction;
             IsVisible = true;
             IsTopMost = true;
@@ -59,8 +63,9 @@ namespace ViewModels
         private void Open(string mode)
         {
             if (string.IsNullOrEmpty(mode)) return;
-            if (mode == Constants.Connectivity) { CurrentViewModel = _connectivityViewModel; }
-            else if (mode == Constants.Calibration) { CurrentViewModel = _calibrationViewModel; }
+            if (mode == Constants.Connectivity) { CurrentViewModel = _connectivityViewModel;
+                _connectivityViewModel.IsInTablet = IsInTablet; }
+            else if (mode == Constants.Calibration) { CurrentViewModel = _calibrationViewModel; _calibrationViewModel.IsInTablet = IsInTablet; }
             else if (mode == Constants.Validation) { CurrentViewModel = _validationViewModel; }
             else if (mode == Constants.Prediction) { CurrentViewModel = _predictionViewModel; }
             else if (mode == Constants.Settings) { CurrentViewModel = _settingsViewModel; }

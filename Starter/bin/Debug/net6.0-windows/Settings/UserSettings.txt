@@ -1,7 +1,0 @@
-ShowDemoVideo=false
-ConnectivitySettings;port=100
-ConnectivitySettings;setting1=ABC
-CalibrationSettings;setting1=ABC
-CalibrationSettings;setting2=100.234
-ValidationSettings;setting1=ABC
-

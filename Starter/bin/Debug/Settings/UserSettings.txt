@@ -1,7 +1,0 @@
-CalibrationSettings;setting1=ABC
-ConnectivitySettings;port=200
-ShowDemoVideo=false
-HeadSetPort=COM4
-ValidationSettings;setting1=ABC
-ConnectivitySettings;setting1=ABC1232
-CalibrationSettings;setting2=100.234

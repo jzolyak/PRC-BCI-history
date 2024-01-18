@@ -22,9 +22,4 @@
     <PackageReference Include="System.Threading.Tasks.Dataflow" Version="6.0.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Validation\" />
-    <Folder Include="Prediction\" />
-  </ItemGroup>
-
 </Project>

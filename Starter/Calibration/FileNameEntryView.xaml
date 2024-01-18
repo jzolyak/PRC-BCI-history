@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Starter.Calibration"
+             xmlns:customcontrols="clr-namespace:Starter.CustomControls"
              mc:Ignorable="d" 
              d:DesignWidth="800" Height="320" Background="White" >
     <Grid>
@@ -13,7 +14,7 @@
             <RowDefinition Height="100"></RowDefinition>
         </Grid.RowDefinitions>
         <Label Content="Enter File Name" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource HeaderLabelStyle}"></Label>
-        <TextBox Grid.Row="1" Margin="10" HorizontalAlignment="Stretch" VerticalAlignment="Center" FontSize="30" Text="{Binding FileName}" Height="50" Style="{StaticResource CustomErrorControlOnErrorStyle}" AllowDrop="True" TextWrapping="Wrap" MaxWidth="400" AcceptsReturn="False"></TextBox>
+        <customcontrols:ExtendedTextBox Grid.Row="1" Margin="10" HorizontalAlignment="Stretch" VerticalAlignment="Center" FontSize="30" Text="{Binding FileName}" Height="50" Style="{StaticResource CustomErrorControlOnErrorStyle}" AllowDrop="True" TextWrapping="Wrap" MaxWidth="400" AcceptsReturn="False" OnTablet="{Binding IsInTablet,Mode=TwoWay}"></customcontrols:ExtendedTextBox>
         <StackPanel  Grid.Row="2"  Orientation="Horizontal" HorizontalAlignment="Center">
             <Button Command="{Binding OkCommand}" Margin="10"  HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource ButtonStyle}" Height="70" Width="120" Content="Ok" FontSize="20"></Button>
             <Button Command="{Binding ClearCommand}" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource ButtonStyle}" Height="70" Width="120" Content="Clear" FontSize="20"></Button>

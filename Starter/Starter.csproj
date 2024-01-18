@@ -5,6 +5,7 @@
 		<TargetFramework>net6.0-windows</TargetFramework>
 		<Nullable>enable</Nullable>
 		<UseWPF>true</UseWPF>
+		<ApplicationIcon>Images\Eo_circle_red_letter-b.svg.ico</ApplicationIcon>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -16,12 +17,16 @@
 
 	<ItemGroup>
 		<None Remove="Images\headset.PNG" />
+		<None Remove="Images\VR300.ico" />
 		<None Remove="Images\VR300.png" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Content Include="Images\headset.PNG">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Images\Eo_circle_red_letter-b.svg.ico">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 	</ItemGroup>
 
@@ -35,11 +40,16 @@
 		<PackageReference Include="log4net" Version="2.0.14" />
 		<PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.39" />
 		<PackageReference Include="System.Threading.Tasks.Dataflow" Version="6.0.0" />
+		<PackageReference Include="Uno.UI" Version="4.8.33" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\CoreServices\CoreServices.csproj" />
 		<ProjectReference Include="..\ViewModels\ViewModels.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include="Validation\" />
 	</ItemGroup>
 
 	<ItemGroup>
