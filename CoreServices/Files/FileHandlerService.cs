@@ -138,5 +138,14 @@ namespace CoreServices.Files
             }
 
         }
+
+        public static void RenameFile(string currentFileName,string newFileName,string subDirectory)
+        {
+            if (string.IsNullOrEmpty(currentFileName) || string.IsNullOrEmpty(subDirectory) || string.IsNullOrEmpty(newFileName)) return;
+            var sourcefilename = Path.Combine(subDirectory, currentFileName);
+            if (!File.Exists(sourcefilename)) return;
+            string destinationFilename = Path.Combine(subDirectory, newFileName);
+            File.Move(sourcefilename, destinationFilename);
+        }
     }
 }

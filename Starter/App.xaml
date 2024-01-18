@@ -141,6 +141,14 @@
             <calibrationView:CalibrationInstructions DataContext="{Binding}" Height="Auto" Width="Auto"></calibrationView:CalibrationInstructions>
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type predictionvm:PredictionViewModel}">
+            <predictionView:PredictionView DataContext="{Binding}" Height="Auto" Width="Auto"></predictionView:PredictionView>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type predictionvm:PredictionInstructionsViewModel}">
+            <predictionView:PredictionInstructionsView DataContext="{Binding}" Height="Auto" Width="Auto"></predictionView:PredictionInstructionsView>
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type vm:MainMenuViewModel}">
             <local:MainMenuView DataContext="{Binding}" Height="Auto" Width="Auto"></local:MainMenuView>
         </DataTemplate>

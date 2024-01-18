@@ -9,6 +9,7 @@ namespace ViewModels.Help
 
     public class ChildWindowSettings
     {
+        public string WindowName { get; set; }
         public bool ShowWindow { get; set; }
         public object DataContext { get; set; }
     }

@@ -1,7 +1,7 @@
 ﻿using CoreServices.Calibration;
 using CoreServices.Connectivity;
 using CoreServices.Common;
-using CoreServices.Headset;
+using CoreServices.Prediction;
 
 namespace ViewModels
 {
@@ -29,8 +29,8 @@ namespace ViewModels
             }
         }
 
-        private static SettingsService? _userSettingsService;
-        public static SettingsService UserSettingsService
+        private static UserSettingsService? _userSettingsService;
+        public static UserSettingsService UserSettingsService
         {
             get
             {
