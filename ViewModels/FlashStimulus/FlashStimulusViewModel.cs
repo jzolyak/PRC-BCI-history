@@ -1,5 +1,6 @@
 ﻿using CoreServices.Calibration;
 using CoreServices.Models;
+using CoreServices.Prediction;
 using CoreServices.Stimulus;
 using System;
 using System.Collections.Generic;
@@ -7,9 +8,10 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ViewModels.Calibration;
 using ViewModels.Help;
 
-namespace ViewModels.Calibration
+namespace ViewModels.FlashStimulus
 {
     public class FlashStimulusViewModel:ViewModelBase
     {
@@ -19,6 +21,8 @@ namespace ViewModels.Calibration
         private double _width;
         private ObservableCollection<ButtonElement> _buttonCollection;
         private CalibrationService _calibrationService;
+        private PredictionService _predictionService;
+
         private UIInstruction _uiInstruction;
         private object? _popupContentViewModel;
         private bool _showPopup;
@@ -42,6 +46,7 @@ namespace ViewModels.Calibration
         public FlashStimulusViewModel()
         {
             _calibrationService = ServiceLocator.CalibrationService;
+            _predictionService= ServiceLocator.PredictionService;
             _buttonCollection = new ObservableCollection<ButtonElement>();
             _calibrationService.RaiseScreenOverLayChange += _calibrationService_RaiseScreenOverLayChange;
             _calibrationService.RaiseUIRequestChange += _calibrationService_RaiseUIRequestChange;

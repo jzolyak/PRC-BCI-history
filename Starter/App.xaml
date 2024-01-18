@@ -4,9 +4,11 @@
              xmlns:local="clr-namespace:Starter"
              xmlns:vm="clr-namespace:ViewModels;assembly=ViewModels"
              xmlns:calibratevm="clr-namespace:ViewModels.Calibration;assembly=ViewModels"
+             xmlns:predictionvm="clr-namespace:ViewModels.Prediction;assembly=ViewModels"
              xmlns:connectivityvm="clr-namespace:ViewModels.Connectivity;assembly=ViewModels"             
              xmlns:connectivityView="clr-namespace:Starter.Connectivity"
              xmlns:calibrationView="clr-namespace:Starter.Calibration"
+             xmlns:predictionView="clr-namespace:Starter.Prediction"
              xmlns:UIHelpers="clr-namespace:Starter.UIHelpers"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
@@ -135,6 +137,14 @@
 
         <DataTemplate DataType="{x:Type calibratevm:CalibrationInstructionsViewModel}">
             <calibrationView:CalibrationInstructions DataContext="{Binding}" Height="Auto" Width="Auto"></calibrationView:CalibrationInstructions>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type predictionvm:PredictionViewModel}">
+            <predictionView:PredictionView DataContext="{Binding}" Height="Auto" Width="Auto"></predictionView:PredictionView>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type predictionvm:PredictionInstructionsViewModel}">
+            <predictionView:PredictionInstructionsView DataContext="{Binding}" Height="Auto" Width="Auto"></predictionView:PredictionInstructionsView>
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:MainMenuViewModel}">

@@ -47,7 +47,7 @@ namespace ViewModels
             _mainMenuViewModel.HeadsetConnectionStatusViewModel = _connectivityViewModel.HeadsetConnectionStatusViewModel;
             _calibrationViewModel = new CalibrationViewModel(ExitToMainMenu, ShoworHideMainWindow, ShoworHideChildWindow);
             _settingsViewModel = new SettingsViewModel(ExitToMainMenu, ShoworHideMainWindow);
-            _predictionViewModel = new PredictionViewModel(ExitToMainMenu, ShoworHideMainWindow);
+            _predictionViewModel = new PredictionViewModel(ExitToMainMenu, ShoworHideMainWindow, ShoworHideChildWindow);
             _validationViewModel = new ValidationViewModel(ExitToMainMenu, ShoworHideMainWindow);
             _userSettingsService = ServiceLocator.UserSettingsService;
             Title = _userSettingsService== null ? version : _userSettingsService.GetSettingsValue("Version");
@@ -66,7 +66,7 @@ namespace ViewModels
                 _connectivityViewModel.IsInTablet = IsInTablet; }
             else if (mode == Constants.Calibration) { CurrentViewModel = _calibrationViewModel; _calibrationViewModel.IsInTablet = IsInTablet; }
             else if (mode == Constants.Validation) { CurrentViewModel = _validationViewModel; }
-            else if (mode == Constants.Prediction) { CurrentViewModel = _validationViewModel; }
+            else if (mode == Constants.Prediction) { CurrentViewModel = _predictionViewModel; }
             else if (mode == Constants.Settings) { CurrentViewModel = _validationViewModel; }
         }
         private void Close()
