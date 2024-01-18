@@ -19,6 +19,11 @@ namespace CoreServices.Models
         public static readonly string Calibration = "Calibration";
         public static readonly string Validation = "Validation";
         public static readonly string Prediction = "Prediction";
+        public static readonly string ConnectivitySettings = "ConnectivitySettings";
+        public static readonly string CalibrationSettings = "CalibrationSettings";
+        public static readonly string ValidationSettings = "ValidationSettings";
+        public static readonly string PredictionSettings = "PredictionSettings";
+        public static readonly string MiscSettings = "MiscSettings";
         public static readonly string Help = "Help";
         public static readonly string Settings = "Settings";
 

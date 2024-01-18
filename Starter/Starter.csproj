@@ -2,11 +2,18 @@
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
-		<TargetFramework>net6.0-Windows</TargetFramework>
+		<TargetFramework>net6.0-windows</TargetFramework>
 		<Nullable>enable</Nullable>
 		<UseWPF>true</UseWPF>
 		<ApplicationIcon>Images\Eo_circle_red_letter-b.svg.ico</ApplicationIcon>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Validation\**" />
+	  <EmbeddedResource Remove="Validation\**" />
+	  <None Remove="Validation\**" />
+	  <Page Remove="Validation\**" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<None Remove="Images\headset.PNG" />
@@ -42,7 +49,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Folder Include="bin\Debug\net6.0-windows\Images\" />
 		<Folder Include="Validation\" />
 	</ItemGroup>
 

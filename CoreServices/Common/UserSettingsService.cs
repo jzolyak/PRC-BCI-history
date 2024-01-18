@@ -8,33 +8,30 @@ using System.Text;
 
 namespace CoreServices.Common
 {
-    public class UserSettingsService
+    public class SettingsService
     {
-        private ConcurrentDictionary<string, string> _userSettings;
+        protected ConcurrentDictionary<string, string> _userSettings;
         private string _settingsFileName;
-        private string _defaultSettingsFileName;
 
-        public UserSettingsService()
+        public SettingsService()
         {
             _userSettings = new ConcurrentDictionary<string, string>();
-            _defaultSettingsFileName = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\DefaultSettings.txt";
-            LoadSettings(_defaultSettingsFileName);
-            _settingsFileName = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\UserSettings.txt";
-            LoadSettings(_settingsFileName);
+            _settingsFileName = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "..\\..\\Settings\\UserSettings.txt";
+            LoadSettings();
         }
 
-        private void LoadSettings(string filename)
+        protected void LoadSettings()
         {
             try
             {
                 //Load settings from settings file
-                if (!File.Exists(filename))
+                if (!File.Exists(_settingsFileName))
                 {
                     Logger.Info(this, "Settings File does not exist");
                     return;
                 }
                 _userSettings.Clear();
-                using (StreamReader sr = File.OpenText(filename))
+                using (StreamReader sr = File.OpenText(_settingsFileName))
                 {
                     string s = "";
                     while ((s = sr.ReadLine()) != null)
@@ -49,7 +46,7 @@ namespace CoreServices.Common
             }
         }
 
-        private void ProcessSettings(string s)
+        protected void ProcessSettings(string s)
         {
             if(string.IsNullOrEmpty(s))
             {
@@ -58,15 +55,7 @@ namespace CoreServices.Common
             var keyValuePair = s.Split("=");
             if (keyValuePair.Length > 1)
             {
-                if (_userSettings.ContainsKey(keyValuePair[0]))
-                {
-                    var existingvalue = _userSettings[keyValuePair[0]];
-                    _userSettings.TryUpdate(keyValuePair[0], keyValuePair[1], existingvalue);
-                }
-                else
-                {
-                    _userSettings.TryAdd(keyValuePair[0], keyValuePair[1]);
-                }
+                _userSettings.TryAdd(keyValuePair[0], keyValuePair[1]);
             }
         }
 
@@ -87,11 +76,16 @@ namespace CoreServices.Common
 
         public string GetSettingsValue(string key)
         {
-            if (_userSettings.IsEmpty || !_userSettings.ContainsKey(key)) 
-            {
-                Logger.Error(this, "Cannot Find Setting " + key); return null; 
-            }
+            if (_userSettings.IsEmpty || !_userSettings.ContainsKey(key)) { Logger.Error(this, "Cannot Find Setting " + key); return null; }
             return _userSettings[key]; 
+        }
+
+        public Dictionary<String, String> GetSettings(string pattern)
+        {
+            if (_userSettings.IsEmpty) { Logger.Error(this, "Settings file is empty. Cannot Find Setting " + pattern); return null; }
+            var matchedsettings = _userSettings.Where(x => x.Key.StartsWith(pattern + ";")).ToList();
+            if (!matchedsettings.Any()) { Logger.Error(this, "Cannot Find Setting " + pattern); return null; }
+            return matchedsettings.ToDictionary(y => y.Key, y => y.Value);
         }
     }
 }
