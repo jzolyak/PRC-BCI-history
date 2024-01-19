@@ -94,7 +94,7 @@ namespace CoreServices.Common
             return _userSettings[key];
         }
 
-        public Dictionary<String, String> GetSettings(string pattern)
+        public Dictionary<string, string> GetSettings(string pattern)
         {
             if (_userSettings.IsEmpty) { Logger.Error(this, "Settings file is empty. Cannot Find Setting " + pattern); return null; }
             var matchedsettings = _userSettings.Where(x => x.Key.StartsWith(pattern + ";")).ToList();

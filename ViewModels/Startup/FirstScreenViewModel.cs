@@ -17,7 +17,7 @@ namespace ViewModels.Startup
 
         private Action _nextAction;
         private Action _closeAction;
-        private SettingsService _userSettingsService;
+        private UserSettingsService _userSettingsService;
         public ICommand CancelCmd { get;set; }
         public ICommand NextCmd { get;set; }    
 

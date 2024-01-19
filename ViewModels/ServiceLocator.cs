@@ -29,13 +29,13 @@ namespace ViewModels
             }
         }
 
-        private static SettingsService? _userSettingsService;
-        public static SettingsService UserSettingsService
+        private static UserSettingsService? _userSettingsService;
+        public static UserSettingsService UserSettingsService
         {
             get
             {
                 if (_userSettingsService == null)
-                    _userSettingsService = new SettingsService();
+                    _userSettingsService = new UserSettingsService();
                 return _userSettingsService;
             }
         }
