@@ -20,7 +20,7 @@ namespace ViewModels.Settings
         public ICommand ReturnCmd { get; set; }
 
         private Action<string> exitAction;
-        private SettingsService userSettingsService;
+        private UserSettingsService userSettingsService;
         public SettingsDetailViewModel(Action<string> exitAction)
         {
             SaveCmd = new RelayCommand(SaveSettings);

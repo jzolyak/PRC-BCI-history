@@ -15,7 +15,7 @@ namespace ViewModels.Startup
         public object CurrentViewModel { get { return _currentViewModel; } set { _currentViewModel = value; OnPropertyChanged(nameof(CurrentViewModel));  } }    
         private FirstScreenViewModel _firstScreenViewModel;
         private HeadsetStartupStatusViewModel _headsetStartupStatusViewModel;
-        private SettingsService _userSettingsService;
+        private UserSettingsService _userSettingsService;
         public StartupViewModel(Action exitAction, Action<bool> showorHideMainWindow,Action closeAction):base(exitAction, showorHideMainWindow)
         {
             _firstScreenViewModel = new FirstScreenViewModel(ConnectToHeadset, closeAction);
