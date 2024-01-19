@@ -35,7 +35,7 @@ namespace ViewModels
             get
             {
                 if (_userSettingsService == null)
-                    _userSettingsService = new SettingsService();
+                    _userSettingsService = new UserSettingsService();
                 return _userSettingsService;
             }
         }

@@ -17,7 +17,7 @@ namespace ViewModels.Calibration
     public class CalibrationViewModel : ExitToMainMenuViewModel
     {
         private CalibrationService _calibrationService;
-        private SettingsService _userSettingsService;
+        private UserSettingsService _userSettingsService;
         private IEnumerable<PredictionFileMetadata> _predictionFileMetadataColl;
         private ObservableCollection<PredictionFileMetadata> _fileNamesCollection;
         private bool _isCalibrationInProgress;
