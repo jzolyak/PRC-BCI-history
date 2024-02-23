@@ -2,6 +2,7 @@
 using CoreServices.Connectivity;
 using CoreServices.Common;
 using CoreServices.Prediction;
+using CoreServices.Headset;
 
 namespace ViewModels
 {
@@ -29,6 +30,17 @@ namespace ViewModels
             }
         }
 
+        private static PredictionService? _predictionService;
+        public static PredictionService PredictionService
+        {
+            get
+            {
+                if (_predictionService == null)
+                    _predictionService = new PredictionService();
+                return _predictionService;
+            }
+        }
+        
         private static UserSettingsService? _userSettingsService;
         public static UserSettingsService UserSettingsService
         {

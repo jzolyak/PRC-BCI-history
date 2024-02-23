@@ -51,7 +51,7 @@ namespace ViewModels
             _calibrationViewModel = new CalibrationViewModel(ExitToMainMenu, ShoworHideMainWindow, ShoworHideChildWindow);
             _settingsViewModel = new SettingsViewModel(Open, ExitToMainMenu, ShoworHideMainWindow);
             _settingsDetailViewModel = new SettingsDetailViewModel(Open);
-            _predictionViewModel = new PredictionViewModel(ExitToMainMenu, ShoworHideMainWindow);
+            _predictionViewModel = new PredictionViewModel(ExitToMainMenu, ShoworHideMainWindow, ShoworHideChildWindow);
             _validationViewModel = new ValidationViewModel(ExitToMainMenu, ShoworHideMainWindow);
             CurrentViewModel = _mainMenuViewModel;
             _closeAction = closeAction;

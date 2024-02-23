@@ -33,7 +33,7 @@ namespace CoreServices.Common
                     Logger.Info(this, "Settings File does not exist");
                     return;
                 }
-                _userSettings.Clear();
+                
                 using (StreamReader sr = File.OpenText(filename))
                 {
                     string s = "";
