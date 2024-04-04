@@ -51,7 +51,7 @@ namespace CoreServices.Common
 
         private void ProcessSettings(string s)
         {
-            if(string.IsNullOrEmpty(s))
+            if (string.IsNullOrEmpty(s))
             {
                 return;
             }
@@ -72,26 +72,34 @@ namespace CoreServices.Common
 
         public void SaveUserSettings(string key, string value)
         {
-            if(_userSettings.ContainsKey(key))
+            if (_userSettings.ContainsKey(key))
             {
                 _userSettings[key] = value;
-                var allLines = _userSettings.Select(x => x.Key + "="+x.Value);
+                var allLines = _userSettings.Select(x => x.Key + "=" + x.Value);
                 File.WriteAllLines(_settingsFileName, allLines);
             }
             else
             {
                 _userSettings.TryAdd(key, value);
-                File.AppendAllLines(_settingsFileName,new string[] { (key + "=" + value) });
+                File.AppendAllLines(_settingsFileName, new string[] { (key + "=" + value) });
             }
         }
 
         public string GetSettingsValue(string key)
         {
-            if (_userSettings.IsEmpty || !_userSettings.ContainsKey(key)) 
+            if (_userSettings.IsEmpty || !_userSettings.ContainsKey(key))
             {
-                Logger.Error(this, "Cannot Find Setting " + key); return null; 
+                Logger.Error(this, "Cannot Find Setting " + key); return null;
             }
-            return _userSettings[key]; 
+            return _userSettings[key];
+        }
+
+        public Dictionary<string, string> GetSettings(string pattern)
+        {
+            if (_userSettings.IsEmpty) { Logger.Error(this, "Settings file is empty. Cannot Find Setting " + pattern); return null; }
+            var matchedsettings = _userSettings.Where(x => x.Key.StartsWith(pattern + ";")).ToList();
+            if (!matchedsettings.Any()) { Logger.Error(this, "Cannot Find Setting " + pattern); return null; }
+            return matchedsettings.ToDictionary(y => y.Key, y => y.Value);
         }
     }
 }

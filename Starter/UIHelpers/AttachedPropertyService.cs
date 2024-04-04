@@ -1,11 +1,14 @@
 ﻿using CoreServices;
 using Starter.Calibration;
+using Starter.ValidationRules;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
 using ViewModels.Help;
 
 namespace Starter.UIHelpers
@@ -15,6 +18,32 @@ namespace Starter.UIHelpers
         public static readonly DependencyProperty ChildWindowPrefereceProperty = DependencyProperty.RegisterAttached("ChildWindowPreferece", typeof(ChildWindowSettings), typeof(AttachedPropertyService), new FrameworkPropertyMetadata(OnChildWindowPreferenceChange));
         public static readonly DependencyProperty WindowSizeProperty = DependencyProperty.RegisterAttached("WindowSize", typeof(WindowSizeProperties), typeof(AttachedPropertyService), new FrameworkPropertyMetadata(OnChildWindowSizeChange));
         public static readonly DependencyProperty WindowTopMostProperty = DependencyProperty.RegisterAttached("WindowTopMost", typeof(bool), typeof(AttachedPropertyService), new FrameworkPropertyMetadata(OnWindowTopMostChange));
+        public static readonly DependencyProperty ValidationsProperty = DependencyProperty.RegisterAttached("Validations", typeof(List<Rule>), typeof(AttachedPropertyService), new FrameworkPropertyMetadata(OnValidationsChange));
+
+        private static void OnValidationsChange(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            try
+            {
+                if (e.NewValue == null) return;
+                if (d == null || !(d is TextBox)) return;
+                var textBox = (TextBox)d;
+                var binding = BindingOperations.GetBinding(textBox, TextBox.TextProperty);
+                binding.ValidationRules.Clear();
+                var validations = (List<Rule>)e.NewValue;
+                if (validations == null ||  validations.Count == 0) return;
+                foreach(var validation in validations)
+                {
+                    if (validation == null || string.IsNullOrEmpty(validation.RegExString)) continue;
+
+                    binding.ValidationRules.Add(new RegExValidationRule(validation.RegExString, validation.ErrorMsg));
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("AttachedPropertyService", ex.ToString());
+            }
+
+        }
 
         private static void OnWindowTopMostChange(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {

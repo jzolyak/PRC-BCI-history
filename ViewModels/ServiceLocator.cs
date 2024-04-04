@@ -29,17 +29,6 @@ namespace ViewModels
             }
         }
 
-        private static PredictionService? _predictionService;
-        public static PredictionService PredictionService
-        {
-            get
-            {
-                if (_predictionService == null)
-                    _predictionService = new PredictionService();
-                return _predictionService;
-            }
-        }
-
         private static UserSettingsService? _userSettingsService;
         public static UserSettingsService UserSettingsService
         {
@@ -50,5 +39,17 @@ namespace ViewModels
                 return _userSettingsService;
             }
         }
+
+        private static HeadsetService? _headsetService;
+        public static HeadsetService HeadsetService
+        {
+            get
+            {
+                if (_headsetService == null)
+                    _headsetService = new HeadsetService();
+                return _headsetService;
+            }
+        }
+
     }
 }
