@@ -8,6 +8,7 @@ using ViewModels.Connectivity;
 using ViewModels.Help;
 using ViewModels.Prediction;
 using ViewModels.Settings;
+using ViewModels.Startup;
 using ViewModels.Validation;
 
 namespace ViewModels
@@ -31,6 +32,8 @@ namespace ViewModels
         private ValidationViewModel _validationViewModel;
         private PredictionViewModel _predictionViewModel;
         private SettingsViewModel _settingsViewModel;
+        private SettingsDetailViewModel _settingsDetailViewModel;
+        private StartupViewModel _startupViewModel;
         private Action _closeAction;
         private ChildWindowSettings? _childWindowPref;
         private UserSettingsService _userSettingsService;
@@ -43,15 +46,13 @@ namespace ViewModels
         {
             
             _mainMenuViewModel = new MainMenuViewModel(Open,Close);
-            _connectivityViewModel = new ConnectivityViewModel(ExitToMainMenu, ShoworHideMainWindow);           
+            _connectivityViewModel = new ConnectivityViewModel(ExitToMainMenu, ShoworHideMainWindow);
             _mainMenuViewModel.HeadsetConnectionStatusViewModel = _connectivityViewModel.HeadsetConnectionStatusViewModel;
             _calibrationViewModel = new CalibrationViewModel(ExitToMainMenu, ShoworHideMainWindow, ShoworHideChildWindow);
-            _settingsViewModel = new SettingsViewModel(ExitToMainMenu, ShoworHideMainWindow);
-            _predictionViewModel = new PredictionViewModel(ExitToMainMenu, ShoworHideMainWindow, ShoworHideChildWindow);
+            _settingsViewModel = new SettingsViewModel(Open, ExitToMainMenu, ShoworHideMainWindow);
+            _settingsDetailViewModel = new SettingsDetailViewModel(Open);
+            _predictionViewModel = new PredictionViewModel(ExitToMainMenu, ShoworHideMainWindow);
             _validationViewModel = new ValidationViewModel(ExitToMainMenu, ShoworHideMainWindow);
-            _userSettingsService = ServiceLocator.UserSettingsService;
-            Title = _userSettingsService== null ? version : _userSettingsService.GetSettingsValue("Version");
-            if (string.IsNullOrEmpty(Title)) Title = version;
             CurrentViewModel = _mainMenuViewModel;
             _closeAction = closeAction;
             IsVisible = true;
@@ -67,7 +68,13 @@ namespace ViewModels
             else if (mode == Constants.Calibration) { CurrentViewModel = _calibrationViewModel; _calibrationViewModel.IsInTablet = IsInTablet; }
             else if (mode == Constants.Validation) { CurrentViewModel = _validationViewModel; }
             else if (mode == Constants.Prediction) { CurrentViewModel = _predictionViewModel; }
-            else if (mode == Constants.Settings) { CurrentViewModel = _validationViewModel; }
+            else if (mode == Constants.Settings) { CurrentViewModel = _settingsViewModel; }
+            else if (mode == Constants.ConnectivitySettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.ConnectivitySettings); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.CalibrationSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.CalibrationSettings); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.PredictionSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.PredictionSettings); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.ValidationSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.ValidationSettings); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.ConnectivitySettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.ConnectivitySettings); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.MiscSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.MiscSettings); CurrentViewModel = _settingsDetailViewModel; }
         }
         private void Close()
         {
