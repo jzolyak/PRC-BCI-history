@@ -97,7 +97,7 @@ namespace CoreServices.Common
         public Dictionary<string, string> GetSettings(string pattern)
         {
             if (_userSettings.IsEmpty) { Logger.Error(this, "Settings file is empty. Cannot Find Setting " + pattern); return null; }
-            var matchedsettings = _userSettings.Where(x => x.Key.StartsWith(pattern + ";")).ToList();
+            var matchedsettings = _userSettings.Where(x => x.Key.ToLower().StartsWith(pattern.ToLower() + ";")).ToList();
             if (!matchedsettings.Any()) { Logger.Error(this, "Cannot Find Setting " + pattern); return null; }
             return matchedsettings.ToDictionary(y => y.Key, y => y.Value);
         }

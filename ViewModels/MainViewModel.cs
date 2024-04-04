@@ -69,12 +69,11 @@ namespace ViewModels
             else if (mode == Constants.Validation) { CurrentViewModel = _validationViewModel; }
             else if (mode == Constants.Prediction) { CurrentViewModel = _predictionViewModel; }
             else if (mode == Constants.Settings) { CurrentViewModel = _settingsViewModel; }
-            else if (mode == Constants.ConnectivitySettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.ConnectivitySettings); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.CalibrationSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.CalibrationSettings); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.PredictionSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.PredictionSettings); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.ValidationSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.ValidationSettings); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.ConnectivitySettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.ConnectivitySettings); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.MiscSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.MiscSettings); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.ConnectivitySettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.Connectivity); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.CalibrationSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.Calibration); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.PredictionSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.Prediction); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.ValidationSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.Validation); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.MiscSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.Misc); CurrentViewModel = _settingsDetailViewModel; }
         }
         private void Close()
         {

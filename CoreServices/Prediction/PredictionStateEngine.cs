@@ -114,7 +114,8 @@ namespace CoreServices.Prediction
             int[] messageBuffer = new int[MAX_MSG_LENGTH];
 
             modeState = PredictionStates.Read_Command;
-
+            UserSettingsService userSettingsService = new UserSettingsService();
+            UI_delay_msec = Convert.ToInt32(userSettingsService.GetSettings("UI_delay_msec"));
 
             /*   ***************************************
             **   ***  Instantiate container objects  ***   

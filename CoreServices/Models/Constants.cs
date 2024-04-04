@@ -24,6 +24,7 @@ namespace CoreServices.Models
         public static readonly string ValidationSettings = "ValidationSettings";
         public static readonly string PredictionSettings = "PredictionSettings";
         public static readonly string MiscSettings = "MiscSettings";
+        public static readonly string Misc = "Misc";
         public static readonly string Help = "Help";
         public static readonly string Settings = "Settings";
 
