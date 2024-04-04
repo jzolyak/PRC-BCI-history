@@ -31,6 +31,7 @@ namespace ViewModels.Settings
 
         public void UpdateSettingsList(string parentName)
         {
+            SettingsList = null;
             this.parentName = parentName;
             var settings = userSettingsService.GetSettings(parentName);
             if (settings == null) return;

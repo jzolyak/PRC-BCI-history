@@ -18,10 +18,10 @@
                     <Grid Margin="5" HorizontalAlignment="Center" VerticalAlignment="Top">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="200" />
-                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="200" />
                         </Grid.ColumnDefinitions>
                         <Label Grid.Column="0" Content="{Binding Header}" Style="{StaticResource MediumLabelStyle}"/>
-                        <TextBox Grid.Column="1" Text="{Binding Content}" Style="{StaticResource TextBoxInError}" />
+                        <TextBox Grid.Column="1" Text="{Binding Content}" Style="{StaticResource TextBoxInError}" Height="20" />
                     </Grid>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
