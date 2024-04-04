@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ViewModels", "ViewModels\Vi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ViewModelsTests", "ViewModelsTests\ViewModelsTests.csproj", "{926B03DC-7156-45D1-A387-E953D7CA0BC3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PredictionTestDriver", "PredictionTestDriver\PredictionTestDriver.csproj", "{EB33F6A3-BE8A-48B8-8729-14B7E707B038}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{926B03DC-7156-45D1-A387-E953D7CA0BC3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{926B03DC-7156-45D1-A387-E953D7CA0BC3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{926B03DC-7156-45D1-A387-E953D7CA0BC3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB33F6A3-BE8A-48B8-8729-14B7E707B038}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB33F6A3-BE8A-48B8-8729-14B7E707B038}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB33F6A3-BE8A-48B8-8729-14B7E707B038}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB33F6A3-BE8A-48B8-8729-14B7E707B038}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
