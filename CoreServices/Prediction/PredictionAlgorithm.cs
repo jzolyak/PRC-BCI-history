@@ -7,7 +7,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
-using static CoreServices.Prediction.PredictionAlgorithm;
 
 namespace CoreServices.Prediction
 {
@@ -176,7 +175,7 @@ namespace CoreServices.Prediction
 
         public IntersectPoint VerifyIntersectionRules(StimGroupEntry[] stimulusGroupingTable, TopScoreEntry[] topAccumScores)
         {
-            // Default constructor is set to no interesting point
+            // Default constructor is set to no intersecting point
             IntersectPoint intersectingPoint = new IntersectPoint();
 
             const int MATRIX1_ROW_COL_SUM = 1;
@@ -319,8 +318,7 @@ namespace CoreServices.Prediction
 
         /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-        public PredictionResult KeyIdPredictionAlgorithm(StimGroupEntry[] stimulusGroupingTable, 
-                                                        TopScoreEntry[] topAccumulatedScores,
+        public PredictionResult KeyIdPredictionAlgorithm(TopScoreEntry[] topAccumulatedScores,
                                                         double presetScoreThreshold)
         {
             // OVERVIEW:
@@ -358,11 +356,11 @@ namespace CoreServices.Prediction
             candidateKeyID = topAccumulatedScores[0].indexValue;
             candidateScore = topAccumulatedScores[0].accumScore;
 
-            // The original BCI prediction method did not have a confidence threshold test.
+            // The original BCI prediction method did not have a confidence threshold test or kept track of win counts.
             // To disable this test, simply assign a preset value of 0.0 to this threshold so it always passes test.
             if (candidateScore > presetScoreThreshold)
             {
-                // Update predicted win counts for candidateKeyID keyID.
+                // Update predicted win counts for candidateKeyID.
                 predictedtWinCount[candidateKeyID] += 1;
 
                 // Report top 2 pair of (keyID + accum scores) to watch how it changes over time.

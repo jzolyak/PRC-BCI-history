@@ -10,40 +10,14 @@ using CoreServices.Stimulus;
 using CoreServices.SensorData;
 using static CoreServices.Prediction.PredictionAlgorithm;
 
-
 namespace CoreServices.Prediction
 {
 
     public class PredictionControl
     {
-        // Define enumerated types used in Prediction preset configuration.
-        public enum PredictionMethod { KeyID = 0, StimulusCode = 1 };
-        public enum StoppingMethod { FixedNumberOfSequences = 0, DynamicStopping = 1 };
-
-        // Create temporary preset values until we can set them at BCI start up
-        public const int WIN_COUNT_FOR_SELECTION = 3;   // Min number of times a keyID must be detected as
-                                                        // winner of flash sequence before make final selection
-
-        public const int PRESET_SEQUENCE_LIMIT = 15;    // Number of times the flash sequence data is collect
-                                                        // before stopping and making a keyID selection
-
-        public const double PREDICTION_SCORE_THRESHOLD = 5000.0;    // Accumulated score must be greater than
-                                                                    // this level to be considered real signal
-                                                                    // and not just noise.
-
-
 
         // Temporay variables until I find proper location to retrieve them from.
         public int numSensorChannels = SensorConstants.NUM_CHANNELS;
-
-        public int weightCoefPerChannel = 240;  // Not sure how to extract from coef data
-
-        public int maxNumFlashSequences = 15;
-
-        public int numStimulusGroups =  0;      // Get value from sensor data packet header
-
-        public double presetScoreThreshold;
-
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
@@ -57,9 +31,11 @@ namespace CoreServices.Prediction
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-        public async Task PredictionControlAsync(CancellationToken cts, ISourceBlock<double[]> packetDataBufferBlock,
-                                         ITargetBlock<int[]> messageBufferBlock, ITargetBlock<double[]> logDataBufferBlock)
+        public async Task PredictionControlAsync(CancellationToken cts, PredictionPresets predictionConfiguration,
+                               ISourceBlock<double[]> weightCoefBufferBlock, ISourceBlock<double[]> packetDataBufferBlock,
+                               ISourceBlock<int[]> commandMsgBufferBlock, ITargetBlock<int[]> statusMsgBufferBlock)
         {
+
             // NOTE 1: For the first prototype, weightCoef[,] is an array of 7*240 double values that doesn't
             //         change during the course of Prediction. Not sure of the best way to pass this array
             //         to this task. The dimensions should be obtainable from the size of the array itself.
@@ -74,7 +50,8 @@ namespace CoreServices.Prediction
             // NOTE 4: Still need to define structure of preset parameters and pass it in to this task
             //         as the start of execution
 
-            // All packet header and sensor sample data are managed by instance of this class.
+
+            // All packet header and sensor sample data are managed by instance of sensorData class.
             PacketizedSensorData sensorData = new PacketizedSensorData();
             PacketDataFields packetRecord = new PacketDataFields();
 
@@ -88,36 +65,57 @@ namespace CoreServices.Prediction
 
             PredictionAlgorithm.WinCountEntry highestWinCount;
 
-            PredictionAlgorithm.PredictionResult predictionResult;
-
-            // Temporarily assign preset parameters their starting value here...
-            PredictionMethod predictionMethod = PredictionMethod.StimulusCode;
-
-            StoppingMethod stoppingMethod = StoppingMethod.FixedNumberOfSequences;
-
-            double presetScoreThreshold = PREDICTION_SCORE_THRESHOLD;
+            PredictionAlgorithm.PredictionResult predictionResult = new PredictionResult(); ;
 
 
+            /* **************** */
+ 
+            // Configuration predition algorithm execution based on preset parameter values. 
+            PredictionMethod predictionMethod = predictionConfiguration.predictionMethod;
 
-        bool stimulusEnded = false;
+            StoppingMethod stoppingMethod = predictionConfiguration.stoppingMethod;
+
+            int winCountForSelection = predictionConfiguration.winCountForSelection;
+            int fixedSequenceLimit = predictionConfiguration.fixedSequenceLimit;
+
+            double predictionScoreThreshold = predictionConfiguration.predictScoreThreshold;
+
+            /* **************** */
+
+            bool stimulusEnded = false;
             bool finishedParsing = false;
             bool performPrediction = false;
-            bool intersectionTestPassed = false;
-            bool thresholdTestPassed = false;
             bool reportPredictionStatus = false;
             bool reportErrorStatus = false;
             bool logTestData = false;
 
+            /* **************** */
+
+            const int MAX_MSG_LENGTH = 8;           // Max message length sent back to main thread
+
+            // Message ID numbers
+            const int CURRENT_FLASH_SEQ = 20;       // Current packet header info (for debug only)
+            const int PREDICT_SELECTION = 21;       // Simplified prediction report info (for debug only)
+            //const int PREDICTION_REPORT = 22;       // Detailed predict status at end of each flash sequence
+
+            int statusMessageID = 0;
+            int messageLength = 0;
+            int stimulusCode = 0;
+            int phaseInSeq = 0;
+
+            int[] statusMessageBuffer = new int[MAX_MSG_LENGTH];
+
+            /* **************** */
+
             int rawDataReadIndex;
             int rawDataBufferLen;
             int eventStartHeaderIndex;
-
-            int stimulusCode;
-            int windowLength;
+            int windowLength = 0;
 
             int flashIntervalCount = 0;     // Increment once for each flash ON/OFF interval
             int flashSequenceCount = 0;     // Increment after one complete cycle of stimulus inverals has been flashed
 
+            int numStimulusGroups = 0;      // Get value from sensor data packet header
 
             double[] meanScores;            // size based on number of sensor channels
             double[] stdDevScores;          // size based on number of sensor channels
@@ -172,11 +170,19 @@ namespace CoreServices.Prediction
 
                     case EventType.StateChange:
 
+                        eventStartHeaderIndex = eventAction.eventStartHeaderIndex;
+
+                        // Temporarily collect debug info to report to main thread ...
+                        reportPredictionStatus = true;
+                        phaseInSeq = sensorData.packetHeaderTable[eventStartHeaderIndex].phaseInSeq;
+                        stimulusCode = sensorData.packetHeaderTable[eventStartHeaderIndex].stimulusCode;
+                        statusMessageID = CURRENT_FLASH_SEQ;
+                        messageLength = 4;
+
                         // In future I may want do more when transition between each stimulus phase.
                         // For now just focus on transition from Phase 1 to Phase 2.
                         if (eventAction.actionType == ActionType.ComputeStats)
                         {
-                            eventStartHeaderIndex = eventAction.eventStartHeaderIndex;
                             windowLength = eventAction.windowLength;
 
                             meanScores = predictionScoring.ComputeMean(sensorData, eventStartHeaderIndex, windowLength);
@@ -184,7 +190,7 @@ namespace CoreServices.Prediction
 
                             numStimulusGroups = sensorData.packetHeaderTable[eventStartHeaderIndex].numStimulusGroups;
 
-                            predictionScoring.AllocateScoringTables(numSensorChannels, numStimulusGroups, maxNumFlashSequences);
+                            predictionScoring.AllocateScoringTables(numSensorChannels, numStimulusGroups, fixedSequenceLimit);
 
                             sensorData.CreateStimulusGroupingTable(numStimulusGroups);
                         }
@@ -202,7 +208,12 @@ namespace CoreServices.Prediction
                         eventStartHeaderIndex = eventAction.eventStartHeaderIndex;
                         windowLength = eventAction.windowLength;
 
+                        // Temporarily collect debug info to report to main thread ...
+                        reportPredictionStatus = true;
+                        phaseInSeq = sensorData.packetHeaderTable[eventStartHeaderIndex].phaseInSeq;
                         stimulusCode = sensorData.packetHeaderTable[eventStartHeaderIndex].stimulusCode;
+                        statusMessageID = CURRENT_FLASH_SEQ;
+                        messageLength = 4;
 
                         // Compute weighted score for single stimulus interval over window length for each sensor
                         flashIntervalScores = predictionScoring.ComputeWeightedSensorScores(sensorData, eventStartHeaderIndex, windowLength);
@@ -252,7 +263,8 @@ namespace CoreServices.Prediction
                         }
                         reportErrorStatus = true;
                         break;
-                }
+
+                }  // switch (eventAction.eventType)
 
                 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
@@ -270,7 +282,7 @@ namespace CoreServices.Prediction
                     // Check for user looking away, or frequent inattentiveness (i.e. asleep) here...
 
                     /* ****************************************************
-                    // Skip this until error checking is finished...
+                    // Skip this logic until error checking is finished...
 
                     if (sensorDataAccepted == true)
                     {
@@ -278,7 +290,7 @@ namespace CoreServices.Prediction
                     }
                     else
                     {
-                        // Report top weighted sensor scores without making a prediction.
+                        // Skip making prediction altogether using data from this flash sequence
                     }
                     ***************************************************** */
 
@@ -304,7 +316,7 @@ namespace CoreServices.Prediction
 
                         predictionResult = 
                             predictionAlgorithm.StimCodePredictionAlgorithm(sensorData.stimulusGroupingTable, 
-                            topAccumulatedScores, presetScoreThreshold);
+                            topAccumulatedScores, predictionScoreThreshold);
 
                         // Fill in remaining fields of predictionResults? flashSequenceCount? ...
                     }
@@ -332,8 +344,7 @@ namespace CoreServices.Prediction
                         // Prepare message with top 6 pairings of keyID values and accumulated scores...
 
                         predictionResult =
-                            predictionAlgorithm.KeyIdPredictionAlgorithm(sensorData.stimulusGroupingTable, 
-                            topAccumulatedScores, presetScoreThreshold);
+                            predictionAlgorithm.KeyIdPredictionAlgorithm(topAccumulatedScores, predictionScoreThreshold);
 
                         // Fill in remaining fields of predictionResults? flashSequenceCount? ...
                     }
@@ -346,15 +357,15 @@ namespace CoreServices.Prediction
                     // results and make a keyboard selection...
 
                     // Report the target keyID the user is watching extracted from Calibration or Validation raw data.
-                    // The attended target is not known in advance (keyID = 0) during Prediction.
+                    // The attended target is not known in advance (keyID = 0 in packet header) during Prediction.
 
                     predictionResult.attendedKeyID = 0;     // Need to fix this later for prediction accuracy reporting...
 
                     if (stoppingMethod == StoppingMethod.FixedNumberOfSequences)
                     {
-                        // Once the preset number of flash sequence data has been collected, which ever non-zero value
+                        // Once the preset number of flash sequence data has been collected, whichever non-zero value
                         // keyID is specified as the selectedKeyID, it is the keyID clicked in the state engine.
-                        if (flashSequenceCount == PRESET_SEQUENCE_LIMIT)
+                        if (flashSequenceCount == fixedSequenceLimit)
                         {
                             predictionResult.selectedKeyID = predictionResult.predictedKeyID;
                         }
@@ -374,7 +385,7 @@ namespace CoreServices.Prediction
                         // track of the number of times each keyID has met all the detection requirements,
                         // and once the number of wins reaches a preset level count, prediction is stopped
                         // and that key is selected.
-                        if (predictionResult.predictWinCount >= WIN_COUNT_FOR_SELECTION)
+                        if (predictionResult.predictWinCount >= winCountForSelection)
                         {
                             predictionResult.selectedKeyID = predictionResult.predictedKeyID;
                         }
@@ -409,7 +420,27 @@ namespace CoreServices.Prediction
 
                 if (reportPredictionStatus == true)
                 {
+                    reportPredictionStatus = false;
+
                     // Send prediction status messages back to prediction state engine...
+                    // Until I figure out a better way to do this, put potential status messages 
+                    // here and uncomment the one that I want to use for testing.
+
+                    /* 
+                    statusMessageBuffer[0] = PREDICT_SELECTION;     // Message ID
+                    statusMessageBuffer[1] = 5;                     // Message length
+                    statusMessageBuffer[2] = predictionResult.predictedKeyID;
+                    statusMessageBuffer[3] = predictionResult.predictWinCount;
+                    statusMessageBuffer[4] = predictionResult.selectedKeyID;
+                    */
+
+                    statusMessageBuffer[0] = CURRENT_FLASH_SEQ;     // Message ID
+                    statusMessageBuffer[1] = messageLength;         // Message length
+                    statusMessageBuffer[2] = phaseInSeq;
+                    statusMessageBuffer[3] = stimulusCode;
+
+                    // Send prediction status message back to main thread
+                    statusMsgBufferBlock.Post(statusMessageBuffer);
                 }
 
                 if (reportErrorStatus == true)
