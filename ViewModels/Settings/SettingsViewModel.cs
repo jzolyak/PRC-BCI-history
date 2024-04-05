@@ -1,13 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Windows.Input;
 
 namespace ViewModels.Settings
 {
-    internal class SettingsViewModel : ExitToMainMenuViewModel
+    public class SettingsViewModel : ExitToMainMenuViewModel
     {
-        public SettingsViewModel(Action exitAction,Action<bool> showorHideMainWindow) : base(exitAction, showorHideMainWindow)
+
+        private Action<string> _openCommandAction;
+        public ICommand OpenCmd { get; set; }
+
+
+        public SettingsViewModel(Action<string> openCommandAction,Action exitAction,Action<bool> showorHideMainWindow) : base(exitAction, showorHideMainWindow)
         {
+            _openCommandAction = openCommandAction;
+            OpenCmd = new RelayCommand(Open);
+        }
+
+        private void Open(object obj)
+        {
+            if (obj == null || string.IsNullOrEmpty(obj.ToString()) || _openCommandAction == null) return;
+            _openCommandAction(obj.ToString());
         }
     }
 }

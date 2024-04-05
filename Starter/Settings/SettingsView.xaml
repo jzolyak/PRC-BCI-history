@@ -1,0 +1,29 @@
+﻿<UserControl x:Class="Starter.Settings.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Starter.Settings"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="80"></RowDefinition>
+            <RowDefinition Height="80"></RowDefinition>
+            <RowDefinition Height="80"></RowDefinition>
+            <RowDefinition Height="80"></RowDefinition>
+            <RowDefinition Height="80"></RowDefinition>
+            <RowDefinition Height="80"></RowDefinition>
+            <RowDefinition Height="80"></RowDefinition>
+        </Grid.RowDefinitions>
+        <Label Grid.Row="0" Style="{StaticResource HeaderLabelStyle}" HorizontalContentAlignment="Center" HorizontalAlignment="Center" Content="Settings"></Label>
+        <Button Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="ConnectivitySettings" Content="Connectivity" Style="{StaticResource ButtonStyle}" FontSize="20"></Button>
+        <Button Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="CalibrationSettings"  Content="Calibration" Style="{StaticResource ButtonStyle}" FontSize="20"></Button>
+        <Button Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="ValidationSettings" Content="Validation" Style="{StaticResource ButtonStyle}" FontSize="20"></Button>
+        <Button Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="PredictionSettings" Content="Prediction" Style="{StaticResource ButtonStyle}" FontSize="20"></Button>
+        <Button Grid.Row="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="MiscSettings" Content="Misc" Style="{StaticResource ButtonStyle}" FontSize="20"></Button>
+        <StackPanel Grid.Row="6" HorizontalAlignment="Right" VerticalAlignment="Stretch" Orientation="Horizontal" Margin="10">
+            <Button HorizontalAlignment="Right" VerticalAlignment="Stretch" Width="150" Margin="8" Command="{Binding ExitCommand}" Content="Cancel" Style="{StaticResource ButtonStyle}" FontSize="20"></Button>
+        </StackPanel>
+    </Grid>
+</UserControl>
