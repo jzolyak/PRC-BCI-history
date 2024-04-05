@@ -134,6 +134,11 @@ namespace CoreServices.Prediction
 
             List<FlashTableEntry> flashSequenceTable = new List<FlashTableEntry>();
 
+            // Temporarily use the constructor to assign default value for each preset until
+            // we can fetch the real preset configuration values from a stored file.
+
+            PredictionPresets predictionConfiguration = new PredictionPresets();
+
 
             /*   *****************************
             **   ***  Instantiate classes  ***   
@@ -521,12 +526,19 @@ namespace CoreServices.Prediction
 
                             CancellationTokenSource tokenSource = new CancellationTokenSource();
 
+                            // Create instances of BufferBlocks to pass data between pipelined tasks.
                             var messageBufferBlock = new BufferBlock<int[]>();
-                            var dataBufferBlock = new BufferBlock<double[]>();
-                            var filterBufferBlock = new BufferBlock<double[]>();
+                            var dataBufferBlock    = new BufferBlock<double[]>();
+                            var filterBufferBlock  = new BufferBlock<double[]>();
+                            var weightCoefBufferBlock = new BufferBlock<double[]>(); 
+                            //var packetDataBufferBlock = new BufferBlock<double[]>();
+                            var commandMsgBufferBlock = new BufferBlock<int[]>();
+                            var statusMsgBufferBlock  = new BufferBlock<int[]>();
 
+                            // Create instances of classed that comprise the processing pipeline tasks
                             FlashTiming flashTiming = new FlashTiming();
                             SensorFiltering sensorFiltering = new SensorFiltering();
+                            PredictionControl predictionControl = new PredictionControl();
                             RecordBinaryData recordBinary = new RecordBinaryData();
 
                             if (calibrationFileMetadata ==null)
@@ -543,11 +555,16 @@ namespace CoreServices.Prediction
                             }
                             // Start separate tasks that fetch sensor samples from headset while flashing keys on display screen,
                             // filtering the data for each sensor channel, and recording the filtered sensor data.
-                            Task t1 = Task.Run(() => flashTiming.FlashDataAsync(headset, tokenSource.Token, flashSequenceTable, messageBufferBlock, dataBufferBlock));
+                            Task t1 = Task.Run(() => flashTiming.FlashDataAsync(headset, tokenSource.Token, flashSequenceTable, 
+                                                        messageBufferBlock, dataBufferBlock));
 
                             Task t2 = Task.Run(() => sensorFiltering.FilterDataAsync(tokenSource.Token, dataBufferBlock, filterBufferBlock));
 
-                            Task t3 = Task.Run(() => recordBinary.RecordDataAsync(tokenSource.Token, filterBufferBlock, binaryWriter));
+                            //Task t3 = Task.Run(() => recordBinary.RecordDataAsync(tokenSource.Token, filterBufferBlock, binaryWriter));
+
+                            Task t4 = Task.Run(() => predictionControl.PredictionControlAsync(tokenSource.Token, predictionConfiguration,
+                                                        weightCoefBufferBlock, filterBufferBlock, commandMsgBufferBlock, statusMsgBufferBlock));
+
 
                             while (exitFlag == false)
                             {
