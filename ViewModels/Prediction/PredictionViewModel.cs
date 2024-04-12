@@ -127,7 +127,7 @@ namespace ViewModels.Prediction
             Opacity = 1;
             PopupContentViewModel = null;
             ShowPopup = false;
-            if (_showorHideMainWindow != null) _showorHideMainWindow(true);
+           // if (_showorHideMainWindow != null) _showorHideMainWindow(true);
         }
 
 
@@ -151,14 +151,14 @@ namespace ViewModels.Prediction
 
         private void ShowPredictionInstructions()
         {
-            if (_showorHideMainWindow != null) _showorHideMainWindow(false);
+          //  if (_showorHideMainWindow != null) _showorHideMainWindow(false);
             DisplayPopup(_predictionInstructionsViewModel);
         }
 
        
         private void DisplayPopup(object contentViewModel)
         {
-            Opacity = .1;
+            Opacity = 0;
             PopupContentViewModel = contentViewModel;
             ShowPopup = true;
            

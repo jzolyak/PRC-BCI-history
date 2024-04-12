@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:Starter"
              xmlns:connectivity="clr-namespace:Starter.Connectivity"
              mc:Ignorable="d" 
-             d:DesignHeight="640" d:DesignWidth="1000">
+             d:DesignHeight="800" d:DesignWidth="1000">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="500"></ColumnDefinition>
@@ -28,8 +28,7 @@
                 <RowDefinition Height="80"></RowDefinition>
                 <RowDefinition Height="80"></RowDefinition>
                 <RowDefinition Height="80"></RowDefinition>
-                <RowDefinition Height="80"></RowDefinition>
-                <RowDefinition Height="*"></RowDefinition>
+                <RowDefinition Height="80"></RowDefinition>               
             </Grid.RowDefinitions>
             <StackPanel Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="300" Margin="8" Orientation="Horizontal" DataContext="{Binding HeadsetConnectionStatusViewModel}">
             <Label Style="{StaticResource MediumLabelStyle}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,0,8,0">Status:</Label>
