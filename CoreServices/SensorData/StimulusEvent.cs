@@ -16,13 +16,13 @@ namespace CoreServices.SensorData
     public enum StimPhase : Byte { NoStim = 0, PreStim = 1, ActiveStim = 2, PostStim = 3, Halted = 4 };
 
     // Events occur when stimulus markers for phase (state) or stim code change values.
-    public enum EventType { NoEvent = 0, StateChange = 1, StimCodeChange = 2, ErrorEvent = 3 };
+    public enum EventType : int { NoEvent = 0, StateChange = 1, StimCodeChange = 2, ErrorEvent = 3 };
 
     // Actions that occur at either the beginning or end of the detected event.
-    public enum ActionType
+    public enum ActionType : int
     {
-        NoAction = 0, ComputeStats = 1, ComputeScore = 2, StimulusEnd = 3,
-        ReportStateError = 4, ReportStimError = 5
+        NoAction = 0, MarkStateChange = 1, ComputeStats = 2, AllocateScoringTables = 3, ComputeScore = 4,
+        StimulusEnd = 5, ReportStateError = 6, ReportStimError = 7
     };
 
     // Sometimes an event will trigger an immediate action to be taken, while other times
@@ -52,6 +52,8 @@ namespace CoreServices.SensorData
 
         public StimPhase currentState = StimPhase.Halted;
         public StimPhase nextState = StimPhase.Halted;
+
+        public bool allocateScoringTables = false;
 
         public Byte currentStimCode = 0;
         public Byte nextStimCode = 0;
@@ -113,9 +115,9 @@ namespace CoreServices.SensorData
                             queuedEvent.windowLength = 0;       // Fill in value later
                             eventQueue.Enqueue(queuedEvent);
 
-                            // Second, return back event marking the end of NoStim state.
+                            // Second, return back event marking the beginning of PreStim state.
                             eventAction.eventType = EventType.StateChange;
-                            eventAction.actionType = ActionType.NoAction;
+                            eventAction.actionType = ActionType.MarkStateChange;
                             eventAction.eventStartHeaderIndex = readIndex;
                             eventAction.windowLength = 0;       // No use for NoStim data
                         }
@@ -137,37 +139,67 @@ namespace CoreServices.SensorData
                     /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
                     case StimPhase.PreStim:
+
                         if (nextState == currentState)
                         {  // No change in state. Examine next packet header
                             readIndex = (++readIndex) & (PacketizedSensorData.HEADER_CIRC_BUF_LEN - 1);
                         }
                         else if (nextState == StimPhase.ActiveStim)
-                        {  // Next valid state found
-                            currentState = nextState;
-                            currentStimCode = sensorData.packetHeaderTable[readIndex].stimulusCode;
-                            lastSampleIndex = sensorData.packetHeaderTable[readIndex].crossRefIndex;
+                        {
+                            if (allocateScoringTables == false)
+                            {
+                                // Don't change state yet. Need to send back two queued messages
+                                // before we can change state to ActiveStim.
+                                currentStimCode = sensorData.packetHeaderTable[readIndex].stimulusCode;
+                                lastSampleIndex = sensorData.packetHeaderTable[readIndex].crossRefIndex;
 
-                            eventFound = true;
+                                eventFound = true;
+                                allocateScoringTables = true;
 
-                            // Save location where we stopped search
-                            sensorData.headerTableReadIndex = readIndex;
+                                // Save location where we stopped search
+                                sensorData.headerTableReadIndex = readIndex;
 
-                            // When state changes to ActiveStim, two events have actually occurred.
-                            // First, put start of ActiveStim onto queue to determine flash interval length.
-                            queuedEvent.eventType = EventType.StimCodeChange;
-                            queuedEvent.actionType = ActionType.ComputeScore;
-                            queuedEvent.eventStartHeaderIndex = readIndex;
-                            queuedEvent.windowLength = 0;       // Fill in value later
-                            eventQueue.Enqueue(queuedEvent);    // Store at back of queue
+                                // When state changes to ActiveStim, two events have actually occurred.
+                                // First, marker onto queue to indicate start of ActiveStim and now know the
+                                // number of stimulus groupings in next target selection to allocate scoring tables.
+                                queuedEvent.eventType = EventType.StateChange;
+                                queuedEvent.actionType = ActionType.AllocateScoringTables;
+                                queuedEvent.eventStartHeaderIndex = readIndex;
+                                queuedEvent.windowLength = 0;       // Fill in value later
+                                eventQueue.Enqueue(queuedEvent);    // Store at back of queue
 
-                            // Second, return back event marking the end of PreStim state.
-                            eventAction = eventQueue.Dequeue(); // Read from front of queue
+                                // Next return back event marking the end of PreStim state.
+                                eventAction = eventQueue.Dequeue(); // Read from front of queue
 
-                            startIndex = eventAction.eventStartHeaderIndex;
-                            firstSampleIndex = sensorData.packetHeaderTable[startIndex].crossRefIndex;
+                                startIndex = eventAction.eventStartHeaderIndex;
+                                firstSampleIndex = sensorData.packetHeaderTable[startIndex].crossRefIndex;
 
-                            // Determine length of PreStim state based on number of samples collected
-                            eventAction.windowLength = lastSampleIndex - firstSampleIndex;
+                                // Determine length of PreStim state based on number of samples collected
+                                eventAction.windowLength = lastSampleIndex - firstSampleIndex;
+                            }
+                            else
+                            {
+                                // Complete second action when find start of ActiveStim
+                                // Now mark next valid state found
+                                currentState = nextState;
+                                currentStimCode = sensorData.packetHeaderTable[readIndex].stimulusCode;
+
+                                eventFound = true;
+
+                                // Save location where we stopped search
+                                sensorData.headerTableReadIndex = readIndex;
+
+                                // Now put start of ActiveStim onto queue to determine flash interval length.
+                                queuedEvent.eventType = EventType.StimCodeChange;
+                                queuedEvent.actionType = ActionType.ComputeScore;
+                                queuedEvent.eventStartHeaderIndex = readIndex;
+                                queuedEvent.windowLength = 0;       // Fill in value later
+                                eventQueue.Enqueue(queuedEvent);    // Store at back of queue
+
+                                // Finally, return back event marking the begin of ActiveStim state
+                                // and perform allocation of memory for scoring tables.
+                                eventAction = eventQueue.Dequeue(); // Read from front of queue
+                            }
                         }
                         else
                         {  // Invalid state change found
@@ -383,6 +415,25 @@ namespace CoreServices.SensorData
                     case StimPhase.Halted:
                         // Flashing stimulus has stopped. It also serves as a reminder that
                         // we need to handle Dynamic Stopping and Pause/Resume in the future.
+
+                        // However this is handled, the start of next target begins with NoStim state.
+                        if (nextState == currentState)
+                        {  // No change in state. Examine next packet header
+                            readIndex = (++readIndex) & (PacketizedSensorData.HEADER_CIRC_BUF_LEN - 1);
+                        }
+                        else if (nextState == StimPhase.NoStim)
+                        {  // Next valid state found
+                            currentState = nextState;
+                            eventFound = true;
+
+                            // Save location where we stopped search
+                            sensorData.headerTableReadIndex = readIndex;
+
+                            // Return back event marking the beginning of NoStim state.
+                            eventAction.eventType = EventType.StateChange;
+                            eventAction.actionType = ActionType.MarkStateChange;
+                            eventAction.eventStartHeaderIndex = readIndex;
+                        }
                         break;
 
                 }  // switch
