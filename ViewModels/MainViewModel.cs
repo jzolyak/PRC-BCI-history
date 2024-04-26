@@ -44,7 +44,7 @@ namespace ViewModels
 
         public MainViewModel(Action closeAction)
         {
-            
+            Title = "MVP_Beta_1.0.2";
             _mainMenuViewModel = new MainMenuViewModel(Open,Close);
             _connectivityViewModel = new ConnectivityViewModel(ExitToMainMenu, ShoworHideMainWindow);
             _mainMenuViewModel.HeadsetConnectionStatusViewModel = _connectivityViewModel.HeadsetConnectionStatusViewModel;

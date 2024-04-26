@@ -113,7 +113,7 @@ namespace CoreServices.Prediction
 
             int[] messageBuffer = new int[MAX_MSG_LENGTH];
 
-            modeState = PredictionStates.Read_Command;
+            modeState = PredictionStates.Open_Files;
             UserSettingsService userSettingsService = new UserSettingsService();
             UI_delay_msec = Convert.ToInt32(userSettingsService.GetSettings("UI_delay_msec"));
 
@@ -541,18 +541,18 @@ namespace CoreServices.Prediction
                             PredictionControl predictionControl = new PredictionControl();
                             RecordBinaryData recordBinary = new RecordBinaryData();
 
-                            if (calibrationFileMetadata ==null)
-                            {
-                                Logger.Error(this, "calibration file meta data is not available.unable to proceed");
-                                modeState = PredictionStates.Clean_Up; break;
-                            }    
+                            //if (calibrationFileMetadata ==null)
+                            //{
+                            //    Logger.Error(this, "calibration file meta data is not available.unable to proceed");
+                            //    modeState = PredictionStates.Clean_Up; break;
+                            //}    
                            
-                            binaryWriter = FileHandlerService.CreateAndOpenBinaryFile(calibrationFileMetadata.GetCurrentBinFileName(), "CalibrationFiles");
-                            if (binaryWriter == null)
-                            {
-                                Logger.Error(this, "unable to create binary writer.");
-                                modeState = PredictionStates.Clean_Up; break;
-                            }
+                            //binaryWriter = FileHandlerService.CreateAndOpenBinaryFile(calibrationFileMetadata.GetCurrentBinFileName(), "CalibrationFiles");
+                            //if (binaryWriter == null)
+                            //{
+                            //    Logger.Error(this, "unable to create binary writer.");
+                            //    modeState = PredictionStates.Clean_Up; break;
+                            //}
                             // Start separate tasks that fetch sensor samples from headset while flashing keys on display screen,
                             // filtering the data for each sensor channel, and recording the filtered sensor data.
                             Task t1 = Task.Run(() => flashTiming.FlashDataAsync(headset, tokenSource.Token, flashSequenceTable, 

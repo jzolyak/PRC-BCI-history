@@ -111,8 +111,12 @@ namespace CoreServices.Prediction
         }
         public void UpdateCurrentPredictionFileMetadata(PredictionFileMetadata newFile)
         {
-            _currentPredictionFile.IsCurrent = false;
-            FileHandlerService.RenameFile(_currentPredictionFile.Name + "_" + "current.COEF", _currentPredictionFile.Name+ ".COEF", _predictionFilePath);
+            if(_currentPredictionFile!=null)
+            {
+                _currentPredictionFile.IsCurrent = false;
+                FileHandlerService.RenameFile(_currentPredictionFile.Name + "_" + "current.COEF", _currentPredictionFile.Name + ".COEF", _predictionFilePath);
+            }
+            
             FileHandlerService.RenameFile(newFile.Name+ ".COEF", newFile.Name + "_" + "current.COEF", _predictionFilePath);
             _currentPredictionFile = newFile;
             _currentPredictionFile.IsCurrent = true;
