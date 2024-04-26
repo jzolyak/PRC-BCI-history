@@ -50,6 +50,7 @@ namespace ViewModels.FlashStimulus
             _buttonCollection = new ObservableCollection<ButtonElement>();
             _calibrationService.RaiseScreenOverLayChange += _calibrationService_RaiseScreenOverLayChange;
             _calibrationService.RaiseUIRequestChange += _calibrationService_RaiseUIRequestChange;
+            _predictionService.RaiseScreenOverLayChange += _calibrationService_RaiseScreenOverLayChange;
             _stopQueryViewModel = new CalibrationStopQueryViewModel(NotificationFromUI);
             _beginQueryViewModel = new CalibrationBeginQueryViewModel(NotificationFromUI);
             _completeViewModel = new CalibrationCompleteViewModel(NotificationFromUI);
