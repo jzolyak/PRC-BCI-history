@@ -14,6 +14,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using System.Diagnostics;
 
 namespace CoreServices.Prediction
 {
@@ -45,7 +46,7 @@ namespace CoreServices.Prediction
             "Show_Instructions", "Open_Files", "Remote_Display", "Get_Remote_Elements",
             "Local_Display", "Get_Local_Elements", "Assign_Key_Mapping", "Create_Grouping", "Create_Sequence",
             "Core_Loop", "Click_Key", "Programmed_Delay", "Monitor_Prediction_Interfaces",
-            "Clean_Up", "Exit_Mode", "Notify_UI", "Wait_On_UI", "Process_UI_Notification"
+            "Clean_Up", "Exit_Mode", "Notify_UI", "Wait_On_UI", "Process_UI_Notification", "Read_Command"
         };
 
         public PredictionStateEngine(Action<UIInstruction> notifyUIAction,Action<ScreenOverlay> notifyScreenOverLayChange, Action exitAction,Action completeAction,Action pauseAction)
@@ -94,7 +95,8 @@ namespace CoreServices.Prediction
             bool modeExit = false;
             bool foundMatch = false;
 
-            const int MAX_MSG_LENGTH = 8;
+            const int MAX_FLASH_MSG_LENGTH = 8;
+            const int MAX_PREDICT_MSG_LENGTH = 20;
 
             const int FLASH_ON = 1;
             const int FLASH_OFF = 2;
@@ -106,14 +108,27 @@ namespace CoreServices.Prediction
             int numTargets = 1;
 
             int messageType;
+            int messageLen;
             int indexValue;
+            int stimCode;
             int phaseInSequence;
+            int reportedAction;
             int elapsedTime;
             int sourceTimer;
 
-            int[] messageBuffer = new int[MAX_MSG_LENGTH];
+            //int[] messageBuffer = new int[MAX_MSG_LENGTH];
+            //int[] messageBuffer;
+
+            //double[] testWeightCoefValues = new double[240 * 7];
+            WeightCoefficients testWeightCoef = new WeightCoefficients();
+
+            // First Prediction code bug. There is *NO* Read_Command in switch statement, so this is a 
+            // BAD starting value!!!
+            //modeState = PredictionStates.Read_Command;
 
             modeState = PredictionStates.Open_Files;
+
+
             UserSettingsService userSettingsService = new UserSettingsService();
             UI_delay_msec = Convert.ToInt32(userSettingsService.GetSettings("UI_delay_msec"));
 
@@ -213,7 +228,8 @@ namespace CoreServices.Prediction
 
             try
             {
-                BinaryWriter? binaryWriter = null;
+                // Don't need binaryWriter for Prediction to work. JAZ 4-12-24
+                //BinaryWriter? binaryWriter = null;
 
                 /*
                 commandLines = File.ReadAllLines(filePath);
@@ -387,6 +403,22 @@ namespace CoreServices.Prediction
                             //   3.  Text file for logging Prediction related information. Currently I don't know where the file name
                             //       originates from, so we will use dummy default name of PredictionLog.txt for now.
 
+                            // Temporarily generate a set of weight coefficients that are easy to test for a pattern
+                            // to ensure that they are received correctly by the Prediction task.
+
+                            int index = 0;
+                            for (int i = 0; i < 240; i++)
+                            {
+                                // Create a test pattern where the same value is in each array column of receiving array.
+                                testWeightCoef.values[index++] = 1.0;
+                                testWeightCoef.values[index++] = 2.0;
+                                testWeightCoef.values[index++] = 3.0;
+                                testWeightCoef.values[index++] = 4.0;
+                                testWeightCoef.values[index++] = 5.0;
+                                testWeightCoef.values[index++] = 6.0;
+                                testWeightCoef.values[index++] = 7.0;
+                            }
+
                             modeState = PredictionStates.Remote_Display;
                             break;
 
@@ -521,6 +553,7 @@ namespace CoreServices.Prediction
                         case PredictionStates.Core_Loop:
 
                             bool exitFlag = false;
+                            bool predictStatusReceived = false;
 
                             headset.StartBackgroundAcquisition();
 
@@ -530,29 +563,41 @@ namespace CoreServices.Prediction
                             var messageBufferBlock = new BufferBlock<int[]>();
                             var dataBufferBlock    = new BufferBlock<double[]>();
                             var filterBufferBlock  = new BufferBlock<double[]>();
-                            var weightCoefBufferBlock = new BufferBlock<double[]>(); 
+                            var weightCoefBufferBlock = new BufferBlock<WeightCoefficients>(); 
                             //var packetDataBufferBlock = new BufferBlock<double[]>();
                             var commandMsgBufferBlock = new BufferBlock<int[]>();
-                            var statusMsgBufferBlock  = new BufferBlock<int[]>();
+                            var statusMsgBufferBlock  = new BufferBlock<PredictStatusMessage>();
 
-                            // Create instances of classed that comprise the processing pipeline tasks
+                            int[] flashControlMessage = new int[MAX_FLASH_MSG_LENGTH];
+
+                            PredictStatusMessage predictStatusMessage = new PredictStatusMessage();
+
+
+                            /* ********************************* */
+                            /*
+                            if (calibrationFileMetadata ==null)
+                            {
+                                Logger.Error(this, "calibration file meta data is not available.unable to proceed");
+                                modeState = PredictionStates.Clean_Up; break;
+                            }    
+                           
+                            // Don't need binaryWriter for Prediction to work. JAZ 4-12-24
+                            binaryWriter = FileHandlerService.CreateAndOpenBinaryFile(calibrationFileMetadata.GetCurrentBinFileName(), "CalibrationFiles");
+                            if (binaryWriter == null)
+                            {
+                                Logger.Error(this, "unable to create binary writer.");
+                                modeState = PredictionStates.Clean_Up; break;
+                            }
+                            */
+                            /* ********************************* */
+
+
+                            // Create instances of classes that comprise the processing pipeline tasks
                             FlashTiming flashTiming = new FlashTiming();
                             SensorFiltering sensorFiltering = new SensorFiltering();
                             PredictionControl predictionControl = new PredictionControl();
                             RecordBinaryData recordBinary = new RecordBinaryData();
 
-                            //if (calibrationFileMetadata ==null)
-                            //{
-                            //    Logger.Error(this, "calibration file meta data is not available.unable to proceed");
-                            //    modeState = PredictionStates.Clean_Up; break;
-                            //}    
-                           
-                            //binaryWriter = FileHandlerService.CreateAndOpenBinaryFile(calibrationFileMetadata.GetCurrentBinFileName(), "CalibrationFiles");
-                            //if (binaryWriter == null)
-                            //{
-                            //    Logger.Error(this, "unable to create binary writer.");
-                            //    modeState = PredictionStates.Clean_Up; break;
-                            //}
                             // Start separate tasks that fetch sensor samples from headset while flashing keys on display screen,
                             // filtering the data for each sensor channel, and recording the filtered sensor data.
                             Task t1 = Task.Run(() => flashTiming.FlashDataAsync(headset, tokenSource.Token, flashSequenceTable, 
@@ -566,44 +611,112 @@ namespace CoreServices.Prediction
                                                         weightCoefBufferBlock, filterBufferBlock, commandMsgBufferBlock, statusMsgBufferBlock));
 
 
+                            /* ********************************* */
+
                             while (exitFlag == false)
                             {
-                                messageBuffer = await flashTiming.GetFlashControlMessageAsync(messageBufferBlock);
+                                flashControlMessage = await flashTiming.GetFlashControlMessageAsync(messageBufferBlock);
 
                                 string flashTime = DateTime.Now.ToString("HH:mm:ss:ffff");
 
-                                messageType = messageBuffer[0];
+                                messageType = flashControlMessage[0];
 
                                 if (messageType == FLASH_ON)
                                 {
-                                    indexValue = messageBuffer[1] - 1;
-                                    phaseInSequence = messageBuffer[2];
-                                    elapsedTime = messageBuffer[3];
+                                    indexValue = flashControlMessage[1] - 1;
+                                    phaseInSequence = flashControlMessage[2];
+                                    elapsedTime = flashControlMessage[3];
 
                                     flashStimulus.FlashStimulusON(targetkeyIDvalue, indexValue, flashSequenceTable);
 
                                     sourceTimer = elapsedTime % 65536;
                                     //Console.WriteLine("{0}  Flash ON,  seq num = {1},  phase = {2},   time = {3} \n", flashTime, indexValue, phaseInSequence, sourceTimer);
+                                    Debug.WriteLine("{0}  Flash ON,  seq num = {1},  phase = {2},   time = {3} \n", flashTime, indexValue, phaseInSequence, sourceTimer);
                                 }
                                 else if (messageType == FLASH_OFF)
                                 {
-                                    indexValue = messageBuffer[1] - 1;
-                                    phaseInSequence = messageBuffer[2];
-                                    elapsedTime = messageBuffer[3];
+                                    indexValue = flashControlMessage[1] - 1;
+                                    phaseInSequence = flashControlMessage[2];
+                                    elapsedTime = flashControlMessage[3];
 
                                     flashStimulus.FlashStimulusOFF(targetkeyIDvalue, indexValue, flashSequenceTable);
 
                                     sourceTimer = elapsedTime % 65536;
                                     //Console.WriteLine("{0}  Flash OFF,  seq num = {1},  phase = {2},   time = {3}  \n", flashTime, indexValue, phaseInSequence, sourceTimer);
+                                    Debug.WriteLine("{0}  Flash OFF,  seq num = {1},  phase = {2},   time = {3}  \n", flashTime, indexValue, phaseInSequence, sourceTimer);
                                 }
-                                else if (messageType == END_SEQUENCE)
+                                else if (messageType != END_SEQUENCE)
                                 {
+                                    Logger.Info(this, flashTime + "FlashControlAsync() returned invalid message!!!  messageType = " + messageType);
                                     exitFlag = true;
                                 }
-                                else
+
+                                /* ********************************* */
+
+                                // Next poll for any status or debug messaged sent from the Prediction task...
+                                predictStatusReceived = statusMsgBufferBlock.TryReceive(out predictStatusMessage);
+
+                                if (predictStatusReceived == true)
                                 {
-                                    Logger.Info(this, flashTime + "FlashControlAsync() returned invalid message!!!  messageType = "+ messageType);
-                                    exitFlag = true;
+                                    messageType = predictStatusMessage.content[0];
+
+                                    if (messageType == 18)
+                                    {
+                                        // MARK_STATE_CHANGE
+                                        messageLen = predictStatusMessage.content[1];
+                                        phaseInSequence = predictStatusMessage.content[2];
+                                        stimCode = predictStatusMessage.content[3];
+                                        reportedAction = predictStatusMessage.content[4];
+
+                                        //Debug.WriteLine("{0}  MARK_STATE,  seq num = {1},  phase = {2},   time = {3} \n", flashTime, stimCode, phaseInSequence, sourceTimer);
+                                        Debug.WriteLine("{0}  MARK_STATE,  phase = {1}, seq num = {2}, action = {3} \n", flashTime, phaseInSequence, stimCode, reportedAction);
+
+                                        if (phaseInSequence == 1)
+                                        {
+                                            weightCoefBufferBlock.Post(testWeightCoef);
+                                        }
+                                    }
+
+                                    else if (messageType == 20)
+                                    {
+                                        // MARK_STIM_CHANGE
+                                        messageLen = predictStatusMessage.content[1];
+                                        phaseInSequence = predictStatusMessage.content[2];
+                                        stimCode = predictStatusMessage.content[3];
+                                        reportedAction = predictStatusMessage.content[4];
+
+                                        //Debug.WriteLine("{0}  MARK_STIM,   seq num = {1},  phase = {2},   time = {3} \n", flashTime, stimCode, phaseInSequence, sourceTimer);
+                                        Debug.WriteLine("{0}  MARK_STIM,  phase = {1}, seq num = {2}, action = {3} \n", flashTime, phaseInSequence, stimCode, reportedAction);
+                                    }
+
+                                    else if (messageType == 21)
+                                    {
+                                        // PREDICT_SELECTION
+                                        messageLen = predictStatusMessage.content[1];
+                                        phaseInSequence = predictStatusMessage.content[2];
+
+                                        Debug.WriteLine("{0}  SELECT  \n", flashTime);
+                                    }
+
+                                    else if (messageType == 99)
+                                    {
+                                        // END_OF_PREDICTION
+                                        exitFlag = true;
+                                        Debug.WriteLine("{0}  PREDICT  \n", flashTime);
+                                    }
+
+                                    else if (messageType == 0)
+                                    {
+                                        // OOOPS!!!
+                                        exitFlag = true;
+                                        Debug.WriteLine("{0}  OOOPS!!!  \n", flashTime);
+                                    }
+
+                                    //else
+                                    //{
+                                    //    weightCoefBufferBlock.Post(testWeightCoef);
+                                    //}
+
                                 }
 
                             }  // while (exitFlag == false)
@@ -620,7 +733,8 @@ namespace CoreServices.Prediction
                             messageBufferBlock.Complete();
                             dataBufferBlock.Complete();
 
-                            modeState = PredictionStates.Click_Key;
+                            // modeState = PredictionStates.Click_Key;      // Don't click key until Prediction is working
+                            modeState = PredictionStates.Programmed_Delay;
                             break;
 
                         /* ********************************* */
@@ -717,10 +831,13 @@ namespace CoreServices.Prediction
                 headset.Disconnect();
                 headset.Delete();
 
+                /*
+                // Don't need binaryWriter for Prediction to work. JAZ 4-12-24
                 if (binaryWriter != null)
                 {
                     FileHandlerService.CloseBinaryWriter(binaryWriter);
                 }
+                */
 
                 /*
                 if(calibrationCompleted&&completeAction!=null)
@@ -728,6 +845,7 @@ namespace CoreServices.Prediction
                     completeAction();
                 }
                 */
+
             }
             catch (Exception ex)
             {
