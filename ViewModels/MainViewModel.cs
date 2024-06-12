@@ -18,11 +18,13 @@ namespace ViewModels
         private string _title;
         private object _currentViewModel;
         private bool _isVisible;
+        private double _opacity;
         private bool _isTopMost;
         private string version = "Brain-Computer Interface - MVP.Beta.v1.0";
 
         public object CurrentViewModel { get { return _currentViewModel; } set { _currentViewModel = value; OnPropertyChanged(nameof(CurrentViewModel)); } }
         public bool IsVisible { get { return _isVisible; } set { _isVisible = value; OnPropertyChanged(nameof(IsVisible)); } }
+        public double Opacity { get { return _opacity; } set { _opacity = value; OnPropertyChanged(nameof(Opacity)); } }
         public bool IsTopMost { get { return _isTopMost; } set { _isTopMost = value; OnPropertyChanged(nameof(IsTopMost)); } }
 
         public bool IsInTablet { get; set; }
@@ -44,7 +46,8 @@ namespace ViewModels
 
         public MainViewModel(Action closeAction)
         {
-            Title = "MVP_Beta_1.0.2";
+            Title = version;
+            Opacity = 1;
             _mainMenuViewModel = new MainMenuViewModel(Open,Close);
             _connectivityViewModel = new ConnectivityViewModel(ExitToMainMenu, ShoworHideMainWindow);
             _mainMenuViewModel.HeadsetConnectionStatusViewModel = _connectivityViewModel.HeadsetConnectionStatusViewModel;
@@ -87,6 +90,7 @@ namespace ViewModels
         private void ShoworHideMainWindow(bool isVisible)
         {
             IsVisible = isVisible;
+           //acity = isVisible ? 1 : 0;
         }
 
         private void ShoworHideChildWindow(ChildWindowSettings childWindowSettings)

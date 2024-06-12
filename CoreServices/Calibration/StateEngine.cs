@@ -15,6 +15,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using System.Reflection;
 
 namespace CoreServices.Calibration
 {
@@ -25,6 +26,7 @@ namespace CoreServices.Calibration
         private CalibrationStates modeState;
         private UIInstruction uiInstruction;
         private Action<UIInstruction> notifyUIAction;
+        private Action activeUIAction;
         private Action<ScreenOverlay> notifyScreenOverLayChange;
         private CalibrationFileMetadata calibrationFileMetadata;
 
@@ -50,13 +52,14 @@ namespace CoreServices.Calibration
             "Notify_UI", "Wait_On_UI", "Process_UI_Notification"
         };
 
-        public StateEngine(Action<UIInstruction> notifyUIAction,Action<ScreenOverlay> notifyScreenOverLayChange, Action exitAction,Action completeAction,Action pauseAction)
+        public StateEngine(Action<UIInstruction> notifyUIAction,Action<ScreenOverlay> notifyScreenOverLayChange, Action exitAction,Action completeAction,Action pauseAction,Action activateUIAction)
         {
             this.notifyUIAction = notifyUIAction;
             this.notifyScreenOverLayChange = notifyScreenOverLayChange;
             this.exitAction = exitAction;
             this.completeAction = completeAction;
             this.pauseAction = pauseAction;
+            this.activeUIAction = activateUIAction;
         }
 
         public async Task CalibrationMode()
@@ -148,7 +151,8 @@ namespace CoreServices.Calibration
             **   ***  Instantiate classes  ***   
             **   *****************************
             */
-            string currentDirectory = Directory.GetCurrentDirectory();
+            
+            string currentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
             string scriptFilename = "CalibrationCommands.txt";
             string filePath = System.IO.Path.Combine(currentDirectory, scriptFilename);
             WearableSensingVR300 headset = new WearableSensingVR300();
@@ -882,6 +886,8 @@ namespace CoreServices.Calibration
                             else
                             {
                                 remoteDisplay.SelectElement(elementIndex);
+                                //let the ui know to come to focus again
+                                ActivateUI();
                             }
 
                             // if (displayType == REMOTE)
@@ -980,6 +986,11 @@ namespace CoreServices.Calibration
             {
                 notifyUIAction(uiInstruction);
             }
+        }
+
+        private void ActivateUI()
+        {
+            if(activeUIAction!=null) activeUIAction();
         }
 
         public void SetCalibrationFile(CalibrationFileMetadata calibrationFileMetadata)

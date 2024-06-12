@@ -8,13 +8,21 @@ using CoreServices.Common;
 
 using UIAutomationClient;
 
-
+using System.Runtime.InteropServices;
+using System.Diagnostics;
 
 namespace CoreServices.Stimulus
 { 
     public class RemoteDisplay
     {
-       
+
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool IsIconic(IntPtr hWnd);
 
         DisplayProperties displayProperties;
 
@@ -54,16 +62,35 @@ namespace CoreServices.Stimulus
 
             IUIAutomation automation = new CUIAutomation();
             IUIAutomationElement rootElement = automation.GetRootElement();
-
+            Process p=null;
             if (rootElement != null)
             {
                 IUIAutomationCondition condition = automation.CreatePropertyCondition(30005, "Empower™");
 
                 // Get the parent element of all the children elements of the remote application.
                 IUIAutomationElement appElement = rootElement.FindFirst(TreeScope.TreeScope_Children, condition);
+                if(appElement == null)
+                {
+                    p = GetEmpowerProcess();
+                    if(p != null)
+                    {
+                        condition = automation.CreatePropertyCondition(30002,p.Id);
+                        appElement = rootElement.FindFirst(TreeScope.TreeScope_Children, condition);
+                    }
+                }
 
                 if (appElement != null)
                 {
+                    //check to see if the window is in minimize mode;
+                    //if(p==null)
+                    //{
+                    //    p = GetEmpowerProcess();
+                    //    if (p != null && IsIconic(p.MainWindowHandle))
+                    //    {
+                    //        ShowWindow(p.MainWindowHandle, 3);
+                    //    }
+
+                    //}
                     // Extract properties of application display size
                     left = appElement.CurrentBoundingRectangle.left;
                     top = appElement.CurrentBoundingRectangle.top;
@@ -208,7 +235,10 @@ namespace CoreServices.Stimulus
 
             //ip = element.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern;
             //ip = element.GetCurrentPattern(UIA_InvokePatternId) as InvokePattern;
-
+            if(ip == null)
+            {
+                Logger.Info(this, "invoke pattern is null");
+            }
             ip.Invoke();
 
         }
@@ -236,6 +266,22 @@ namespace CoreServices.Stimulus
             return false;
         }
 
+        private Process GetEmpowerProcess()
+        {
+            var pList = System.Diagnostics.Process.GetProcesses();
+            foreach (Process p1 in pList)
+            {
+                Console.WriteLine(p1.Id + " " + p1.ProcessName);
+                if (p1.MainWindowTitle != null && p1.MainWindowTitle.StartsWith("Empower™"))
+                {
+                    //ShowWindow(p1.MainWindowHandle, 3);
+                    return p1;
+                }
+            }
+            return null;
+        }
+
+        
     }
     public struct DisplayProperties
     {

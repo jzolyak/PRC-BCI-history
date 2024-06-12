@@ -66,10 +66,11 @@ namespace Starter.CustomControls
 
         private void OpenVirtualKeyBoard()
         {
+            Logger.Info(this,"opening keyboard");
             System.Diagnostics.Process process = new System.Diagnostics.Process();
             process.StartInfo.UseShellExecute = true;
             process.StartInfo.CreateNoWindow = true;
-            process.StartInfo.FileName = @"C:\Program Files\Common Files\Microsoft Shared\Ink\TabTip.exe";
+            process.StartInfo.FileName = "osk.exe";//@"C:\Program Files\Common Files\Microsoft Shared\Ink\TabTip.exe";
             process.StartInfo.Arguments = "";
             process.StartInfo.WorkingDirectory = "c:\\";
 

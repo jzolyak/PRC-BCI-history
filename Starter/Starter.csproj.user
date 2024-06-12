@@ -16,9 +16,6 @@
     <Compile Update="Calibration\CalibrationView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Update="Calibration\CalibrationWindow.xaml.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Update="Calibration\DeleteConfirmationView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -73,9 +70,6 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Calibration\CalibrationView.xaml">
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="Calibration\CalibrationWindow.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Calibration\CountDownView.xaml">

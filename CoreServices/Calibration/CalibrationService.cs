@@ -25,6 +25,7 @@ namespace CoreServices.Calibration
 
         public event EventHandler<EventArgs<ScreenOverlay>>? RaiseScreenOverLayChange;
         public event EventHandler<EventArgs<UIInstruction>>? RaiseUIRequestChange;
+        public event EventHandler<EventArgs>? RaiseActiveUIEvent;
         public event EventHandler<EventArgs>? RaiseExitCalibrationEvent;
       
 
@@ -37,7 +38,7 @@ namespace CoreServices.Calibration
         {
             _predictionMetadataList = new ConcurrentDictionary<String, PredictionFileMetadata>();
             _calibrationFilePath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)+ "\\CalibrationFiles\\";
-            _stateEngine = new StateEngine(NotifyUI, NotifyScreenOverLayChange, ExitCalibration, OnCalibrationComplete,OnCalibrationPaused);
+            _stateEngine = new StateEngine(NotifyUI, NotifyScreenOverLayChange, ExitCalibration, OnCalibrationComplete,OnCalibrationPaused, ActivateUI);
             LoadCalibrationFiles();
         }
 
@@ -173,6 +174,11 @@ namespace CoreServices.Calibration
         {
             if(RaiseUIRequestChange == null) return;
             RaiseUIRequestChange(this, new EventArgs<UIInstruction>(uiInsturction));
+        }
+        private void ActivateUI()
+        {
+            if (RaiseActiveUIEvent == null) return;
+            RaiseActiveUIEvent(this, EventArgs.Empty);
         }
 
         private void ExitCalibration()
