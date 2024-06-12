@@ -26,6 +26,7 @@ namespace ViewModels.FlashStimulus
         private UIInstruction _uiInstruction;
         private object? _popupContentViewModel;
         private bool _showPopup;
+        private WindowTopMost _topMost;
         private CalibrationStopQueryViewModel _stopQueryViewModel;
         private CalibrationBeginQueryViewModel _beginQueryViewModel;
         private CalibrationCompleteViewModel _completeViewModel;
@@ -42,9 +43,10 @@ namespace ViewModels.FlashStimulus
         public ObservableCollection<ButtonElement> ButtonCollection { get { return _buttonCollection; } set { _buttonCollection = value; OnPropertyChanged(nameof(ButtonCollection)); } }
         public bool ShowPopup { get => _showPopup; set { _showPopup = value; OnPropertyChanged(nameof(ShowPopup)); } }
         public object? PopupContentViewModel { get => _popupContentViewModel; set { _popupContentViewModel = value; OnPropertyChanged(nameof(PopupContentViewModel)); } }
-
+        public WindowTopMost Topmost { get => _topMost; set { _topMost = value; OnPropertyChanged(nameof(Topmost)); } }
         public FlashStimulusViewModel()
         {
+            _topMost = new WindowTopMost(); 
             _calibrationService = ServiceLocator.CalibrationService;
             _predictionService= ServiceLocator.PredictionService;
             _buttonCollection = new ObservableCollection<ButtonElement>();
@@ -110,6 +112,13 @@ namespace ViewModels.FlashStimulus
         private void OpenPopup()
         {
             ShowPopup = true;
+        }
+
+        public void UpdateTopMost()
+
+        {
+            Topmost = null;
+            Topmost = new WindowTopMost();
         }
     }
 }

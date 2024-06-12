@@ -3,12 +3,14 @@ using Starter.Calibration;
 using Starter.ValidationRules;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Media;
 using ViewModels.Help;
 
 namespace Starter.UIHelpers
@@ -17,7 +19,7 @@ namespace Starter.UIHelpers
     {
         public static readonly DependencyProperty ChildWindowPrefereceProperty = DependencyProperty.RegisterAttached("ChildWindowPreferece", typeof(ChildWindowSettings), typeof(AttachedPropertyService), new FrameworkPropertyMetadata(OnChildWindowPreferenceChange));
         public static readonly DependencyProperty WindowSizeProperty = DependencyProperty.RegisterAttached("WindowSize", typeof(WindowSizeProperties), typeof(AttachedPropertyService), new FrameworkPropertyMetadata(OnChildWindowSizeChange));
-        public static readonly DependencyProperty WindowTopMostProperty = DependencyProperty.RegisterAttached("WindowTopMost", typeof(bool), typeof(AttachedPropertyService), new FrameworkPropertyMetadata(OnWindowTopMostChange));
+        public static readonly DependencyProperty WindowTopMostProperty = DependencyProperty.RegisterAttached("WindowTopMost", typeof(WindowTopMost), typeof(AttachedPropertyService), new FrameworkPropertyMetadata(OnWindowTopMostChange));
         public static readonly DependencyProperty ValidationsProperty = DependencyProperty.RegisterAttached("Validations", typeof(List<Rule>), typeof(AttachedPropertyService), new FrameworkPropertyMetadata(OnValidationsChange));
 
         private static void OnValidationsChange(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -52,11 +54,14 @@ namespace Starter.UIHelpers
                 if (e.NewValue == null) return;
                 if (d == null || !(d is Window)) return;
                 var window = (Window)d;
-                var topmost = (bool)e.NewValue;
-                if(topmost)
+                if (e.NewValue == null) return;
+                var topmost = (WindowTopMost)e.NewValue;
+                if(topmost!=null)
                 {
+                    window.Topmost = false;
                     window.Topmost = true;
-                    window.Activate();
+                    window.Dispatcher.BeginInvoke(new Action(() =>
+                    window.Activate()));
                 }
             }
             catch(Exception ex)
@@ -66,11 +71,11 @@ namespace Starter.UIHelpers
         }
 
         // Declare a get accessor method.
-        public static bool GetWindowTopMost(UIElement target) =>
-            (bool)target.GetValue(WindowTopMostProperty);
+        public static WindowTopMost GetWindowTopMost(UIElement target) =>
+            (WindowTopMost)target.GetValue(WindowTopMostProperty);
 
         // Declare a set accessor method.
-        public static void SetWindowTopMost(UIElement target, bool value) =>
+        public static void SetWindowTopMost(UIElement target, WindowTopMost value) =>
             target.SetValue(WindowTopMostProperty, value);
 
         private static Dictionary<Window, Window> windowCollection = new Dictionary<Window, Window>();
@@ -92,11 +97,14 @@ namespace Starter.UIHelpers
                     if (childWindow == null)
                     {
                         childWindow = new CalibrationWindow();
+                        childWindow.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(1, 0, 0, 0));
                         windowCollection.Add(window, childWindow);
+                        
                     }
+                    childWindow.Topmost = true;
                     childWindow.DataContext = childWindowPref.DataContext;
                     childWindow.Visibility = Visibility.Visible;
-                    childWindow.Topmost = true;
+                    
                 }
                 else
                 {
@@ -135,7 +143,10 @@ namespace Starter.UIHelpers
                 window.Height = windowsize.Height;
                 window.Top = windowsize.Top;
                 window.Left = windowsize.Left;
+                
                 window.UpdateLayout();
+               
+
             }
             catch(Exception ex)
             {

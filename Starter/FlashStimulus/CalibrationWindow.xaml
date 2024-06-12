@@ -6,7 +6,8 @@
         xmlns:local="clr-namespace:Starter.Calibration"
         xmlns:UIHelpers="clr-namespace:Starter.UIHelpers"
          mc:Ignorable="d"
-        Title="CalibrationWindow" AllowsTransparency="True" Background="Transparent" WindowStyle="None" WindowState="Normal" Topmost="True" UIHelpers:AttachedPropertyService.WindowSize="{Binding WindowSizeProp}" Height="300" Width="700" >
+        Title="CalibrationWindow" AllowsTransparency="True" WindowStyle="None" WindowStartupLocation="CenterScreen" UIHelpers:AttachedPropertyService.WindowSize="{Binding WindowSizeProp}" Height="300" Width="700" UIHelpers:AttachedPropertyService.WindowTopMost="{Binding Topmost,UpdateSourceTrigger=PropertyChanged}">
+    
     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent">
         <ItemsControl ItemsSource="{Binding ButtonCollection}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <ItemsControl.ItemsPanel>

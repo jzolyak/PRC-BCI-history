@@ -29,5 +29,10 @@ namespace Starter.Calibration
         {
             
         }
+        protected override void OnLostFocus(RoutedEventArgs e)
+        {
+            base.OnLostFocus(e);
+            this.Focus();
+        }
     }
 }

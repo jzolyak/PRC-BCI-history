@@ -1,1 +1,5 @@
+Version=Brain-Computer Interface - MVP.Beta.v1.0.1
 Connectivity;HeadSetPort=COM5
+ShowDemoVideo=false
+HeadSetPort=COM4
+UI_delay_msec=400

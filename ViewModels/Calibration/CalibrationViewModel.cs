@@ -80,6 +80,7 @@ namespace ViewModels.Calibration
             _calibrationService = ServiceLocator.CalibrationService;
             _calibrationService.RaiseFileMetadataChange += _calibrationService_RaiseFileMetadataChange;
             _calibrationService.RaiseExitCalibrationEvent += _calibrationService_RaiseExitCalibrationEvent;
+            _calibrationService.RaiseActiveUIEvent += _calibrationService_RaiseActiveUIEvent;
             _userSettingsService = ServiceLocator.UserSettingsService;
             LoadPredictionFilesMetadata();
             CurrentFileMetadata = _calibrationService.GetCurrentCalibrationFileMetadata();
@@ -100,6 +101,11 @@ namespace ViewModels.Calibration
             MoveUpCmd = new RelayCommand(MoveFileMetadataIndexUp);
             MoveDownCmd = new RelayCommand(MoveFileMetadataIndexDown);
             _flashStimulusViewModel = new FlashStimulusViewModel();
+        }
+
+        private void _calibrationService_RaiseActiveUIEvent(object? sender, EventArgs e)
+        {
+            _flashStimulusViewModel.UpdateTopMost();
         }
 
         private void ChangePredictionFile(object obj)
@@ -218,6 +224,7 @@ namespace ViewModels.Calibration
                 return;
             }
             //get file name from user
+            _fileNameEntryViewModel.IsInTablet = IsInTablet;
             DisplayPopup(_fileNameEntryViewModel);
                
         }
@@ -245,6 +252,7 @@ namespace ViewModels.Calibration
             //if file is not available 
             if(string.IsNullOrEmpty(_fileNameEntryViewModel.FileName))
             {
+                _fileNameEntryViewModel.IsInTablet = IsInTablet;
                 DisplayPopup(_fileNameEntryViewModel);
                 return;
             }
@@ -265,7 +273,7 @@ namespace ViewModels.Calibration
 
         private void ShowCalibrationInstructions()
         {
-            if (_showorHideMainWindow != null) _showorHideMainWindow(false);
+            //if (_showorHideMainWindow != null) _showorHideMainWindow(false);
             DisplayPopup(_calibrationInstructionsViewModel);
         }
 

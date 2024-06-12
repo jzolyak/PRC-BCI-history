@@ -53,7 +53,8 @@
         <UIHelpers:SensorStatusConverter x:Key="sensorStatusConverter"></UIHelpers:SensorStatusConverter>
         <UIHelpers:BooltoVisibilityConverter x:Key="booltoVisibilityConverter"></UIHelpers:BooltoVisibilityConverter>
         <SolidColorBrush x:Key="ContentScreenBackGround">#f5f7f8</SolidColorBrush>
-        <SolidColorBrush x:Key="ContentScreenBackGroundBrush">#EFF1F3</SolidColorBrush>
+        <SolidColorBrush x:Key="ContentScreenBackGroundBrush">#FFFF</SolidColorBrush>
+       
 
         <Style x:Key="ButtonStyle" TargetType="{x:Type Button}">
             <!--Setter Property="Effect">

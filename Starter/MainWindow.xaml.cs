@@ -1,4 +1,5 @@
 ﻿
+using CoreServices;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -22,8 +23,14 @@ namespace Starter
             _isInTabletMode = QueryTabletMode();
             if(_isInTabletMode)
             {
-                this.WindowState = WindowState.Maximized;
+                Logger.Info(this,"In tablet mode");
                 mainVM.IsInTablet = true;
+                
+                WindowState = WindowState.Maximized;
+                Visibility = Visibility.Collapsed;
+                WindowStyle = WindowStyle.None;
+                ResizeMode = ResizeMode.NoResize;
+                Visibility = Visibility.Visible;
             }
 
         }
@@ -36,6 +43,7 @@ namespace Starter
         {
             this.WindowState = WindowState.Minimized;
         }
+
    
         private static bool QueryTabletMode()
         {
