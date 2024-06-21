@@ -29,7 +29,6 @@
 		<PackageReference Include="log4net" Version="2.0.14" />
 		<PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.39" />
 		<PackageReference Include="System.Threading.Tasks.Dataflow" Version="6.0.0" />
-		<PackageReference Include="Uno.UI" Version="4.8.33" />
 	</ItemGroup>
 
 	<ItemGroup>
