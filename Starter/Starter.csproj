@@ -9,15 +9,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Compile Remove="Validation\**" />
-	  <EmbeddedResource Remove="Validation\**" />
-	  <None Remove="Validation\**" />
-	  <Page Remove="Validation\**" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<None Remove="Images\headset.PNG" />
-		<None Remove="Images\VR300.ico" />
 		<None Remove="Images\VR300.png" />
 	</ItemGroup>
 
@@ -46,10 +38,6 @@
 	<ItemGroup>
 		<ProjectReference Include="..\CoreServices\CoreServices.csproj" />
 		<ProjectReference Include="..\ViewModels\ViewModels.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Folder Include="Validation\" />
 	</ItemGroup>
 
 	<ItemGroup>
