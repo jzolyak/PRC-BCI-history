@@ -104,7 +104,7 @@ namespace CoreServices.Prediction
             PredictionScoring predictionScoring = new PredictionScoring();
             PredictionAlgorithm predictionAlgorithm = new PredictionAlgorithm();
 
-            PredictionAlgorithm.TopScoreEntry[] topAccumulatedScores;
+            PredictionAlgorithm.TopScoreEntry[] topAccumulatedScores = null;
 
             PredictionAlgorithm.WinCountEntry highestWinCount;
 
@@ -138,11 +138,10 @@ namespace CoreServices.Prediction
             const int MAX_MSG_LENGTH = 8;           // Max message length sent back to main thread
 
             // Message ID numbers
-            const int END_OF_PREDICTION = 99;          // Report when reach max number of flash sequences (for debug only)
+            const int END_OF_PREDICTION = 99;       // Report when reach max number of flash sequences or select Key
             const int MARK_STATE_CHANGE = 18;       // Report when stimulus changes state (for debug only)
-            const int MARK_STIM_CHANGE = 20;       // Report when stimulus changes stim code (for debug only)
-            const int PREDICT_SELECTION = 21;       // Simplified prediction report info (for debug only)
-            //const int PREDICTION_REPORT = 22;       // Detailed predict status at end of each flash sequence
+            const int MARK_STIM_CHANGE = 20;        // Report when stimulus changes stim code (for debug only)
+            const int PREDICT_STATUS = 21;          // Detailed predict status at end of each flash sequence
 
             int statusMessageID = 0;
             int messageLength = 0;
@@ -160,8 +159,12 @@ namespace CoreServices.Prediction
 
             /* **************** */
 
+            int packetCount = 0;
+            int incorrectSizeCount = 0;
+
+            int blockSize;
             int rawDataReadIndex;
-            int rawDataBufferLen;
+            int rawDataBufferLen = 0;
             int eventStartHeaderIndex;
             int windowLength = 0;
 
@@ -169,6 +172,8 @@ namespace CoreServices.Prediction
             int flashSequenceCount = 0;     // Increment after one complete cycle of stimulus inverals has been flashed
 
             int numStimulusGroups = 0;      // Get value from sensor data packet header
+
+            double[] rawDataBuffer = null;
 
             double[] meanScores;            // size based on number of sensor channels
             double[] stdDevScores;          // size based on number of sensor channels
@@ -188,11 +193,26 @@ namespace CoreServices.Prediction
             while (!cts.IsCancellationRequested)
             {
                 // Wait for next block of sensor packet data sent from preceeding pipeline task.
-                double[] rawDataBuffer = await packetDataBufferBlock.ReceiveAsync();
+                if (await packetDataBufferBlock.OutputAvailableAsync())
+                {
+                    try
+                    {
+                        rawDataBuffer = await packetDataBufferBlock.ReceiveAsync();
+                        blockSize = rawDataBuffer.Length;
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error(this, ex.Message);
+                        continue;
+                    }
+                    //break;
+                }
+                else
+                {
+                    continue;
+                }
 
-                rawDataBufferLen = rawDataBuffer.Length;
                 rawDataReadIndex = 0;
-
                 finishedParsing = false;
 
                 while (!finishedParsing) 
@@ -235,18 +255,19 @@ namespace CoreServices.Prediction
 
                         statusMessageID = MARK_STATE_CHANGE;
                         messageLength = 5;
-                        phaseInSeq = sensorData.packetHeaderTable[eventStartHeaderIndex].phaseInSeq;
-                        stimulusCode = sensorData.packetHeaderTable[eventStartHeaderIndex].stimulusCode;
+                        phaseInSeq = (int)sensorData.packetHeaderTable[eventStartHeaderIndex].phaseInSeq;
+                        stimulusCode = (int)sensorData.packetHeaderTable[eventStartHeaderIndex].stimulusCode;
 
                         if (eventAction.actionType == ActionType.MarkStateChange)
                         {
-                            reportedAction = (int)ActionType.MarkStateChange;
+                            reportedAction = (int)eventAction.actionType;
                         }
 
                         else if (eventAction.actionType == ActionType.ComputeStats)
                         {
-                            windowLength = eventAction.windowLength; 
-                            reportedAction = (int)ActionType.ComputeStats;
+                            reportedAction = (int)eventAction.actionType;
+
+                            windowLength = eventAction.windowLength;
 
                             meanScores = predictionScoring.ComputeMean(sensorData, eventStartHeaderIndex, windowLength);
                             stdDevScores = predictionScoring.ComputeStandardDeviation(sensorData, meanScores, eventStartHeaderIndex, windowLength);
@@ -254,7 +275,7 @@ namespace CoreServices.Prediction
 
                         else if (eventAction.actionType == ActionType.AllocateScoringTables)
                         {
-                            reportedAction = (int)ActionType.AllocateScoringTables;
+                            reportedAction = (int)eventAction.actionType;
 
                             numStimulusGroups = sensorData.packetHeaderTable[eventStartHeaderIndex].numStimulusGroups;
 
@@ -268,7 +289,7 @@ namespace CoreServices.Prediction
                             // Flashing stimulus has stopped. Decide what to do next later in the code.
                             // It also serves as a reminder that need to handle Pause/Resume in the future.
                             stimulusEnded = true;
-                            reportedAction = (int)ActionType.StimulusEnd;
+                            reportedAction = (int)eventAction.actionType;
                         }
                         break;
 
@@ -278,55 +299,57 @@ namespace CoreServices.Prediction
 
                         if (eventAction.actionType == ActionType.NoAction)
                         {
-                            reportedAction = (int)ActionType.NoAction;
+                            reportedAction = (int)eventAction.actionType;
                         }
 
-
-                        eventStartHeaderIndex = eventAction.eventStartHeaderIndex;
-                        windowLength = eventAction.windowLength;
-
-                        // Collect debug info to report to main thread ...
-                        reportPredictionStatus = true;      // Set false to disable reporting this msg
-
-                        statusMessageID = MARK_STIM_CHANGE;
-                        messageLength = 5;
-                        phaseInSeq = sensorData.packetHeaderTable[eventStartHeaderIndex].phaseInSeq;
-                        stimulusCode = sensorData.packetHeaderTable[eventStartHeaderIndex].stimulusCode;
-                        reportedAction = (int)eventAction.actionType;
-
-                        // Compute weighted score for single stimulus interval over window length for each sensor
-                        flashIntervalScores = predictionScoring.ComputeWeightedSensorScores(sensorData, eventStartHeaderIndex, windowLength);
-
-                        // Store flash interval scores into larger table covering entire flash sequence
-                        predictionScoring.StoreWeightedSensorScores(flashIntervalScores, stimulusCode);
-
-                        // Construct table one flash interval at a time from first flash sequence
-                        if (flashIntervalCount == 0)
+                        else if (eventAction.actionType == ActionType.ComputeScore)
                         {
-                            sensorData.AddStimulusGroupingEntry(eventStartHeaderIndex);
-                        }
+                            eventStartHeaderIndex = eventAction.eventStartHeaderIndex;
+                            windowLength = eventAction.windowLength;
 
-                        // Determine if number of flash intervals processed is one complete flash sequence yet
-                        if (++flashIntervalCount == numStimulusGroups)
-                        {
-                            // Reset count for start of next flash sequence
-                            flashIntervalCount = 0;
+                            // Collect debug info to report to main thread ...
+                            reportPredictionStatus = false;      // Set false to disable reporting this msg
 
-                            // Increment after one complete sequences of stimulus inverals has been flashed
-                            ++flashSequenceCount;
+                            statusMessageID = MARK_STIM_CHANGE;
+                            messageLength = 5;
+                            phaseInSeq = sensorData.packetHeaderTable[eventStartHeaderIndex].phaseInSeq;
+                            stimulusCode = sensorData.packetHeaderTable[eventStartHeaderIndex].stimulusCode;
+                            reportedAction = (int)eventAction.actionType;
 
-                            //if (flashSequenceCount == 1)
-                            //{   // Older Calibration data files don't directly state what the target 
-                            //    // stimulus keyID is. It can be derived from other fields in raw data.
-                            //    // Add this function in the future.
-                            //    targetKeyID = sensorData.GetTargetKeyID(numStimulusGroups);
-                            //}
+                            // Compute weighted score for single stimulus interval over window length for each sensor
+                            flashIntervalScores = predictionScoring.ComputeWeightedSensorScores(sensorData, eventStartHeaderIndex, windowLength);
 
-                            performPrediction = true;
-                        }
-                        else
-                        {
-                            performPrediction = false;
+                            // Store flash interval scores into larger table covering entire flash sequence
+                            predictionScoring.StoreWeightedSensorScores(flashIntervalScores, stimulusCode);
+
+                            // Construct table one flash interval at a time from first flash sequence
+                            if (flashSequenceCount == 0)
+                            {
+                                sensorData.AddStimulusGroupingEntry(eventStartHeaderIndex);
+                            }
+
+                            // Determine if number of flash intervals processed is one complete flash sequence yet
+                            if (++flashIntervalCount == numStimulusGroups)
+                            {
+                                // Reset count for start of next flash sequence
+                                flashIntervalCount = 0;
+
+                                // Increment after one complete sequences of stimulus inverals has been flashed
+                                // ++flashSequenceCount;
+
+                                //if (flashSequenceCount == 1)
+                                //{   // Older Calibration data files don't directly state what the target 
+                                //    // stimulus keyID is. It can be derived from other fields in raw data.
+                                //    // Add this function in the future.
+                                //    targetKeyID = sensorData.GetTargetKeyID(numStimulusGroups);
+                                //}
+
+                                performPrediction = true;
+                            }
+                            else
+                            {
+                                performPrediction = false;
+                            }
                         }
                         break;
 
@@ -354,6 +377,8 @@ namespace CoreServices.Prediction
                 // decision making process with the inclusion of the additional information.
                 if (performPrediction == true)
                 {
+                    performPrediction = false;
+
                     // Combine weighted scores from multiple sensors into single score value per stimulus code.
                     combinedWeightedScores = 
                         predictionScoring.ComputeCombinedWeightedScores(numSensorChannels, numStimulusGroups);
@@ -400,6 +425,7 @@ namespace CoreServices.Prediction
                             topAccumulatedScores, predictionScoreThreshold);
 
                         // Fill in remaining fields of predictionResults? flashSequenceCount? ...
+                        predictionResult.flashSequenceCount = flashSequenceCount;
                     }
                     else
                     {
@@ -428,6 +454,7 @@ namespace CoreServices.Prediction
                             predictionAlgorithm.KeyIdPredictionAlgorithm(topAccumulatedScores, predictionScoreThreshold);
 
                         // Fill in remaining fields of predictionResults? flashSequenceCount? ...
+                        predictionResult.flashSequenceCount = flashSequenceCount;
                     }
 
 
@@ -436,6 +463,9 @@ namespace CoreServices.Prediction
                     // Now comes the fun part. First, there are two methods of predicting which keyID the user 
                     // is watching. Next, there are also two ways to decide when to stop monitoring the prediction
                     // results and make a keyboard selection...
+
+                    // Increment after one complete sequences of stimulus inverals has been flashed
+                    ++flashSequenceCount;
 
                     // Report the target keyID the user is watching extracted from Calibration or Validation raw data.
                     // The attended target is not known in advance (keyID = 0 in packet header) during Prediction.
@@ -455,7 +485,7 @@ namespace CoreServices.Prediction
                         {
                             // Continue collecting data without making a prediction
                             predictionResult.selectedKeyID = 0;
-                            statusMessageID = PREDICT_SELECTION;
+                            statusMessageID = PREDICT_STATUS;
                         }
                     }
                     else
@@ -473,11 +503,17 @@ namespace CoreServices.Prediction
                             predictionResult.selectedKeyID = predictionResult.predictedKeyID;
                             statusMessageID = END_OF_PREDICTION;
                         }
+                        else if (flashSequenceCount == fixedSequenceLimit)
+                        {
+                            // If reached the fixed limit, and NOT MADE A SELECTION, then stop current prediction
+                            predictionResult.selectedKeyID = 0;
+                            statusMessageID = END_OF_PREDICTION;
+                        }
                         else
                         {
                             // Continue collecting data without making a prediction
                             predictionResult.selectedKeyID = 0;
-                            statusMessageID = PREDICT_SELECTION;
+                            statusMessageID = PREDICT_STATUS;
                         }
                     }
 
@@ -520,12 +556,7 @@ namespace CoreServices.Prediction
                     // Send prediction status messages back to prediction state engine this way
                     // until I figure out a better way to do it ...
 
-                    if (statusMessageID == END_OF_PREDICTION)
-                    {
-                        statusMessage.content[0] = END_OF_PREDICTION;     // Message ID
-                        statusMessage.content[1] = messageLength;         // Message length
-                    }
-                    else if (statusMessageID == MARK_STATE_CHANGE)
+                    if (statusMessageID == MARK_STATE_CHANGE)
                     {
                         statusMessage.content[0] = MARK_STATE_CHANGE;     // Message ID
                         statusMessage.content[1] = messageLength;         // Message length
@@ -535,27 +566,54 @@ namespace CoreServices.Prediction
                     }
                     else if (statusMessageID == MARK_STIM_CHANGE)
                     {
-                        statusMessage.content[0] = MARK_STIM_CHANGE;     // Message ID
+                        statusMessage.content[0] = MARK_STIM_CHANGE;      // Message ID
                         statusMessage.content[1] = messageLength;         // Message length
                         statusMessage.content[2] = phaseInSeq;
                         statusMessage.content[3] = stimulusCode;
                         statusMessage.content[4] = reportedAction;
                     }
-                    else if (statusMessageID == PREDICT_SELECTION)
+                    else if (statusMessageID == PREDICT_STATUS)
                     {
-                        statusMessage.content[0] = PREDICT_SELECTION;     // Message ID
-                        statusMessage.content[1] = 5;                     // Message length
-                        statusMessage.content[2] = predictionResult.predictedKeyID;
-                        statusMessage.content[3] = predictionResult.predictWinCount;
-                        statusMessage.content[4] = predictionResult.selectedKeyID;
+                        statusMessage.content[0] = PREDICT_STATUS;         // Message ID
+                        statusMessage.content[1] = 16;                     // Message length
+                        statusMessage.content[2] = predictionResult.flashSequenceCount;
+                        statusMessage.content[3] = topAccumulatedScores[0].indexValue;
+                        statusMessage.content[4] = topAccumulatedScores[1].indexValue;
+                        statusMessage.content[5] = topAccumulatedScores[2].indexValue;
+                        statusMessage.content[6] = topAccumulatedScores[3].indexValue;
+                        statusMessage.content[7] = topAccumulatedScores[4].indexValue;
+
+                        // Conversion accuracy is not critical. Truncate double to create integer value score
+                        statusMessage.content[8] = (int)topAccumulatedScores[0].accumScore;
+                        statusMessage.content[9] = (int)topAccumulatedScores[1].accumScore;
+                        statusMessage.content[10] = (int)topAccumulatedScores[2].accumScore;
+                        statusMessage.content[11] = (int)topAccumulatedScores[3].accumScore;
+                        statusMessage.content[12] = (int)topAccumulatedScores[4].accumScore;
+
+                        statusMessage.content[13] = predictionResult.predictedKeyID;
+                        statusMessage.content[14] = predictionResult.predictWinCount;
+                        statusMessage.content[15] = predictionResult.selectedKeyID;
                     }
-                    else
+                    else if (statusMessageID == END_OF_PREDICTION)
                     {
-                        // Send dummy message to indicate OOOPS!!!
-                        statusMessage.content[0] = 0;
-                        statusMessage.content[1] = 4;
-                        statusMessage.content[2] = 0;
-                        statusMessage.content[3] = 0;
+                        statusMessage.content[0] = END_OF_PREDICTION;      // Message ID
+                        statusMessage.content[1] = 16;                     // Message length
+                        statusMessage.content[2] = predictionResult.flashSequenceCount;
+                        statusMessage.content[3] = topAccumulatedScores[0].indexValue;
+                        statusMessage.content[4] = topAccumulatedScores[1].indexValue;
+                        statusMessage.content[5] = topAccumulatedScores[2].indexValue;
+                        statusMessage.content[6] = topAccumulatedScores[3].indexValue;
+                        statusMessage.content[7] = topAccumulatedScores[4].indexValue;
+
+                        statusMessage.content[8] = (int)topAccumulatedScores[0].accumScore;
+                        statusMessage.content[9] = (int)topAccumulatedScores[1].accumScore;
+                        statusMessage.content[10] = (int)topAccumulatedScores[2].accumScore;
+                        statusMessage.content[11] = (int)topAccumulatedScores[3].accumScore;
+                        statusMessage.content[12] = (int)topAccumulatedScores[4].accumScore;
+
+                        statusMessage.content[13] = predictionResult.predictedKeyID;
+                        statusMessage.content[14] = predictionResult.predictWinCount;
+                        statusMessage.content[15] = predictionResult.selectedKeyID;
                     }
 
                     // Send prediction status message back to main thread

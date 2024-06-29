@@ -216,8 +216,8 @@ namespace CoreServices.Prediction
 
         public void StoreCombinedWeigtedStimScores(double[] combinedWeightedScores, int numStimGroupings, int flashSeqNum)
         {
-            // combinedWeightedScores[] holds score for each stimulus group over one flash sequence
-            for (int stimCode = 0; stimCode < numStimGroupings; stimCode++)
+            // combinedWeightedScres[] holds score for each stimulus group over one flash sequence
+            for (int stimCode = 1; stimCode <= numStimGroupings; stimCode++)
             {
                 // combinedStimScoreTable[] holds score for each stimulus group over each "good" flash sequence
                 combinedStimScoreTable[stimCode, flashSeqNum] = combinedWeightedScores[stimCode];
@@ -231,9 +231,9 @@ namespace CoreServices.Prediction
             double acumSum;
             double[] accumulatedStimScores = new double[numStimGroupings+1];
 
-            if (flashSeqNum == 1)
+            if (flashSeqNum == 0)
             {
-                for (int stimCode = 0; stimCode < numStimGroupings; stimCode++)
+                for (int stimCode = 1; stimCode <= numStimGroupings; stimCode++)
                 {   // Transfer the score value from first flash sequence to accumulated score initial value.
                     // Store accumulated scores over each flash sequences to later create a heat map of data to  
                     // show how the evoked response rises to top pair of stim scores over time.
@@ -244,7 +244,7 @@ namespace CoreServices.Prediction
             }
             else
             {
-                for (int stimCode = 0; stimCode < numStimGroupings; stimCode++)
+                for (int stimCode = 1; stimCode <= numStimGroupings; stimCode++)
                 {
                     acumSum = accumulatedStimScoreTable[stimCode, flashSeqNum-1] + combinedStimScoreTable[stimCode, flashSeqNum];
                     accumulatedStimScoreTable[stimCode, flashSeqNum] = acumSum;

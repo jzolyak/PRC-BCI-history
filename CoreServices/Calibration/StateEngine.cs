@@ -16,6 +16,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using System.Reflection;
+using System.Diagnostics;
+
+using CoreServices.Headset;
 
 namespace CoreServices.Calibration
 {
@@ -106,13 +109,16 @@ namespace CoreServices.Calibration
 
             bool testScriptEnabled = false;
 
-            const int MAX_MSG_LENGTH = 8;
+            const int MAX_FLASH_MSG_LENGTH = 8;
 
             const int FLASH_ON = 1;
             const int FLASH_OFF = 2;
             const int END_SEQUENCE = 3;
 
             //bool testScriptEnabled = true;
+            const int ENABLE_PIPELINE_SENSOR_DATA = 1;
+            const int DISABLE_PIPELINE_SENSOR_DATA = 2;
+            
             const int samplesPerBatch = 9;              // 9 samples = 30 msec @ Fs=300 Hz
             const double bufferAheadSec = 0.100;        // 100 msec
 
@@ -123,8 +129,6 @@ namespace CoreServices.Calibration
             int phaseInSequence;
             int elapsedTime;
             int sourceTimer;
-
-            int[] messageBuffer = new int[MAX_MSG_LENGTH];
 
             modeState = CalibrationStates.Read_Command;
 
@@ -146,15 +150,28 @@ namespace CoreServices.Calibration
 
             List<FlashTableEntry> flashSequenceTable = new List<FlashTableEntry>();
 
-
             /*   *****************************
-            **   ***  Instantiate classes  ***   
+            **   ***   Configure Headset   ***   
             **   *****************************
             */
             
             string currentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
             string scriptFilename = "CalibrationCommands.txt";
             string filePath = System.IO.Path.Combine(currentDirectory, scriptFilename);
+
+            // NOTE:  JAZ, 04-30-2024
+            //
+            // At some point the following headset configuration code needs some serious cleaning up.
+            // Each BCI app mode *SHOULD NOT* have its own separate headset configuration! The attempted
+            // fix in HeadsetServices *DID NOT* make things any better. Now we have two spots in the
+            // code creating a headset instantiation. This needs to be done in one location and the
+            // headset handle needs to be passed to the separate modes when they are started.
+            //
+            // For now *DO NOT TOUCH* any headset code to address this problem!!! Setting up and
+            // configuring the headset COM port is an intertwined checken and egg type problem
+            // that needs to be addressed at the same time as resolving headset configuration.
+            //
+
             WearableSensingVR300 headset = new WearableSensingVR300();
 
             Logger.Info(this,"\nEntered program... \n");
@@ -231,6 +248,45 @@ namespace CoreServices.Calibration
                 modeState = CalibrationStates.Clean_Up;
             }
             */
+
+            // Start the headset driver at the operating system level
+            headset.StartBackgroundAcquisition();
+
+            /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+            // NOTE:  JAZ, 04-30-2024
+            //
+            // I made a critical software infrastructure change moving from this point forward!!!
+            // Starting the headset data acquisition at the start of each target flash sequence
+            // and then stopping the acquisition at the end of each data collection is a flaw
+            // in the software design. The objective was to synchronize the start of the flashing
+            // stimulus with the start of data collection. Unfortunately restarting acquistion
+            // created a large noise spike at the start of each target data collection.
+            // 
+            // The following code changes the design so that data acquisition starts at the
+            // beginning of the mode and stops at the end of the mode. The data must be constantly
+            // read from the headset, otherwise the buffers in the bluetooth driver will overflow.
+            // A new headset task has been created and started outside the core loop. The data
+            // is constantly read from the headset as soon as it arrives. The state engine
+            // controls the data flow to the processing pipeline by sending a command to the
+            // headset task to enable its output to the Buffer Block at the head of the pipeline.
+            //
+
+            // Create the TPL Dataflow pipeline pieces and start the new headset control task.
+            HeadsetControl headsetControl = new HeadsetControl();
+
+            CancellationTokenSource headsetTokenSource = new CancellationTokenSource();
+
+            var headsetDataBufferBlock = new BufferBlock<double[]>();
+            var headsetMsgBufferBlock  = new BufferBlock<HeadsetControlMessage>();
+
+            HeadsetControlMessage headsetControlMessage = new HeadsetControlMessage();
+
+            Task t0 = Task.Run(() => headsetControl.ReadHeadsetDataAsync(headset, headsetTokenSource.Token, headsetDataBufferBlock, headsetMsgBufferBlock));
+
+
+            /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
             try
             {
                 commandLines = File.ReadAllLines(filePath);
@@ -243,8 +299,9 @@ namespace CoreServices.Calibration
                     startSetNum = calibrationFileMetadata.CurrentSet;
                 }
 
-                // Continue performing calibration until either:
-                //   - Script runs to completion, user exits at end of set, or error occurs
+                // Continue performing calibration mode until either:
+                //   - Script runs to completion, user exits at end of calibration set, or error occurs.
+
                 while (!modeExit)
                 {
                     string logString = "currentLine = " + currentLine.ToString() + "  modeState = " + CalibrationStateNames[(int)modeState] + "\n";
@@ -710,7 +767,6 @@ namespace CoreServices.Calibration
                                     // Proceed on to normal flash stimulus
                                     modeState = CalibrationStates.Core_Loop;
                                 }
-
                             }
                             else
                             {
@@ -743,17 +799,8 @@ namespace CoreServices.Calibration
                             int numIterations = 0;
                             int numEntries = flashSequenceTable.Count;
 
-                            headset.StartBackgroundAcquisition();
 
-                            FlashTiming flashTiming = new FlashTiming();
-                            SensorFiltering sensorFiltering = new SensorFiltering();
-                            RecordBinaryData recordBinary = new RecordBinaryData();
-
-                            CancellationTokenSource tokenSource = new CancellationTokenSource();
-
-                            var messageBufferBlock = new BufferBlock<int[]>();
-                            var dataBufferBlock = new BufferBlock<double[]>();
-                            var filterBufferBlock = new BufferBlock<double[]>();
+                            /* ********************************* */
 
                             if (calibrationFileMetadata ==null)
                             {
@@ -767,32 +814,74 @@ namespace CoreServices.Calibration
                                 Logger.Error(this, "unable to create binary writer.");
                                 modeState = CalibrationStates.Clean_Up; break;
                             }
+
+                            /* ********************************* */
+
+
+                            CancellationTokenSource pipelineTokenSource = new CancellationTokenSource();
+
+                            DataflowBlockOptions blockOptions = new DataflowBlockOptions();
+                            blockOptions.CancellationToken = pipelineTokenSource.Token;
+
+                            // Create instances of BufferBlocks to pass data between pipelined tasks.
+                            var flashDataBufferBlock = new BufferBlock<double[]>(blockOptions);
+                            var flashMsgBufferBlock = new BufferBlock<int[]>(blockOptions);
+                            var filterDataBufferBlock = new BufferBlock<double[]>(blockOptions);
+
+                            int[] flashControlMessage = new int[MAX_FLASH_MSG_LENGTH];
+
+                            // Create instances of classes that comprise the processing pipeline tasks
+                            FlashTiming flashTiming = new FlashTiming();
+                            SensorFiltering sensorFiltering = new SensorFiltering();
+                            RecordBinaryData recordBinary = new RecordBinaryData();
+
                             // Start separate tasks that fetch sensor samples from headset while flashing keys on display screen,
                             // filtering the data for each sensor channel, and recording the filtered sensor data.
-                            Task t1 = Task.Run(() => flashTiming.FlashDataAsync(headset, tokenSource.Token, flashSequenceTable, messageBufferBlock, dataBufferBlock));
 
-                            Task t2 = Task.Run(() => sensorFiltering.FilterDataAsync(tokenSource.Token, dataBufferBlock, filterBufferBlock));
+                            // Task t0 = Task.Run(() => headsetControl.ReadHeadsetDataAsync(headset, headsetTokenSource.Token, headsetDataBufferBlock, headsetMsgBufferBlock));
 
-                            Task t3 = Task.Run(() => recordBinary.RecordDataAsync(tokenSource.Token, filterBufferBlock, binaryWriter));
+                            Task t1 = Task.Run(() => flashTiming.FlashDataAsync(headset, pipelineTokenSource.Token, flashSequenceTable, 
+                                                                                headsetDataBufferBlock, flashDataBufferBlock, flashMsgBufferBlock));
+
+                            Task t2 = Task.Run(() => sensorFiltering.FilterDataAsync(pipelineTokenSource.Token, flashDataBufferBlock, filterDataBufferBlock));
+
+                            Task t3 = Task.Run(() => recordBinary.RecordDataAsync(pipelineTokenSource.Token, filterDataBufferBlock, binaryWriter));
+
+
+                            // Synchronize sensor dataflow of buffered data with flash sequence.
+                            // headset.FlushBuffers();
+
+                            // Enable the flow of sensor data from the headset to the processing pipeline now.
+                            headsetControlMessage.content[0] = ENABLE_PIPELINE_SENSOR_DATA;     // message ID
+                            headsetControlMessage.content[1] = 2;                               //message length
+
+                            // Send command message to the headset task.
+                            headsetMsgBufferBlock.Post(headsetControlMessage);
+
+                            //await Task.Delay(100);
+
+                            /* +++++++++++++++++++++++++++++++++++++++ */
 
                             while (exitFlag == false)
                             {
-                                messageBuffer = await flashTiming.GetFlashControlMessageAsync(messageBufferBlock);
+                                flashControlMessage = await flashTiming.GetFlashControlMessageAsync(flashMsgBufferBlock);
 
                                 string flashTime = DateTime.Now.ToString("HH:mm:ss:ffff");
 
-                                messageType = messageBuffer[0];
+                                messageType = flashControlMessage[0];
 
                                 if (messageType == FLASH_ON)
                                 {
-                                    indexValue = messageBuffer[1] - 1;
-                                    phaseInSequence = messageBuffer[2];
-                                    elapsedTime = messageBuffer[3];
+                                    indexValue = flashControlMessage[1] - 1;
+                                    phaseInSequence = flashControlMessage[2];
+                                    elapsedTime = flashControlMessage[3];
 
                                     flashStimulus.FlashStimulusON(targetkeyIDvalue, indexValue, flashSequenceTable);
 
                                     sourceTimer = elapsedTime % 65536;
                                     //Console.WriteLine("{0}  Flash ON,  seq num = {1},  phase = {2},   time = {3} \n", flashTime, indexValue, phaseInSequence, sourceTimer);
+                                    //Debug.WriteLine("{0}  Flash ON,  seq num = {1},  phase = {2},   time = {3} \n", flashTime, indexValue, phaseInSequence, sourceTimer);
+                                    Debug.WriteLine("{0}  Flash ON,  seq num = {1},  phase = {2} \n", flashTime, indexValue, phaseInSequence);
 
                                     if (displayStatus == true)
                                     {
@@ -802,14 +891,15 @@ namespace CoreServices.Calibration
                                 }
                                 else if (messageType == FLASH_OFF)
                                 {
-                                    indexValue = messageBuffer[1] - 1;
-                                    phaseInSequence = messageBuffer[2];
-                                    elapsedTime = messageBuffer[3];
+                                    indexValue = flashControlMessage[1] - 1;
+                                    phaseInSequence = flashControlMessage[2];
+                                    elapsedTime = flashControlMessage[3];
 
                                     flashStimulus.FlashStimulusOFF(targetkeyIDvalue, indexValue, flashSequenceTable);
 
                                     sourceTimer = elapsedTime % 65536;
                                     //Console.WriteLine("{0}  Flash OFF,  seq num = {1},  phase = {2},   time = {3}  \n", flashTime, indexValue, phaseInSequence, sourceTimer);
+                                    Debug.WriteLine("{0}  Flash OFF,  seq num = {1},  phase = {2} \n", flashTime, indexValue, phaseInSequence);
 
                                     if (++flashCount >= numEntries)
                                     {
@@ -831,17 +921,27 @@ namespace CoreServices.Calibration
 
                             }  // while (exitFlag == false)
 
+                            /* +++++++++++++++++++++++++++++++++++++++ */
+
                             ++numTargets;
 
-                            // Stop task that is fetching sensor samples from headset
-                            tokenSource.Cancel();
+                            // Disable the flow of sensor data from the headset to the processing pipeline now.
+                            headsetControlMessage.content[0] = DISABLE_PIPELINE_SENSOR_DATA;     // message ID
+                            headsetControlMessage.content[1] = 2;                               //message length
 
-                            //await Task.Delay(50);
-                            headset.StopBackgroundAcquisition();
-                            headset.Idle(0.200);
+                            // Send command message to the headset task.
+                            headsetMsgBufferBlock.Post(headsetControlMessage);
 
-                            messageBufferBlock.Complete();
-                            dataBufferBlock.Complete();
+                            await Task.Delay(100);
+
+                            // Stop processing pipeline tasks by cancelling the shared token
+                            pipelineTokenSource.Cancel();
+
+                            await Task.Delay(100);
+
+                            filterDataBufferBlock.Complete();
+                            flashDataBufferBlock.Complete();
+                            flashMsgBufferBlock.Complete();
 
                             modeState = CalibrationStates.Unhighlight_Target;
                             break;
@@ -849,6 +949,7 @@ namespace CoreServices.Calibration
                         /* ********************************* */
                         /*  End Core Loop                    */
                         /* ********************************* */
+
 
                         case CalibrationStates.Unhighlight_Target:
                             // Undo changes and make target key transparent again
@@ -940,7 +1041,14 @@ namespace CoreServices.Calibration
 
                 }  // while (!modeExit)
 
-                // this.Close();
+                headset.StopBackgroundAcquisition();
+                await Task.Delay(50);
+
+                // Stop headset task by cancelling the token
+                headsetTokenSource.Cancel();
+
+                headsetMsgBufferBlock.Complete();
+                headsetDataBufferBlock.Complete();
 
                 headset.Disconnect();
                 headset.Delete();

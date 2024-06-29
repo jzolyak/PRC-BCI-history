@@ -232,7 +232,7 @@ namespace CoreServices.SensorData
                                 // When the keys in the stimulus group are "flashed ON", then stimulusCode is
                                 // a non-zero value. When keys in group are not flashed, then stimulusCode = 0.
                                 // This was done this way to be compatible with BCI2000 utility.
-                                if ((currentStimCode == nextStimCode) | (nextStimCode == 0))
+                                if ((nextStimCode == currentStimCode) | (nextStimCode == 0))
                                 {
                                     // Next stimulus code value not found yet. Advance to next packet header.
                                     eventFound = false;

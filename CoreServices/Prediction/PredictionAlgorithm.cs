@@ -1,4 +1,5 @@
 ﻿using CoreServices.SensorData;
+using CoreServices.Stimulus;
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
@@ -20,6 +21,12 @@ namespace CoreServices.Prediction
         {                                  // Record used to create array of top accumulated scores
             public int indexValue;         // Either stim code value or keyID value
             public double accumScore;      // accumulated sensor score at that index value
+
+            public TopScoreEntry()
+            {
+                indexValue = 0;
+                accumScore = 0.0;
+            }
         }
 
         public struct IntersectPoint
@@ -107,6 +114,7 @@ namespace CoreServices.Prediction
                 {
                     // Replace bottom score with new score and then perform ascending sort
                     topAccumScores[MAX_NUM_TOP_SCORES - 1].accumScore = accumulatedScores[index];
+                    topAccumScores[MAX_NUM_TOP_SCORES - 1].indexValue = index;
 
                     for (int i = (MAX_NUM_TOP_SCORES - 1); i > 0; i--)
                     {
@@ -178,8 +186,8 @@ namespace CoreServices.Prediction
             // Default constructor is set to no intersecting point
             IntersectPoint intersectingPoint = new IntersectPoint();
 
-            const int MATRIX1_ROW_COL_SUM = 1;
-            const int MATRIX2_ROW_COL_SUM = 2;
+            const int MATRIX1_ROW_COL_SUM = FlashSequence.HIDDEN1_ROW + FlashSequence.HIDDEN1_COL;    // equals 4
+            const int MATRIX2_ROW_COL_SUM = FlashSequence.HIDDEN2_ROW + FlashSequence.HIDDEN2_COL;    // equals 60
 
             int stimCodeIndex1;
             int stimCodeIndex2;
@@ -293,8 +301,8 @@ namespace CoreServices.Prediction
                     // Indicate that we passed intersect test, but that signal strength does not
                     // have high enough confidence to be true winner yet.
                     predictionResult.candidatetKeyID = candidateKeyID;
-                    predictionResult.predictedKeyID = 0;
-                    predictionResult.predictWinCount = predictedtWinCount[0];
+                    predictionResult.predictedKeyID = candidateKeyID;
+                    predictionResult.predictWinCount = predictedtWinCount[candidateKeyID];  // Report unincremented win count
                 }
             }
             else
