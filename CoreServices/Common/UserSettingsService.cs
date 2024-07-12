@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CoreServices.Files;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -13,13 +14,15 @@ namespace CoreServices.Common
         private ConcurrentDictionary<string, string> _userSettings;
         private string _settingsFileName;
         private string _defaultSettingsFileName;
+        private string _settingsFilePath;
 
         public UserSettingsService()
         {
             _userSettings = new ConcurrentDictionary<string, string>();
             _defaultSettingsFileName = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\DefaultSettings.txt";
+            _settingsFilePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\Settings";
             LoadSettings(_defaultSettingsFileName);
-            _settingsFileName = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Settings\\UserSettings.txt";
+            _settingsFileName = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\Settings\\UserSettings.txt";
             LoadSettings(_settingsFileName);
         }
 
@@ -72,6 +75,7 @@ namespace CoreServices.Common
 
         public void SaveUserSettings(string key, string value)
         {
+            FileHandlerService.EnsureFolder(_settingsFilePath);
             if (_userSettings.ContainsKey(key))
             {
                 _userSettings[key] = value;

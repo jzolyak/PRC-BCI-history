@@ -96,7 +96,7 @@ namespace CoreServices.Files
             return true;
         }
 
-       private static void EnsureFolder(string path)
+       public static void EnsureFolder(string path)
         {
             string directoryName = Path.GetDirectoryName(path);
             // If path is a file name only, directory name will be an empty string
