@@ -22,7 +22,8 @@ namespace ViewModels.FlashStimulus
         private ObservableCollection<ButtonElement> _buttonCollection;
         private CalibrationService _calibrationService;
         private PredictionService _predictionService;
-
+        private string _mode;
+        private Action _exitAction;
         private UIInstruction _uiInstruction;
         private object? _popupContentViewModel;
         private bool _showPopup;
@@ -44,7 +45,7 @@ namespace ViewModels.FlashStimulus
         public bool ShowPopup { get => _showPopup; set { _showPopup = value; OnPropertyChanged(nameof(ShowPopup)); } }
         public object? PopupContentViewModel { get => _popupContentViewModel; set { _popupContentViewModel = value; OnPropertyChanged(nameof(PopupContentViewModel)); } }
         public WindowTopMost Topmost { get => _topMost; set { _topMost = value; OnPropertyChanged(nameof(Topmost)); } }
-        public FlashStimulusViewModel()
+        public FlashStimulusViewModel(string mode,Action exitAction)
         {
             _topMost = new WindowTopMost(); 
             _calibrationService = ServiceLocator.CalibrationService;
@@ -59,6 +60,8 @@ namespace ViewModels.FlashStimulus
             _repeatQueryViewModel = new CalibrationRepeatQueryViewModel(NotificationFromUI);
             _countDownViewModel = new CountDownViewModel(ClosePopup, NotificationFromUI);
             WindowSizeProp = null;
+            _mode = mode;
+            _exitAction = exitAction;
         }
 
         private void _calibrationService_RaiseUIRequestChange(object? sender, CoreServices.Models.EventArgs<CoreServices.Models.UIInstruction> e)
@@ -81,14 +84,44 @@ namespace ViewModels.FlashStimulus
             if(e==null || e.Value == null) return;  
             var screenOverlay = e.Value;
             if (screenOverlay == null || screenOverlay.ButtonElementList == null) return;
+            screenOverlay.ButtonElementList.Add(GetExitToMainScreen(screenOverlay.ButtonElementList[0]));
             ButtonCollection = new ObservableCollection<ButtonElement>(screenOverlay.ButtonElementList);
-            this.Height = screenOverlay.Height;
+            this.Height = screenOverlay.Height+150;
             this.Width = screenOverlay.Width;
             this.Top = screenOverlay.Top;
             this.Left = screenOverlay.Left;
             WindowSizeProp = new WindowSizeProperties() { Height = screenOverlay.Height, Left = screenOverlay.Left, Top = screenOverlay.Top, Width = screenOverlay.Width };
         }
 
+        private ButtonElement GetExitToMainScreen(ButtonElement firstElement)
+        {
+            var buttonelement = new ButtonElement();
+            buttonelement.Left = 200;
+            buttonelement.Top = 130;
+            buttonelement.Height = 50;
+            buttonelement.Width = 200;
+            buttonelement.Name = "Exit From BCI";
+            buttonelement.IsEnabled = true;
+            buttonelement.ClickAction = ExitToMainMenu;
+            buttonelement.BorderBrush = CustomBrushes.Red;
+            return buttonelement;
+        }
+        private void ExitToMainMenu(string name)
+        {
+            if (!string.IsNullOrEmpty(_mode))
+            {
+                if (_mode.ToLower().Equals("prediction"))
+                {
+                    _predictionService.ForceExit();
+                }
+                else if (_mode.ToLower().Equals("calibration"))
+                {
+                    _calibrationService.ForceExit();
+                }
+            }
+            Environment.Exit(1);
+
+        }
         private void NotificationFromUI(UIInstruction uIInstruction)
         {
             _calibrationService.ReceiveNotificationFromUI(uIInstruction);

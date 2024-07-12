@@ -84,7 +84,7 @@ namespace ViewModels.Prediction
             _predictionInstructionsViewModel = new PredictionInstructionsViewModel(StartActualPrediction, ClosePopup);
             Opacity = 1;
             
-            _flashStimulusViewModel = new FlashStimulusViewModel();
+            _flashStimulusViewModel = new FlashStimulusViewModel("prediction",exitAction);
         }
 
         private void OnSimulationModePreferenceChange(object obj)

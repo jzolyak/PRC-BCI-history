@@ -37,7 +37,7 @@ namespace CoreServices.Calibration
         public CalibrationService()
         {
             _predictionMetadataList = new ConcurrentDictionary<String, PredictionFileMetadata>();
-            _calibrationFilePath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)+ "\\CalibrationFiles\\";
+            _calibrationFilePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\CalibrationFiles\\";
             _stateEngine = new StateEngine(NotifyUI, NotifyScreenOverLayChange, ExitCalibration, OnCalibrationComplete,OnCalibrationPaused, ActivateUI);
             LoadCalibrationFiles();
         }
@@ -55,6 +55,7 @@ namespace CoreServices.Calibration
         {
             try
             {
+                Logger.Info("special message");
                 //Load the calibration files from local disk
                 if (!Directory.Exists(_calibrationFilePath))
                 {
@@ -90,7 +91,8 @@ namespace CoreServices.Calibration
                         UserGivenName = metadata[0],
                         NumofSets = Int32.Parse(metadata[2]),
                         CurrentSet = Int32.Parse(metadata[1]),
-                        IsCurrent = true
+                        IsCurrent = true,
+                        FilePath=_calibrationFilePath
                     };
                 }
                 else
@@ -121,6 +123,7 @@ namespace CoreServices.Calibration
                 var predictionFile = new PredictionFileMetadata
                 {
                     Name = metadata[0],
+                    FilePath = _calibrationFilePath
                 };
                 if (metadata.Length > 1 && metadata[1].ToLower().Equals("current"))
                 {
@@ -145,6 +148,7 @@ namespace CoreServices.Calibration
         public CalibrationFileMetadata CreateNewCalibrationFile(string name)
         {
             var calibrationFileMetadata = new CalibrationFileMetadata { UserGivenName = name, NumofSets = 5, CurrentSet = 1, IsCurrent = true, IsStale =false };
+            calibrationFileMetadata.FilePath = _calibrationFilePath;
             //NotifyFileMetadataChange(calibrationFileMetadata);
             _currentCalibrationFile = calibrationFileMetadata;
             NotifyFileMetadataChange(calibrationFileMetadata);
@@ -225,6 +229,11 @@ namespace CoreServices.Calibration
         public void OnCalibrationPaused()
         {
             NotifyFileMetadataChange(_currentCalibrationFile);
+        }
+
+        public void ForceExit()
+        {
+            _stateEngine.ForceExit();
         }
     }
 

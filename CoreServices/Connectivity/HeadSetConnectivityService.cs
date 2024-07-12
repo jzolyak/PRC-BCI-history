@@ -154,7 +154,8 @@ namespace CoreServices.Connectivity
             // For now just create a dummy binary file to store the status results
             try
             {
-                bw = new BinaryWriter(new FileStream("SensorData.bin", FileMode.Create));
+                string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI";
+                bw = new BinaryWriter(new FileStream(path+"\\SensorData.bin", FileMode.Create));
             }
             catch (IOException e)
             {

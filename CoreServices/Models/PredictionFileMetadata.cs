@@ -11,6 +11,7 @@ namespace CoreServices.Models
         public string Name { get; set; }
         public bool IsCurrent { get ; set; }
         public DateTime LastUpdatedTime { get ; set; }
+        public string FilePath { get; set; }
     
         public override string ToString()
         {

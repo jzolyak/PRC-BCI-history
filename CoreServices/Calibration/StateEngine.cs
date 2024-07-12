@@ -38,6 +38,7 @@ namespace CoreServices.Calibration
         private Action completeAction;
         private Action pauseAction;
 
+        private bool _forceExit;
         public enum CalibrationStates
         {
             Show_Instructions, Open_Files, Read_Command, Remote_Display, Get_Remote_Elements,
@@ -63,6 +64,7 @@ namespace CoreServices.Calibration
             this.completeAction = completeAction;
             this.pauseAction = pauseAction;
             this.activeUIAction = activateUIAction;
+            _forceExit = false;
         }
 
         public async Task CalibrationMode()
@@ -359,7 +361,7 @@ namespace CoreServices.Calibration
                                 else
                                 {
                                     Logger.Info(this, "deleting the current calibration set file:" + calibrationFileMetadata.GetCurrentBinFileName());
-                                    FileHandlerService.DeleteBinaryFile(calibrationFileMetadata.GetCurrentBinFileName(), "CalibrationFiles");
+                                    FileHandlerService.DeleteBinaryFile(calibrationFileMetadata.GetCurrentBinFileName(), calibrationFileMetadata.FilePath);
                                     modeState = CalibrationStates.Wait_On_UI;
                                     uiInstruction.Type = UIType.CalibrationRepeatQuery;
                                     uiInstruction.Result = false;
@@ -613,8 +615,9 @@ namespace CoreServices.Calibration
                             if (elementList.Count == 0)
                             {
                                 // Sometimes MUIA does not find the children elements of the desktop (root) element on the first try.
-                                if (numGetElementRetries == 0)
+                                if (numGetElementRetries  < 2)
                                 {
+                                    await Task.Delay(200);
                                     // Try fetching the list one more time
                                     numGetElementRetries++;
                                     modeState = CalibrationStates.Get_Remote_Elements;
@@ -808,7 +811,7 @@ namespace CoreServices.Calibration
                                 modeState = CalibrationStates.Clean_Up; break;
                             }    
                            
-                            binaryWriter = FileHandlerService.CreateAndOpenBinaryFile(calibrationFileMetadata.GetCurrentBinFileName(), "CalibrationFiles");
+                            binaryWriter = FileHandlerService.CreateAndOpenBinaryFile(calibrationFileMetadata.GetCurrentBinFileName(), calibrationFileMetadata.FilePath);
                             if (binaryWriter == null)
                             {
                                 Logger.Error(this, "unable to create binary writer.");
@@ -866,6 +869,11 @@ namespace CoreServices.Calibration
                             {
                                 flashControlMessage = await flashTiming.GetFlashControlMessageAsync(flashMsgBufferBlock);
 
+                                if(_forceExit)
+                                {
+                                    _forceExit = false;
+                                    exitFlag=true;
+                                }
                                 string flashTime = DateTime.Now.ToString("HH:mm:ss:ffff");
 
                                 messageType = flashControlMessage[0];
@@ -1106,6 +1114,10 @@ namespace CoreServices.Calibration
             this.calibrationFileMetadata = calibrationFileMetadata;
         }
 
+        public void ForceExit()
+        {
+            _forceExit = true; 
+        }
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
     }

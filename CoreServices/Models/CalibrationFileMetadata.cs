@@ -21,6 +21,7 @@ namespace CoreServices.Models
         public DateTime LastUpdatedTime { get => lastUpdatedTime; set => lastUpdatedTime = value; }
         public bool IsCurrentPredictionFile { get => isCurrentPredictionFile; set => isCurrentPredictionFile = value; }
 
+        public string FilePath { get; set; }
         public override string ToString()
         {
             if (isCurrent) return UserGivenName + "(Current)";

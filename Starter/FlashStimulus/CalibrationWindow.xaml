@@ -23,7 +23,7 @@
             </ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Button Width="{Binding Width,Mode=TwoWay}" Height="{Binding Height,Mode=TwoWay}" Canvas.Top="{Binding Top,Mode=TwoWay}" Canvas.Left="{Binding Left,Mode=TwoWay}"  BorderThickness="4" Background="{Binding BackgroundBrushClr,Converter={StaticResource colortoBrushConverter}}" BorderBrush="{Binding BorderBrushClr,Converter={StaticResource colortoBrushConverter}}" />
+                    <Button Width="{Binding Width,Mode=TwoWay}" Height="{Binding Height,Mode=TwoWay}" Canvas.Top="{Binding Top,Mode=TwoWay}" Canvas.Left="{Binding Left,Mode=TwoWay}"  BorderThickness="4" Background="{Binding BackgroundBrushClr,Converter={StaticResource colortoBrushConverter}}" BorderBrush="{Binding BorderBrushClr,Converter={StaticResource colortoBrushConverter}}" Command="{Binding ClickCmd}" Content="{Binding Name}" FontStyle="Normal" FontWeight='Bold' FontSize="20"/>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>

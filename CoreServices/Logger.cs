@@ -7,7 +7,8 @@ namespace CoreServices
     
     public class Logger
     {
-        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger("GeneralLogger");
+        private static readonly log4net.ILog log2 = log4net.LogManager.GetLogger("GeneralLogger2");
         static Logger()
         {
             
@@ -28,6 +29,10 @@ namespace CoreServices
         {
             if (sender == null) return;
             log.Debug(sender.GetType().FullName + ": " + message);
+        }
+        public static void Info(string message)
+        {
+            log2.Info(message);
         }
     }
 }

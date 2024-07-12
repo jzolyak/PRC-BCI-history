@@ -29,7 +29,7 @@ namespace CoreServices.Prediction
         public PredictionService()
         {
             _predictionMetadataList = new ConcurrentDictionary<String, PredictionFileMetadata>();
-            _predictionFilePath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\CalibrationFiles\\";
+            _predictionFilePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\CalibrationFiles\\";
             _predictionStateEngine = new PredictionStateEngine(NotifyUI, NotifyScreenOverLayChange, ExitPrediction, null, null);
             LoadPredictionFiles();
         }
@@ -66,6 +66,7 @@ namespace CoreServices.Prediction
                 var predictionFile = new PredictionFileMetadata
                 {
                     Name = metadata[0],
+                    FilePath = _predictionFilePath
                 };
                 if (metadata.Length > 1 && metadata[1].ToLower().Equals("current"))
                 {
@@ -126,7 +127,10 @@ namespace CoreServices.Prediction
         {
             _inSimulationMode = simulationMode;
         }
-
+        public void ForceExit()
+        {
+            _predictionStateEngine.ForceExit();
+        }
 
 
     }

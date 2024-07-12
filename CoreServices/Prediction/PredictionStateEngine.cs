@@ -29,8 +29,9 @@ namespace CoreServices.Prediction
         private UIInstruction uiInstruction;
         private Action<UIInstruction> notifyUIAction;
         private Action<ScreenOverlay> notifyScreenOverLayChange;
+        private bool _forceExit;
 
-        private CalibrationFileMetadata calibrationFileMetadata;    // Still need ???
+        private PredictionFileMetadata predictionFileMetadata;    // Still need ???
 
         private Action exitAction;
         private Action completeAction;
@@ -157,8 +158,8 @@ namespace CoreServices.Prediction
             //string currentDirectory = Directory.GetCurrentDirectory();
             //string coefficientFilename = "WeightCoefficients.coef";
 
-            string currentDirectory = "C:\\Users\\Joseph8207\\source\\repos2\\BCI_NewHeadset\\BCI\\Starter\\bin\\Debug\\net6.0-windows\\CalibrationFiles";
-            string coefficientFilename = "Flush9_FY1_SW.coef";
+            string currentDirectory = predictionFileMetadata.FilePath;
+            string coefficientFilename =predictionFileMetadata.Name;
             string filePath = System.IO.Path.Combine(currentDirectory, coefficientFilename);
 
             // string currentDirectory = Directory.GetCurrentDirectory();
@@ -685,6 +686,12 @@ namespace CoreServices.Prediction
                             {
                                 flashControlMessage = await flashTiming.GetFlashControlMessageAsync(flashMsgBufferBlock);
 
+                                if (_forceExit)
+                                {
+                                    _forceExit = false;
+                                    exitFlag = true;
+                                    pipelineTokenSource.Cancel();
+                                }
                                 string flashTime = DateTime.Now.ToString("HH:mm:ss:ffff");
 
                                 messageType = flashControlMessage[0];
@@ -1012,18 +1019,21 @@ namespace CoreServices.Prediction
 
         private void NotifyUI(UIInstruction uiInstruction)
         {
-            if (calibrationFileMetadata != null) uiInstruction.Param = calibrationFileMetadata;
+            if (predictionFileMetadata != null) uiInstruction.Param = predictionFileMetadata;
             if(notifyUIAction!=null)
             {
                 notifyUIAction(uiInstruction);
             }
         }
 
-        public void SetCalibrationFile(CalibrationFileMetadata calibrationFileMetadata)
+        public void SetPredictionFile(PredictionFileMetadata predictionFileMetadata)
         {
-            this.calibrationFileMetadata = calibrationFileMetadata;
+            this.predictionFileMetadata = predictionFileMetadata;
         }
-
+        public void ForceExit()
+        {
+            _forceExit = true;
+        }
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
