@@ -159,7 +159,7 @@ namespace CoreServices.Prediction
             //string coefficientFilename = "WeightCoefficients.coef";
 
             string currentDirectory = predictionFileMetadata.FilePath;
-            string coefficientFilename =predictionFileMetadata.Name;
+            string coefficientFilename =predictionFileMetadata.Name+"_current.COEF";
             string filePath = System.IO.Path.Combine(currentDirectory, coefficientFilename);
 
             // string currentDirectory = Directory.GetCurrentDirectory();

@@ -79,6 +79,7 @@ namespace CoreServices.Prediction
 
         public void User_Actual_Start()
         {
+            _predictionStateEngine.SetPredictionFile(_currentPredictionFile);
             Task.Run(_predictionStateEngine.PredictionMode);
         }
 
@@ -121,6 +122,7 @@ namespace CoreServices.Prediction
             FileHandlerService.RenameFile(newFile.Name+ ".COEF", newFile.Name + "_" + "current.COEF", _predictionFilePath);
             _currentPredictionFile = newFile;
             _currentPredictionFile.IsCurrent = true;
+            
         }
 
         public void UpdateSimulationModePreference(bool simulationMode)

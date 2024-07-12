@@ -80,7 +80,7 @@ namespace CoreServices.Common
             {
                 _userSettings[key] = value;
                 var allLines = _userSettings.Select(x => x.Key + "=" + x.Value);
-                File.WriteAllLines(_settingsFileName, allLines);
+                File.AppendAllLines(_settingsFileName, allLines);
             }
             else
             {
