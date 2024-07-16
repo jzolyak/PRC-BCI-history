@@ -62,13 +62,17 @@ namespace CoreServices.Stimulus
 
             IUIAutomation automation = new CUIAutomation();
             IUIAutomationElement rootElement = automation.GetRootElement();
-            Process p=null;
+
+            //Process p=null;
+
             if (rootElement != null)
             {
                 IUIAutomationCondition condition = automation.CreatePropertyCondition(30005, "Empower™");
 
                 // Get the parent element of all the children elements of the remote application.
                 IUIAutomationElement appElement = rootElement.FindFirst(TreeScope.TreeScope_Children, condition);
+
+                /*
                 if(appElement == null)
                 {
                     p = GetEmpowerProcess();
@@ -78,6 +82,7 @@ namespace CoreServices.Stimulus
                         appElement = rootElement.FindFirst(TreeScope.TreeScope_Children, condition);
                     }
                 }
+                */
 
                 if (appElement != null)
                 {

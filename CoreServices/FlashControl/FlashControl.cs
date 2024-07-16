@@ -48,7 +48,7 @@ namespace CoreServices.FlashControl
             // const double PRESET_1 = 100.0;          // 0.1 second
             // const double PRESET_1 = 500.0;          // 0.5 second
             // const double PRESET_1 = 1000.0;         // 1.0 second
-            const double PRESET_1 = 1000.0;         // 3.0 second, increase by 2 sec to give user more time to locate target
+            const double PRESET_1 = 3000.0;         // 3.0 second, increase by 2 sec to give user more time to locate target
 
             const double PRESET_2 = 1000.0;         // 1.0 second
             const double PRESET_3 = 90.0;           // 90 msec = Flash ON

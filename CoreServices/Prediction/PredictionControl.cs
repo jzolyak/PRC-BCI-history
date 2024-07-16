@@ -121,7 +121,7 @@ namespace CoreServices.Prediction
             int winCountForSelection = predictionConfiguration.winCountForSelection;
             int fixedSequenceLimit = predictionConfiguration.fixedSequenceLimit;
 
-            double predictionScoreThreshold = predictionConfiguration.predictScoreThreshold;
+            double predictionScoreThreshold = (double) predictionConfiguration.predictScoreThreshold;
 
             /* **************** */
 

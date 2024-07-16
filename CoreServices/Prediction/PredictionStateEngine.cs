@@ -490,6 +490,9 @@ namespace CoreServices.Prediction
                                 // Sometimes MUIA does not find the children elements of the desktop (root) element on the first try.
                                 if (numGetElementRetries == 0)
                                 {
+                                    // Try inserting a small delay before attempting to fetch elements again
+                                    await Task.Delay(200);
+
                                     // Try fetching the list one more time
                                     numGetElementRetries++;
                                     modeState = PredictionStates.Get_Remote_Elements;
@@ -790,8 +793,12 @@ namespace CoreServices.Prediction
                                         //Logger.Info(this, " code5 = " + code5 + " predKey = " + predKey + " winct = " + winct + " selKey = " + selKey + "\n");
                                         //Debug.WriteLine("{0}  STATUS,  fseq = {1}, code1 = {2}, code2 = {3}, code3 = {4}, code4 = {5}, code5 = {6} \n", flashTime, fseq, code1, code2, code3, code4, code5);
 
-                                        Debug.WriteLine("{0}  STATUS,  fseq = {1}, code1 = {2}, code2 = {3}, code3 = {4}, code4 = {5}, code5 = {6}, \n", flashTime, fseq, code1, code2, code3, code4, code5);
-                                        Debug.WriteLine("              score1 = {0}, score2 = {1}, score3 = {2}, score4 = {3}, score5 = {4}, predKey = {5}, winCnt = {6}, selKey = {7}  \n", score1, score2, score3, score4, score5, predKey, winCnt, selKey);
+                                        //Debug.WriteLine("{0}  STATUS,  fseq = {1}, code1 = {2}, code2 = {3}, code3 = {4}, code4 = {5}, code5 = {6}, \n", flashTime, fseq, code1, code2, code3, code4, code5);
+                                        //Debug.WriteLine("              score1 = {0}, score2 = {1}, score3 = {2}, score4 = {3}, score5 = {4}, predKey = {5}, winCnt = {6}, selKey = {7}  \n", score1, score2, score3, score4, score5, predKey, winCnt, selKey);
+
+                                        Logger.Info("STATUS,  fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + " code3 = " + code3 + " code4 = " + code4 + " code5 = " + code5 + "\n");
+                                        Logger.Info("         score1 = " + score1 + " score2 = " + score2 + " score3 = " + score3 + " score4 = " + score4 + " score5 = " + score5 + " predKey = " + predKey + " winCnt = " + winCnt + " selKey = " + selKey + "\n");
+
                                     }
 
                                     else if (messageType == 99)
@@ -824,8 +831,11 @@ namespace CoreServices.Prediction
                                         //Logger.Info(this, "fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + "code3 = " + code3 + " code4 = " + code4);
                                         //Logger.Info(this, " code5 = " + code5 + "  predKey " + predKey + " winCnt = " + winCnt + "selKey = " + selKey + "\n");
 
-                                        Debug.WriteLine("{0}  STATUS,  fseq = {1}, code1 = {2}, code2 = {3}, code3 = {4}, code4 = {5}, code5 = {6}, \n", flashTime, fseq, code1, code2, code3, code4, code5);
-                                        Debug.WriteLine("              score1 = {0}, score2 = {1}, score3 = {2}, score4 = {3}, score5 = {4}, predKey = {5}, winCnt = {6}, selKey = {7}  \n", score1, score2, score3, score4, score5, predKey, winCnt, selKey);
+                                        //Debug.WriteLine("{0}  STATUS,  fseq = {1}, code1 = {2}, code2 = {3}, code3 = {4}, code4 = {5}, code5 = {6}, \n", flashTime, fseq, code1, code2, code3, code4, code5);
+                                        //Debug.WriteLine("              score1 = {0}, score2 = {1}, score3 = {2}, score4 = {3}, score5 = {4}, predKey = {5}, winCnt = {6}, selKey = {7}  \n", score1, score2, score3, score4, score5, predKey, winCnt, selKey);
+
+                                        Logger.Info("STATUS,  fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + " code3 = " + code3 + " code4 = " + code4 + " code5 = " + code5 + "\n");
+                                        Logger.Info("         score1 = " + score1 + " score2 = " + score2 + " score3 = " + score3 + " score4 = " + score4 + " score5 = " + score5 + " predKey = " + predKey + " winCnt = " + winCnt + " selKey = " + selKey + "\n");
 
                                     }
 

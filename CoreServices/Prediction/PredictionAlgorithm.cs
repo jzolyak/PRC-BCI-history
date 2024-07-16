@@ -272,7 +272,7 @@ namespace CoreServices.Prediction
 
             if (candidateKeyID != 0)
             {
-                if ((intersectPoint.stimCodeScore1 > presetScoreThreshold) & 
+                if ((intersectPoint.stimCodeScore1 > presetScoreThreshold) && 
                     (intersectPoint.stimCodeScore2 > presetScoreThreshold))
                 {
                     // The signal strength is considered sufficiently high enough to contain the evoked repsonse.
