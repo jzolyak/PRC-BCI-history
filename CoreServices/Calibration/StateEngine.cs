@@ -568,6 +568,7 @@ namespace CoreServices.Calibration
                                     else
                                     {
                                         remoteDisplay.SelectElement(elementIndex);
+                                        ActivateUI();
                                     }
 
                                     // Give other app time to respond to command

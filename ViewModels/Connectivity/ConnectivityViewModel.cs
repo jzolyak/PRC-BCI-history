@@ -30,14 +30,23 @@ namespace ViewModels.Connectivity
 
         public ICommand DisconnectCommand { get; set; }
         private bool _enableStart;
+        private bool _enableMiscCommands;
+        private bool _enableExit;
+        
+
         public bool EnableStart { get { return _enableStart; } set { _enableStart = value; OnPropertyChanged(nameof(EnableStart)); } }
+        public bool EnableMiscCommands { get { return _enableMiscCommands; } set { _enableMiscCommands = value; OnPropertyChanged(nameof(EnableMiscCommands)); } }
+        public bool EnableExit { get { return _enableExit; } set { _enableExit = value; OnPropertyChanged(nameof(EnableExit)); } }
 
         public string Port { get => _port; set { _port = value; ChangePort(); OnPropertyChanged(nameof(Port)); } }
+       public ObservableCollection<string> Ports { get; set; }
 
         public ConnectivityViewModel(Action exitAction,Action<bool> showorHideMainWindow) : base(exitAction, showorHideMainWindow)
         {
             StartCommand = new RelayCommand(StartConnection);
             EnableStart = true;
+            EnableMiscCommands = false;
+            EnableExit = true;
             _headSetConnectivityService = ServiceLocator.HeadSetConnectivityService;
             _headSetConnectivityService.RaiseMeasurementsChange += HeadSetConnectivityService_RaiseMeasurementsChange;
             _headSetConnectivityService.RaiseRecommendationChange += HeadSetConnectivityService_RaiseRecommendationChange;
@@ -57,11 +66,33 @@ namespace ViewModels.Connectivity
             _port = _userSettingsService.GetSettingsValue(portKey);
             if(Port == null)
             {
-                _port = "COM4";
+                _port = "COM8";
             }
-            _headSetConnectivityService.UpdateHeadsetPort(Port);
             OnPropertyChanged(nameof(Port));
             DisconnectCommand = new RelayCommand(Disconnect);
+            Ports = new ObservableCollection<string>();
+            GetAvailablePorts();
+            _headSetConnectivityService.UpdateHeadsetPort(Port);
+        }
+
+        private void GetAvailablePorts()
+        {
+            try
+            {
+                AvailablePorts ports = new AvailablePorts();
+                ports.GetBluetoothCOMPort();
+                ports.COMPorts.ForEach((port) => { Ports.Add(port.SerialPort.ToUpper()); });
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(this, ex.Message);
+            }
+            if(!Ports.Contains(_port))
+            {
+                Ports.Add(_port);
+                _port = Ports[0];
+            }
+            
         }
 
         private void Disconnect(object obj)
@@ -282,17 +313,27 @@ namespace ViewModels.Connectivity
             {
                 if (_headSetConnectivityService == null) { Logger.Error(this, "head set connectivity service is null"); return; }
                 EnableStart = false;
+                EnableMiscCommands = false;
+                EnableExit = false;
                 Logger.Info(this, "Stating connection");
                 await _headSetConnectivityService.ConnectivityMode();
+                EnableMiscCommands = true ;
+                EnableExit = true;
+
             }
             catch (Exception ex)
             {
                 Logger.Error(this, ex.Message);
             }
         }
+
         private void ContinueConnection(object obj)
         {
-           _headSetConnectivityService.Continue();
+            EnableMiscCommands = false;
+            EnableExit = false;
+            _headSetConnectivityService.Continue();
+            EnableMiscCommands = true;
+            EnableExit = true;
         }
     }
 }
