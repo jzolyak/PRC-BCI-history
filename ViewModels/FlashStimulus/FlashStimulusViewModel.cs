@@ -81,7 +81,9 @@ namespace ViewModels.FlashStimulus
 
         private void _calibrationService_RaiseScreenOverLayChange(object? sender, CoreServices.Models.EventArgs<ScreenOverlay> e)
         {
-            if(e==null || e.Value == null) return;  
+            Topmost = new WindowTopMost();
+            ButtonCollection = null;
+            if (e==null || e.Value == null) return;  
             var screenOverlay = e.Value;
             if (screenOverlay == null || screenOverlay.ButtonElementList == null) return;
             screenOverlay.ButtonElementList.Add(GetExitToMainScreen(screenOverlay.ButtonElementList[0]));
@@ -97,7 +99,7 @@ namespace ViewModels.FlashStimulus
         {
             var buttonelement = new ButtonElement();
             buttonelement.Left = 200;
-            buttonelement.Top = 130;
+            buttonelement.Top = 180;
             buttonelement.Height = 50;
             buttonelement.Width = 200;
             buttonelement.Name = "Exit From BCI";

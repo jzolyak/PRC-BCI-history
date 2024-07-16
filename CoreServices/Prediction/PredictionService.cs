@@ -62,13 +62,18 @@ namespace CoreServices.Prediction
                 var fileName = Path.GetFileName(file);
                 var lastUpdatedTime = File.GetLastWriteTime(file);
                 var metadata = Path.GetFileNameWithoutExtension(fileName).Split("_");
-
+                var fileName_NoExt = Path.GetFileNameWithoutExtension(fileName);
+                var name = fileName_NoExt;
+                if (fileName_NoExt.Contains("_current"))
+                {
+                    name = fileName_NoExt.Replace("_current", "").Trim();
+                }
                 var predictionFile = new PredictionFileMetadata
                 {
-                    Name = metadata[0],
+                    Name = name,
                     FilePath = _predictionFilePath
                 };
-                if (metadata.Length > 1 && metadata[1].ToLower().Equals("current"))
+                if (metadata.Length > 1 && metadata[metadata.Length - 1].ToLower().Equals("current"))
                 {
                     predictionFile.IsCurrent = true;
                     _currentPredictionFile = predictionFile;
