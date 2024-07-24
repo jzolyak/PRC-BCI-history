@@ -47,10 +47,10 @@
 
             <CustomControls:ScrollingTextBox Text="{Binding Recommandation}" Grid.Row="0" VerticalScrollBarVisibility="Visible" IsReadOnly="True" Margin="5" FontSize="16"></CustomControls:ScrollingTextBox>
             <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Stretch">
-                <Button Style="{StaticResource ButtonStyle}" Height="60" Margin="10" Width="90" Content="Start" Command="{Binding StartCommand}" IsEnabled="{Binding EnableStart}" FontSize="20"></Button>
-                <Button Style="{StaticResource ButtonStyle}" Height="60" Margin="10" Width="90" Content="Continue" Command="{Binding ContinueCommand}"  FontSize="20"></Button>
-                <Button Style="{StaticResource ButtonStyle}" Height="60" Margin="10" Width="90" Content="Reset" Command="{Binding ResetCommand}" FontSize="20"></Button>
-                <Button Style="{StaticResource ButtonStyle}" Height="60" Margin="10" Width="90" Content="Exit" Command="{Binding DisconnectCommand}" FontSize="20"></Button>
+                <Button Style="{StaticResource ButtonStyle}" Height="60" Margin="10" Width="120" Content="Start" Command="{Binding StartCommand}" IsEnabled="{Binding EnableStart}" FontSize="20"></Button>
+                <Button Style="{StaticResource ButtonStyle}" Height="60" Margin="10" Width="120" Content="Continue" Command="{Binding ContinueCommand}"  FontSize="20"></Button>
+                <Button Style="{StaticResource ButtonStyle}" Height="60" Margin="10" Width="120" Content="Reset" Command="{Binding ResetCommand}" FontSize="20"></Button>
+                <Button Style="{StaticResource ButtonStyle}" Height="60" Margin="10" Width="120" Content="Exit" Command="{Binding DisconnectCommand}" FontSize="20"></Button>
             </StackPanel>
         </Grid>
     </Grid>

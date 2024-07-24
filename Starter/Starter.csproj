@@ -37,9 +37,25 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<None Update="HeaderTemplate.txt">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 		<None Update="libDSI-Windows-x86_64.dll">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
+		<None Update="P300Classifier_electrode_selection.exe">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="parameters_AAC-BCI.ini">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="script.bat">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
+
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+	  <Exec Command="xCopy &quot;$(ProjectDir)$(OutDir)\*.*&quot; &quot;$(USERPROFILE)\BCI_Installation\BCI_App\MVP_Beta_v1_0_1&quot; /Y" />
+	</Target>
 
 </Project>

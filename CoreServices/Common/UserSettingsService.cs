@@ -75,7 +75,7 @@ namespace CoreServices.Common
 
         public void SaveUserSettings(string key, string value)
         {
-            FileHandlerService.EnsureFolder(_settingsFilePath);
+            FileHandlerService.EnsureFolder(_settingsFilePath+Path.DirectorySeparatorChar);
             if (_userSettings.ContainsKey(key))
             {
                 _userSettings[key] = value;

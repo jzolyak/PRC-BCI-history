@@ -25,7 +25,7 @@ namespace ViewModels
             _showorHideChildWindow = showorHideChildWindow;
         }
 
-        public void OnExit(object param)
+        public virtual void OnExit(object param)
         {
             if(_exitAction != null) _exitAction();
         }

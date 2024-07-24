@@ -4,6 +4,7 @@ using CoreServices.Stimulus;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text;
@@ -229,9 +230,86 @@ namespace CoreServices.Calibration
         }
         public void OnCalibrationComplete()
         {
+            string fileName = _currentCalibrationFile.UserGivenName;
+            int numOfSets = _currentCalibrationFile.NumofSets;
             UpdateCurrentCalibrationFileState("Completed");
+            //Generate COEF file
+            GenerateCOEFFile(fileName, numOfSets);
+        }
+        public void GenerateCOEFFile(string fileName, int numOfSets)
+        {
+            //Ensure required files are available. copy them from assembly directory to here if not.
+            EnsureCoefGeneratorFilesAvailability();
+            string cmdName = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\CalibrationFiles\\Completed\\script.bat";
+            if (numOfSets <= 0)
+            {
+                Logger.Error(this, "number of sets are 0. unable to generate the coef file");
+                return;
+            }
+
+            for (int setNum = 1; setNum <= numOfSets; setNum++)
+            {
+                cmdName = cmdName + " " + fileName + "_" + setNum + "_" + numOfSets;
+            }
+            cmdName = cmdName + " " + fileName;
+            int ExitCode;
+            ProcessStartInfo ProcessInfo;
+            Process process;
+
+            ProcessInfo = new ProcessStartInfo("cmd.exe", "/c " + cmdName);
+            ProcessInfo.CreateNoWindow = true;
+            ProcessInfo.UseShellExecute = false;
+            ProcessInfo.WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\CalibrationFiles\\Completed";
+            // *** Redirect the output ***
+            ProcessInfo.RedirectStandardError = true;
+            ProcessInfo.RedirectStandardOutput = true;
+
+            process = Process.Start(ProcessInfo);
+            process.WaitForExit();
+
+            // *** Read the streams ***
+            string output = process.StandardOutput.ReadToEnd();
+            string error = process.StandardError.ReadToEnd();
+
+            ExitCode = process.ExitCode;
+
+            process.Close();
+            Logger.Info(this, "output>>" + (String.IsNullOrEmpty(output) ? "(none)" : output));
+            Logger.Info(this, "error>>" + (String.IsNullOrEmpty(error) ? "(none)" : error));
+            Logger.Info(this, "ExitCode: " + ExitCode.ToString());
         }
 
+        private void EnsureCoefGeneratorFilesAvailability()
+        {
+            string parentDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\CalibrationFiles\\Completed";
+            string assemblyPath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+            string scriptFileName = "script.bat";
+            string scriptFile = parentDirectory + "\\script.bat";
+            string p300FileName = "P300Classifier_electrode_selection.exe";
+            string p300File = parentDirectory + "\\P300Classifier_electrode_selection.exe";
+            string iniFileName = "parameters_AAC-BCI.ini";
+            string iniFile = parentDirectory + "\\parameters_AAC-BCI.ini";
+            string headerFileName = "HeaderTemplate.txt";
+            string headerFile = parentDirectory + "\\HeaderTemplate.txt";
+
+            if (!File.Exists(scriptFile))
+            {
+                FileHandlerService.MoveFiles(scriptFileName, assemblyPath, parentDirectory);
+            }
+            if (!File.Exists(p300File))
+            {
+                FileHandlerService.MoveFiles(p300FileName, assemblyPath, parentDirectory);
+            }
+            if (!File.Exists(iniFile))
+            {
+                FileHandlerService.MoveFiles(iniFileName, assemblyPath, parentDirectory);
+            }
+            if (!File.Exists(headerFile))
+            {
+                FileHandlerService.MoveFiles(headerFileName, assemblyPath, parentDirectory);
+            }
+
+        }
         public void OnCalibrationPaused()
         {
             NotifyFileMetadataChange(_currentCalibrationFile);

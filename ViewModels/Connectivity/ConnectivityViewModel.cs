@@ -314,12 +314,9 @@ namespace ViewModels.Connectivity
                 if (_headSetConnectivityService == null) { Logger.Error(this, "head set connectivity service is null"); return; }
                 EnableStart = false;
                 EnableMiscCommands = false;
-                EnableExit = false;
                 Logger.Info(this, "Stating connection");
                 await _headSetConnectivityService.ConnectivityMode();
                 EnableMiscCommands = true ;
-                EnableExit = true;
-
             }
             catch (Exception ex)
             {
@@ -330,10 +327,8 @@ namespace ViewModels.Connectivity
         private void ContinueConnection(object obj)
         {
             EnableMiscCommands = false;
-            EnableExit = false;
             _headSetConnectivityService.Continue();
             EnableMiscCommands = true;
-            EnableExit = true;
         }
     }
 }
