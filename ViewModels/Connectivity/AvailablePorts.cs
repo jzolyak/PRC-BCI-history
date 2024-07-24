@@ -70,33 +70,6 @@ namespace ViewModels.Connectivity
             return false;
         }
 
-        private string GetDataBusName(string pnpDeviceID)
-        {
-            using (PowerShell PowerShellInstance = PowerShell.Create())
-            {
-                PowerShellInstance.AddScript($@"Get-PnpDeviceProperty -InstanceId '{pnpDeviceID}' -KeyName 'DEVPKEY_Device_BusReportedDeviceDesc' | select-object Data");
-
-                Collection<PSObject> PSOutput = PowerShellInstance.Invoke();
-
-                foreach (PSObject outputItem in PSOutput)
-                {
-                    if (outputItem != null)
-                    {
-                        Console.WriteLine(outputItem.BaseObject.GetType().FullName);
-                        foreach (var p in outputItem.Properties)
-                        {
-                            if (p.Name == "Data")
-                            {
-                                return p.Value?.ToString();
-                            }
-                        }
-                    }
-                }
-            }
-            return string.Empty;
-        }
-
-
         public void GetBluetoothCOMPort()
         {
             COMPorts.Clear();
