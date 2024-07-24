@@ -55,7 +55,7 @@
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-	  <Exec Command="xCopy &quot;$(ProjectDir)$(OutDir)\*.*&quot; &quot;$(USERPROFILE)\BCI_Installation\BCI_App\MVP_Beta_v1_0_1&quot; /Y" />
+	  <Exec Command="xCopy /HERQKY &quot;$(ProjectDir)$(OutDir)&quot; &quot;$(USERPROFILE)\BCI_Installation\BCI_App\MVP_Beta_v1_0_1&quot;" />
 	</Target>
 
 </Project>
