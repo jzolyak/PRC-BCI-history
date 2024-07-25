@@ -71,7 +71,7 @@ namespace ViewModels.Connectivity
             OnPropertyChanged(nameof(Port));
             DisconnectCommand = new RelayCommand(Disconnect);
             Ports = new ObservableCollection<string>();
-            GetAvailablePorts();
+            //GetAvailablePorts();
             _headSetConnectivityService.UpdateHeadsetPort(Port);
         }
 
