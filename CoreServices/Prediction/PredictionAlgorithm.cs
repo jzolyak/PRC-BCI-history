@@ -14,7 +14,7 @@ namespace CoreServices.Prediction
     public class PredictionAlgorithm
     {
         // Want to track how scoring changes for top KeyID or StimCode over time
-        public const int MAX_NUM_TOP_SCORES = 6;
+        public const int MAX_NUM_TOP_SCORES = 5;
 
 
         public struct TopScoreEntry
@@ -210,7 +210,7 @@ namespace CoreServices.Prediction
                 for (int j = (i + 1); j < MAX_NUM_TOP_SCORES; j++)
                 {
                     stimCodeIndex2 = topAccumScores[j].indexValue;
-                    stimCodeScore2 = topAccumScores[i].accumScore;
+                    stimCodeScore2 = topAccumScores[j].accumScore;
 
                     matrixPosCode2 = stimulusGroupingTable[stimCodeIndex2].matrixPosCode;
 

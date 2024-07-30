@@ -607,6 +607,10 @@ namespace CoreServices.Prediction
                             int code3;
                             int code4;
                             int code5;
+
+                            int iPoint1;
+                            int iPoint2;
+
                             int score1;
                             int score2;
                             int score3;
@@ -779,15 +783,19 @@ namespace CoreServices.Prediction
                                         code3 = predictStatusMessage.content[5];
                                         code4 = predictStatusMessage.content[6];
                                         code5 = predictStatusMessage.content[7];
-                                        score1 = predictStatusMessage.content[8];
-                                        score2 = predictStatusMessage.content[9];
-                                        score3 = predictStatusMessage.content[10];
-                                        score4 = predictStatusMessage.content[11];
-                                        score5 = predictStatusMessage.content[12];
 
-                                        predKey = predictStatusMessage.content[13];
-                                        winCnt = predictStatusMessage.content[14];
-                                        selKey = predictStatusMessage.content[15];
+                                        iPoint1 = predictStatusMessage.content[8];
+                                        iPoint2 = predictStatusMessage.content[9];
+
+                                        score1 = predictStatusMessage.content[10];
+                                        score2 = predictStatusMessage.content[11];
+                                        score3 = predictStatusMessage.content[12];
+                                        score4 = predictStatusMessage.content[13];
+                                        score5 = predictStatusMessage.content[14];
+
+                                        predKey = predictStatusMessage.content[15];
+                                        winCnt = predictStatusMessage.content[16];
+                                        selKey = predictStatusMessage.content[17];
 
                                         //Logger.Info(this, "fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + " code3 = " + code3 + " code4 = " + code4);
                                         //Logger.Info(this, " code5 = " + code5 + " predKey = " + predKey + " winct = " + winct + " selKey = " + selKey + "\n");
@@ -796,7 +804,7 @@ namespace CoreServices.Prediction
                                         //Debug.WriteLine("{0}  STATUS,  fseq = {1}, code1 = {2}, code2 = {3}, code3 = {4}, code4 = {5}, code5 = {6}, \n", flashTime, fseq, code1, code2, code3, code4, code5);
                                         //Debug.WriteLine("              score1 = {0}, score2 = {1}, score3 = {2}, score4 = {3}, score5 = {4}, predKey = {5}, winCnt = {6}, selKey = {7}  \n", score1, score2, score3, score4, score5, predKey, winCnt, selKey);
 
-                                        Logger.Info("STATUS,  fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + " code3 = " + code3 + " code4 = " + code4 + " code5 = " + code5 + "\n");
+                                        Logger.Info("STATUS,  fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + " code3 = " + code3 + " code4 = " + code4 + " code5 = " + code5 + " iPoint1 = " + iPoint1 + " iPoint2 = " + iPoint2 + "\n");
                                         Logger.Info("         score1 = " + score1 + " score2 = " + score2 + " score3 = " + score3 + " score4 = " + score4 + " score5 = " + score5 + " predKey = " + predKey + " winCnt = " + winCnt + " selKey = " + selKey + "\n");
 
                                     }
@@ -813,15 +821,19 @@ namespace CoreServices.Prediction
                                         code3 = predictStatusMessage.content[5];
                                         code4 = predictStatusMessage.content[6];
                                         code5 = predictStatusMessage.content[7];
-                                        score1 = predictStatusMessage.content[8];
-                                        score2 = predictStatusMessage.content[9];
-                                        score3 = predictStatusMessage.content[10];
-                                        score4 = predictStatusMessage.content[11];
-                                        score5 = predictStatusMessage.content[12];
 
-                                        predKey = predictStatusMessage.content[13];
-                                        winCnt = predictStatusMessage.content[14];
-                                        selKey = predictStatusMessage.content[15];
+                                        iPoint1 = predictStatusMessage.content[8];
+                                        iPoint2 = predictStatusMessage.content[9];
+
+                                        score1 = predictStatusMessage.content[10];
+                                        score2 = predictStatusMessage.content[11];
+                                        score3 = predictStatusMessage.content[12];
+                                        score4 = predictStatusMessage.content[13];
+                                        score5 = predictStatusMessage.content[14];
+
+                                        predKey = predictStatusMessage.content[15];
+                                        winCnt = predictStatusMessage.content[16];
+                                        selKey = predictStatusMessage.content[17];
 
                                         // We have a winner if Prediction task returns nonzero value for selectedKeyIDvalue !!!
                                         // If value is zero, then Prediction could not be made within a preset number of flash sequences,
@@ -834,7 +846,7 @@ namespace CoreServices.Prediction
                                         //Debug.WriteLine("{0}  STATUS,  fseq = {1}, code1 = {2}, code2 = {3}, code3 = {4}, code4 = {5}, code5 = {6}, \n", flashTime, fseq, code1, code2, code3, code4, code5);
                                         //Debug.WriteLine("              score1 = {0}, score2 = {1}, score3 = {2}, score4 = {3}, score5 = {4}, predKey = {5}, winCnt = {6}, selKey = {7}  \n", score1, score2, score3, score4, score5, predKey, winCnt, selKey);
 
-                                        Logger.Info("STATUS,  fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + " code3 = " + code3 + " code4 = " + code4 + " code5 = " + code5 + "\n");
+                                        Logger.Info("STATUS,  fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + " code3 = " + code3 + " code4 = " + code4 + " code5 = " + code5 + " iPoint1 = " + iPoint1 + " iPoint2 = " + iPoint2 + "\n");
                                         Logger.Info("         score1 = " + score1 + " score2 = " + score2 + " score3 = " + score3 + " score4 = " + score4 + " score5 = " + score5 + " predKey = " + predKey + " winCnt = " + winCnt + " selKey = " + selKey + "\n");
 
                                     }

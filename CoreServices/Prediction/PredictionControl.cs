@@ -583,16 +583,19 @@ namespace CoreServices.Prediction
                         statusMessage.content[6] = topAccumulatedScores[3].indexValue;
                         statusMessage.content[7] = topAccumulatedScores[4].indexValue;
 
-                        // Conversion accuracy is not critical. Truncate double to create integer value score
-                        statusMessage.content[8] = (int)topAccumulatedScores[0].accumScore;
-                        statusMessage.content[9] = (int)topAccumulatedScores[1].accumScore;
-                        statusMessage.content[10] = (int)topAccumulatedScores[2].accumScore;
-                        statusMessage.content[11] = (int)topAccumulatedScores[3].accumScore;
-                        statusMessage.content[12] = (int)topAccumulatedScores[4].accumScore;
+                        statusMessage.content[8] = predictionResult.stimCodeIndex1;     // stim codes that intersect at common key ID
+                        statusMessage.content[9] = predictionResult.stimCodeIndex2;
 
-                        statusMessage.content[13] = predictionResult.predictedKeyID;
-                        statusMessage.content[14] = predictionResult.predictWinCount;
-                        statusMessage.content[15] = predictionResult.selectedKeyID;
+                        // Conversion accuracy is not critical. Truncate double to create integer value score
+                        statusMessage.content[10] = (int)topAccumulatedScores[0].accumScore;
+                        statusMessage.content[11] = (int)topAccumulatedScores[1].accumScore;
+                        statusMessage.content[12] = (int)topAccumulatedScores[2].accumScore;
+                        statusMessage.content[13] = (int)topAccumulatedScores[3].accumScore;
+                        statusMessage.content[14] = (int)topAccumulatedScores[4].accumScore;
+
+                        statusMessage.content[15] = predictionResult.predictedKeyID;
+                        statusMessage.content[16] = predictionResult.predictWinCount;
+                        statusMessage.content[17] = predictionResult.selectedKeyID;
                     }
                     else if (statusMessageID == END_OF_PREDICTION)
                     {
@@ -605,15 +608,18 @@ namespace CoreServices.Prediction
                         statusMessage.content[6] = topAccumulatedScores[3].indexValue;
                         statusMessage.content[7] = topAccumulatedScores[4].indexValue;
 
-                        statusMessage.content[8] = (int)topAccumulatedScores[0].accumScore;
-                        statusMessage.content[9] = (int)topAccumulatedScores[1].accumScore;
-                        statusMessage.content[10] = (int)topAccumulatedScores[2].accumScore;
-                        statusMessage.content[11] = (int)topAccumulatedScores[3].accumScore;
-                        statusMessage.content[12] = (int)topAccumulatedScores[4].accumScore;
+                        statusMessage.content[8] = predictionResult.stimCodeIndex1;     // stim codes that intersect at common key ID
+                        statusMessage.content[9] = predictionResult.stimCodeIndex2;
 
-                        statusMessage.content[13] = predictionResult.predictedKeyID;
-                        statusMessage.content[14] = predictionResult.predictWinCount;
-                        statusMessage.content[15] = predictionResult.selectedKeyID;
+                        statusMessage.content[10] = (int)topAccumulatedScores[0].accumScore;
+                        statusMessage.content[11] = (int)topAccumulatedScores[1].accumScore;
+                        statusMessage.content[12] = (int)topAccumulatedScores[2].accumScore;
+                        statusMessage.content[13] = (int)topAccumulatedScores[3].accumScore;
+                        statusMessage.content[14] = (int)topAccumulatedScores[4].accumScore;
+
+                        statusMessage.content[15] = predictionResult.predictedKeyID;
+                        statusMessage.content[16] = predictionResult.predictWinCount;
+                        statusMessage.content[17] = predictionResult.selectedKeyID;
                     }
 
                     // Send prediction status message back to main thread
