@@ -93,7 +93,7 @@ namespace ViewModels.Calibration
             PopupContentViewModel = null;
             _deleteConfirmationViewModel = new DeleteConfirmationViewModel(DeleteCurrentCalibFileandStartNew, ClosePopup, CurrentFileMetadata);
             _fileNameEntryViewModel = new FileNameEntryViewModel(DisplayDemoVideo, ClosePopup, CurrentFileMetadata);
-            _demoVideoViewModel = new DemoVideoViewModel(ShowCalibrationInstructions, ClosePopup);
+            _demoVideoViewModel = new DemoVideoViewModel(ShowCalibrationInstructions, ShowCalibrationInstructions);
             _calibrationInstructionsViewModel = new CalibrationInstructionsViewModel(StartActualCalibration, ClosePopup);
             _calibrationHelpViewModel = new CalibrationHelpViewModel(ClosePopup);
             _showDemoVideo = _userSettingsService.GetSettingsValue(Constants.DemoVideo_Preference_Key) == null ? true : !_userSettingsService.GetSettingsValue("ShowDemoVideo").ToLower().StartsWith("false");
