@@ -245,14 +245,15 @@ namespace CoreServices.Calibration
             }
 
             string calibrationFilesFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BCI", "CalibrationFiles");
-            string cmdName = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "script.bat");
+            string cmdName = "\"\"" + Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "script.bat") + "\"";
             for (int setNum = 1; setNum <= numOfSets; setNum++)
             {
-                cmdName = cmdName + " " + fileName + "_" + setNum + "_" + numOfSets;
+                cmdName = cmdName + " \"" + fileName + "_" + setNum + "_" + numOfSets +"\"";
             }
             // P300Classifier_electrode_selection.exe can't accept a space in the .coef file name, so make up a temporary name.
             string spacelessFileName = fileName.Replace(' ', '_');
-            cmdName = cmdName + " " + spacelessFileName;
+            cmdName = cmdName + " " + spacelessFileName + "\"";
+            Logger.Info(this, "Command to be run: " + cmdName);
             int ExitCode;
             ProcessStartInfo ProcessInfo;
             Process process;
