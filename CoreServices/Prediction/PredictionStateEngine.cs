@@ -987,11 +987,10 @@ namespace CoreServices.Prediction
 
                 }  // while (!modeExit)
 
-                headset.StopBackgroundAcquisition();
-                await Task.Delay(50);
-
                 // Stop headset task by cancelling the token
                 headsetTokenSource.Cancel();
+                headset.StopBackgroundAcquisition();
+                await Task.Delay(50);
 
                 headsetMsgBufferBlock.Complete();
                 headsetDataBufferBlock.Complete();
