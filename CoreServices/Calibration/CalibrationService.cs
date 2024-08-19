@@ -41,6 +41,7 @@ namespace CoreServices.Calibration
             _calibrationFilePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\CalibrationFiles\\";
             _stateEngine = new StateEngine(NotifyUI, NotifyScreenOverLayChange, ExitCalibration, OnCalibrationComplete,OnCalibrationPaused, ActivateUI);
             LoadCalibrationFiles();
+          
         }
 
         public IEnumerable<PredictionFileMetadata> GetPredictionFilesMetadata()
@@ -238,50 +239,63 @@ namespace CoreServices.Calibration
         }
         public void GenerateCOEFFile(string fileName, int numOfSets)
         {
-            if (numOfSets <= 0)
+            try
             {
-                Logger.Error(this, "number of sets are 0. unable to generate the coef file");
-                return;
-            }
 
-            string calibrationFilesFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BCI", "CalibrationFiles");
-            string cmdName = "\"\"" + Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "script.bat") + "\"";
-            for (int setNum = 1; setNum <= numOfSets; setNum++)
+
+                const int timeout = 10000;
+                if (numOfSets <= 0)
+                {
+                    Logger.Error(this, "number of sets are 0. unable to generate the coef file");
+                    return;
+                }
+
+                string calibrationFilesFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BCI", "CalibrationFiles");
+                string cmdName = "\"\"" + Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "script.bat") + "\"";
+                for (int setNum = 1; setNum <= numOfSets; setNum++)
+                {
+                    cmdName = cmdName + " \"" + fileName + "_" + setNum + "_" + numOfSets + "\"";
+                }
+                // P300Classifier_electrode_selection.exe can't accept a space in the .coef file name, so make up a temporary name.
+                string spacelessFileName = fileName.Replace(' ', '_');
+                cmdName = cmdName + " " + spacelessFileName + "\"";
+                Logger.Info(this, "Command to be run: " + cmdName);
+                int ExitCode;
+                ProcessStartInfo ProcessInfo;
+                Process process;
+
+                ProcessInfo = new ProcessStartInfo("cmd.exe", "/c " + cmdName);
+                ProcessInfo.CreateNoWindow = true;
+                ProcessInfo.UseShellExecute = false;
+                ProcessInfo.WorkingDirectory = Path.Combine(calibrationFilesFolderPath, "Completed");
+                // *** Redirect the output ***
+                ProcessInfo.RedirectStandardError = true;
+                ProcessInfo.RedirectStandardOutput = true;
+
+
+                process = Process.Start(ProcessInfo);
+                // *** Read the streams ***
+                string output = process.StandardOutput.ReadToEnd();
+                string error = process.StandardError.ReadToEnd();
+
+                process.WaitForExit(timeout);
+
+                // *** Read the streams ***
+
+                ExitCode = process.ExitCode;
+
+                process.Close();
+                Logger.Info(this, "output>>" + (String.IsNullOrEmpty(output) ? "(none)" : output));
+                Logger.Info(this, "error>>" + (String.IsNullOrEmpty(error) ? "(none)" : error));
+                Logger.Info(this, "ExitCode: " + ExitCode.ToString());
+
+                // Rename the .coef file to what the user expects
+                FileHandlerService.RenameFile(spacelessFileName, fileName, calibrationFilesFolderPath);
+            }
+            catch (Exception ex)
             {
-                cmdName = cmdName + " \"" + fileName + "_" + setNum + "_" + numOfSets +"\"";
+                Logger.Error(this, ex.Message);
             }
-            // P300Classifier_electrode_selection.exe can't accept a space in the .coef file name, so make up a temporary name.
-            string spacelessFileName = fileName.Replace(' ', '_');
-            cmdName = cmdName + " " + spacelessFileName + "\"";
-            Logger.Info(this, "Command to be run: " + cmdName);
-            int ExitCode;
-            ProcessStartInfo ProcessInfo;
-            Process process;
-
-            ProcessInfo = new ProcessStartInfo("cmd.exe", "/c " + cmdName);
-            ProcessInfo.CreateNoWindow = true;
-            ProcessInfo.UseShellExecute = false;
-            ProcessInfo.WorkingDirectory = Path.Combine(calibrationFilesFolderPath, "Completed");
-            // *** Redirect the output ***
-            ProcessInfo.RedirectStandardError = true;
-            ProcessInfo.RedirectStandardOutput = true;
-
-            process = Process.Start(ProcessInfo);
-            process.WaitForExit();
-
-            // *** Read the streams ***
-            string output = process.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
-
-            ExitCode = process.ExitCode;
-
-            process.Close();
-            Logger.Info(this, "output>>" + (String.IsNullOrEmpty(output) ? "(none)" : output));
-            Logger.Info(this, "error>>" + (String.IsNullOrEmpty(error) ? "(none)" : error));
-            Logger.Info(this, "ExitCode: " + ExitCode.ToString());
-
-            // Rename the .coef file to what the user expects
-            FileHandlerService.RenameFile(spacelessFileName, fileName, calibrationFilesFolderPath);
         }
 
         public void OnCalibrationPaused()
