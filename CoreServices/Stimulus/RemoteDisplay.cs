@@ -16,7 +16,6 @@ namespace CoreServices.Stimulus
     public class RemoteDisplay
     {
 
-
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
@@ -156,43 +155,132 @@ namespace CoreServices.Stimulus
             //        (ii)  A key is constructed out of 2 nested GUI elements, i.e. it is a button inside another button. 
             //              Only the outer button is considered the clickable element if it is enabled.
 
+            bool addToList;
+
             int left;
             int top;
             int right;
             int bottom;
 
             int index = 0;
+            int peakIndex = 0;
             int numElements = automationArray.Length;
 
             List<ElementProperties> clickableElements = new List<ElementProperties>();
 
-			 automationElementList.Clear();							  
+			automationElementList.Clear();							  
             while (index < numElements)
             {
-                IUIAutomationElement b1 = automationArray.GetElement(index++);
+                addToList = false;
+
+                IUIAutomationElement b1 = automationArray.GetElement(index);
+
+                // Consume the element from the MUIA list.
+                index++;
 
                 if (b1.CurrentLocalizedControlType == "button")
                 {
-                    IUIAutomationElement b2 = automationArray.GetElement(index++);
+                    // This search algorithm solely focuses on finding the outer boundary of each button
+                    // that is located on the keyboard. It doesn't matter if the button is active or empty.
+                    // If this routine detects a GUI element that is not a button, then it is not added to
+                    // the returned list of selectable elements on the keyboard.
+
+                    // Need to examine the next element in the MUIA list to interpret the current button element.
+                    IUIAutomationElement b2 = automationArray.GetElement(index);
 
                     if (b2.CurrentLocalizedControlType == "button")
                     {
-                        if (b1.CurrentIsEnabled == 1)
-                        {
-                            left = b1.CurrentBoundingRectangle.left;
-                            top = b1.CurrentBoundingRectangle.top;
-                            right = b1.CurrentBoundingRectangle.right;
-                            bottom = b1.CurrentBoundingRectangle.bottom;
+                        // Next we need to examine the border of the second button to determine if
+                        //  - It is an inner button with/without a label, or
+                        //  - It is the next button in the same row (to the right of the current button), or
+                        //  - It is the next button in the next row (below the current row), or
+                        //  - The second button has no dimensions, marking the outer button as an empty button (Dear god! Why?)
 
-                            // VERY IMPORTANT!!!  The index value being saved is the index position in the
-                            //                    original automationArray. We must be able to access this
-                            //                    element in order to invoke its pattern (i.e. click on element).
-                            automationElementList.TryAdd(index,b1);
-                            clickableElements.Add(new ElementProperties(index, left, top, right, bottom));
+                        // Can't use " >= " for testing button inside button, it must be just ">" test,
+                        // otherwise this case gets confused with another.
+
+                        if ((b2.CurrentBoundingRectangle.top > b1.CurrentBoundingRectangle.top) &&
+                            (b1.CurrentBoundingRectangle.bottom > b2.CurrentBoundingRectangle.bottom))
+                        {
+                            peakIndex = index + 1;
+
+                            IUIAutomationElement b3 = automationArray.GetElement(peakIndex);
+
+                            if (b3.CurrentLocalizedControlType == "text")
+                            {
+                                // Found instance of "Button -> Button -> Textbox"
+                                // Add b1 button to list of selectable keys
+                                addToList = true;
+
+                                // Consume the b2 button and textbox from the MUIA element list.
+                                index = index + 2;
+                            }
+                            else
+                            {
+                                // Found instance of "Button -> Button", but no label
+                                // Add b1 button to list of selectable keys
+                                addToList = true;
+
+                                // Consume just the b2 button from the MUIA element list.
+                                index = index + 1;
+                            }
                         }
+
+                        else if ((b1.CurrentBoundingRectangle.top == b2.CurrentBoundingRectangle.top) &&
+                                 (b2.CurrentBoundingRectangle.right >= b1.CurrentBoundingRectangle.right))
+                        {
+                            // Found instance of next button in same row (i.e. same top value)
+                            // Add b1 button to list of selectable keys
+                            addToList = true;
+
+                            // Don't update MUIA list index. Re-examine b2 instead as next outer button b1.
+                        }
+
+                        else if ((b2.CurrentBoundingRectangle.top >= b1.CurrentBoundingRectangle.top) &&
+                                (b2.CurrentBoundingRectangle.bottom >= b1.CurrentBoundingRectangle.bottom))
+                        {
+                            // Found instance of next button in next row
+                            // Add button to report of selectable keys
+                            addToList = true;
+
+                            // Don't update MUIA list index. Re-examine b2 instead as next outer button b1.
+                        }
+
+                        else if ((b2.CurrentBoundingRectangle.top == 0) &&
+                                (b2.CurrentBoundingRectangle.bottom == 0))
+                        {
+                            // Found special case of outer button b1 being marked as Empty
+                            // Add button to list of selectable keys
+                            addToList = true;
+
+                            // Update MUIA list index to consume "empty" button b2.
+                            index = index + 1;
+
+                        }  // if b2 is an inner button
+                    }  
+                    else
+                    {
+                        // Discard the singleton button b1, as well as the element that followed it.
+                        // Consume the element from the MUIA list.
+                        index++;
+                    }  // b2 is not an inner button
+
+                    if (addToList == true)
+                    {
+                        left = b1.CurrentBoundingRectangle.left;
+                        top = b1.CurrentBoundingRectangle.top;
+                        right = b1.CurrentBoundingRectangle.right;
+                        bottom = b1.CurrentBoundingRectangle.bottom;
+
+                        // VERY IMPORTANT!!!  The index value being saved is the index position in the
+                        //                    original automationArray. We must be able to access this
+                        //                    element in order to invoke its pattern (i.e. click on element).
+                        automationElementList.TryAdd(index, b1);
+                        clickableElements.Add(new ElementProperties(index, left, top, right, bottom));
                     }
-                }
-            }
+                }   // if b1 is an outer button
+            }  // while
+
             return clickableElements;
         }
 

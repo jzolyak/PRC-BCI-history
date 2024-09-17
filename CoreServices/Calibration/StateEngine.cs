@@ -890,7 +890,7 @@ namespace CoreServices.Calibration
                                     sourceTimer = elapsedTime % 65536;
                                     //Console.WriteLine("{0}  Flash ON,  seq num = {1},  phase = {2},   time = {3} \n", flashTime, indexValue, phaseInSequence, sourceTimer);
                                     //Debug.WriteLine("{0}  Flash ON,  seq num = {1},  phase = {2},   time = {3} \n", flashTime, indexValue, phaseInSequence, sourceTimer);
-                                    Debug.WriteLine("{0}  Flash ON,  seq num = {1},  phase = {2} \n", flashTime, indexValue, phaseInSequence);
+                                    //Debug.WriteLine("{0}  Flash ON,  seq num = {1},  phase = {2} \n", flashTime, indexValue, phaseInSequence);
 
                                     if (displayStatus == true)
                                     {
@@ -908,7 +908,7 @@ namespace CoreServices.Calibration
 
                                     sourceTimer = elapsedTime % 65536;
                                     //Console.WriteLine("{0}  Flash OFF,  seq num = {1},  phase = {2},   time = {3}  \n", flashTime, indexValue, phaseInSequence, sourceTimer);
-                                    Debug.WriteLine("{0}  Flash OFF,  seq num = {1},  phase = {2} \n", flashTime, indexValue, phaseInSequence);
+                                    //Debug.WriteLine("{0}  Flash OFF,  seq num = {1},  phase = {2} \n", flashTime, indexValue, phaseInSequence);
 
                                     if (++flashCount >= numEntries)
                                     {

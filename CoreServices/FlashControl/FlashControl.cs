@@ -134,11 +134,11 @@ namespace CoreServices.FlashControl
                 // regular intervals (timestamps should be +/- 2 msec of expected interval).
                 // sourceTime = headset.WaitForBatch();
 
-                if (await headsetDataBufferBlock.OutputAvailableAsync())
+                if (await headsetDataBufferBlock.OutputAvailableAsync(cts))
                 {
                     try
                     {
-                        headsetDataBuffer = await headsetDataBufferBlock.ReceiveAsync();
+                        headsetDataBuffer = await headsetDataBufferBlock.ReceiveAsync(cts);
                         blockSize = headsetDataBuffer.Length;
                     }
                     catch (Exception ex)

@@ -697,7 +697,6 @@ namespace CoreServices.Prediction
                                 {
                                     _forceExit = false;
                                     exitFlag = true;
-                                    pipelineTokenSource.Cancel();
                                 }
                                 string flashTime = DateTime.Now.ToString("HH:mm:ss:ffff");
 
@@ -740,6 +739,8 @@ namespace CoreServices.Prediction
 
                                 if (predictStatusReceived == true)
                                 {
+                                    predictStatusReceived = false;
+
                                     messageType = predictStatusMessage.content[0];
 
                                     if (messageType == 18)
@@ -752,7 +753,6 @@ namespace CoreServices.Prediction
 
                                         //Debug.WriteLine("{0}  MARK_STATE,  seq num = {1},  phase = {2},   time = {3} \n", flashTime, stimCode, phaseInSequence, sourceTimer);
                                         //Debug.WriteLine("{0}  MARK_STATE,  phase = {1}, seq num = {2}, action = {3} \n", flashTime, phaseInSequence, stimCode, reportedAction);
-                                        Debug.WriteLine("{0}  MARK_STATE,  phase = {1}, seq num = {2}, action = {3} \n", flashTime, phaseInSequence, stimCode, reportedAction);
 
                                         if (phaseInSequence == 1)
                                         {
@@ -770,7 +770,6 @@ namespace CoreServices.Prediction
 
                                         //Debug.WriteLine("{0}  MARK_STIM,   seq num = {1},  phase = {2},   time = {3} \n", flashTime, stimCode, phaseInSequence, sourceTimer);
                                         //Debug.WriteLine("{0}  MARK_STIM,  phase = {1}, seq num = {2}, action = {3} \n", flashTime, phaseInSequence, stimCode, reportedAction);
-                                        Debug.WriteLine("{0}  MARK_STIM,  phase = {1}, seq num = {2}, action = {3} \n", flashTime, phaseInSequence, stimCode, reportedAction);
                                     }
                                     
                                     else if (messageType == 21)
@@ -876,6 +875,16 @@ namespace CoreServices.Prediction
                             filterDataBufferBlock.Complete();
                             flashDataBufferBlock.Complete();
                             flashMsgBufferBlock.Complete();
+
+                            weightCoefBufferBlock.Complete();
+                            commandMsgBufferBlock.Complete();
+                            statusMsgBufferBlock.Complete();
+
+                            //await Task.Delay(100);
+                            //Logger.Info(this, "Status of Task t0: " + t0.Status);
+                            //Logger.Info(this, "Status of Task t1: " + t1.Status);
+                            //Logger.Info(this, "Status of Task t2: " + t2.Status);
+                            //Logger.Info(this, "Status of task t4: " + t4.Status);
 
                             modeState = PredictionStates.Click_Key;      // Don't click key until Prediction is working
                             // modeState = PredictionStates.Programmed_Delay;

@@ -193,11 +193,11 @@ namespace CoreServices.Prediction
             while (!cts.IsCancellationRequested)
             {
                 // Wait for next block of sensor packet data sent from preceeding pipeline task.
-                if (await packetDataBufferBlock.OutputAvailableAsync())
+                if (await packetDataBufferBlock.OutputAvailableAsync(cts))
                 {
                     try
                     {
-                        rawDataBuffer = await packetDataBufferBlock.ReceiveAsync();
+                        rawDataBuffer = await packetDataBufferBlock.ReceiveAsync(cts);
                         blockSize = rawDataBuffer.Length;
                     }
                     catch (Exception ex)
@@ -251,7 +251,7 @@ namespace CoreServices.Prediction
                         eventStartHeaderIndex = eventAction.eventStartHeaderIndex;
 
                         // Collect debug info to report to main thread ...
-                        reportPredictionStatus = true;          // Set false to disable reporting this msg
+                        reportPredictionStatus = false;          // Set false to disable reporting this msg
 
                         statusMessageID = MARK_STATE_CHANGE;
                         messageLength = 5;

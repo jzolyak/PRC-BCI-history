@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using System.Diagnostics;
 
 using CoreServices.SensorData;
 
@@ -364,12 +365,34 @@ namespace CoreServices.SensorData
                         if (nextState == currentState)
                         {
                             // All we are trying to do in PostStim is to Dequeue one buffered stimulus code
-                            // or state change event at a time per block of received packetized data.
-                            if (eventQueue.Count() > 1)
+                            // or state change event at a time per flash interval of received packetized data.
+                            // Find the end of the most recent block of packets stored in header table
+                            readIndex = (++readIndex) & (PacketizedSensorData.HEADER_CIRC_BUF_LEN - 1);
+                            lastSampleIndex = sensorData.packetHeaderTable[readIndex].crossRefIndex;
+
+                            // Take a look at the stim code event at the front of the queue.
+                            queuedEvent = eventQueue.Peek();
+
+                            // Get the index into the sampleValues[] array associated with the packet
+                            // header for the event.
+                            startIndex = queuedEvent.eventStartHeaderIndex;
+                            firstSampleIndex = sensorData.packetHeaderTable[startIndex].crossRefIndex;
+
+                            // Determine the number of buffered sample values between now and start of event
+                            if (lastSampleIndex > firstSampleIndex)
                             {
-                                // Find the end of the most recent block of packets stored in header table
-                                readIndex = (++readIndex) & (PacketizedSensorData.HEADER_CIRC_BUF_LEN - 1);
-                                if (readIndex == writeIndex)
+                                numBufferedSamples = lastSampleIndex - firstSampleIndex;
+                            }
+                            else
+                            {   // Latest numBufferedSamplespacket data wrapped around to start of SampleValues[] array.
+                                numBufferedSamples = (PacketizedSensorData.SAMPLE_CIRC_BUF_LEN - firstSampleIndex) + lastSampleIndex;
+                            }
+
+                            // Decide what to do next based on the number of buffered samples.
+                            if (numBufferedSamples >= PRESET_WINDOW_LENGTH)
+                            {
+                                // Still need to compute scores for queued flash intervals
+                                if (eventQueue.Count() > 1)
                                 {
                                     // Save location where we stopped search
                                     eventFound = true;
@@ -381,18 +404,36 @@ namespace CoreServices.SensorData
                                     // Set window length equal to length of weight coefficients
                                     eventAction.windowLength = PRESET_WINDOW_LENGTH;
                                 }
-                            }
-                            else if (eventQueue.Count() == 1)
-                            {
-                                // Length of PostStim is controlled by configuration preset value. 
-                                // We have reached the last event placed on the queue and have 
-                                // consumed all the buffered stimulus data. 
-                                // Return queued event indicating reached end of active stimulus data. 
-                                eventAction = eventQueue.Dequeue(); // Read from front of queue
+                                else if (eventQueue.Count() == 1)
+                                {
+                                    // Length of PostStim is controlled by configuration preset value. 
+                                    // We have reached the last event placed on the queue and have 
+                                    // consumed all the buffered stimulus data.
+                                    eventFound = true;
+                                    sensorData.headerTableReadIndex = readIndex;
 
-                                eventAction.windowLength = 0;
+                                    // Return queued event indicating reached end of active stimulus data. 
+                                    eventAction = eventQueue.Dequeue(); // Read from front of queue
+                                    eventAction.windowLength = 0;
+                                }
+                                else
+                                {
+                                    // Should not still be receiving data with state = PostStim at this point.
+                                    // The state marker should be either NoStim or Halted because flashing
+                                    // stopped a while ago. Take no action using this packet data.
+                                    eventFound = true;
+                                }
+                            }
+                            else
+                            {
+                                // Fill eventAction record fields to indicate no action.
+                                eventAction.eventType = EventType.StimCodeChange;
+                                eventAction.actionType = ActionType.NoAction;
+                                eventAction.eventStartHeaderIndex = readIndex;
+                                eventAction.windowLength = 0;       // Not ready to compute score yet
                             }
                         }
+
                         else if (nextState == StimPhase.NoStim)
                         {  // Next valid state found
                             currentState = nextState;

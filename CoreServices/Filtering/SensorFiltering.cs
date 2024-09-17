@@ -72,11 +72,11 @@ namespace CoreServices.Filtering
                 // stopwatch.Start();
 
                 // Wait for next block of sensor packet data sent from preceeding pipeline task.
-                if (await inputBufferBlock.OutputAvailableAsync())
+                if (await inputBufferBlock.OutputAvailableAsync(cts))
                 {
                     try
                     {
-                        rawDataBuffer = await inputBufferBlock.ReceiveAsync();
+                        rawDataBuffer = await inputBufferBlock.ReceiveAsync(cts);
                         blockSize = rawDataBuffer.Length;
                     }
                     catch (Exception ex)
