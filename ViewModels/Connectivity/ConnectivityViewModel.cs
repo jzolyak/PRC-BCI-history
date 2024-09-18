@@ -159,7 +159,7 @@ namespace ViewModels.Connectivity
             if (statusColor[2] >= 5)        // Red
             {
                 HeadsetConnectionStatusViewModel.Pz_Sensor.SensorBGColor = Color.Red;
-                HeadsetConnectionStatusViewModel.Pz_Sensor.SensorStatus = Constants.Sensor_Status_Green;
+                HeadsetConnectionStatusViewModel.Pz_Sensor.SensorStatus = Constants.Sensor_Status_Red;
                 HeadsetConnectionStatusViewModel.Pz_Sensor.SensorText = "Twist";
             }
             else if (statusColor[2] >= 1)       // Yellow
