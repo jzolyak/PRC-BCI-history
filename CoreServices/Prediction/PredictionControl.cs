@@ -251,7 +251,8 @@ namespace CoreServices.Prediction
                         eventStartHeaderIndex = eventAction.eventStartHeaderIndex;
 
                         // Collect debug info to report to main thread ...
-                        reportPredictionStatus = false;          // Set false to disable reporting this msg
+                        reportPredictionStatus = true;          // Needs to be set true for now as a work around
+                        										// to trigger when to send weight coef data to task.
 
                         statusMessageID = MARK_STATE_CHANGE;
                         messageLength = 5;
