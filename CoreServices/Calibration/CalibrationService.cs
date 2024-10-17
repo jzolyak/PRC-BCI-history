@@ -27,6 +27,8 @@ namespace CoreServices.Calibration
         public event EventHandler<EventArgs<ScreenOverlay>>? RaiseScreenOverLayChange;
         public event EventHandler<EventArgs<UIInstruction>>? RaiseUIRequestChange;
         public event EventHandler<EventArgs>? RaiseActiveUIEvent;
+        public event EventHandler<EventArgs>? RaiseCoeffInProgress;
+        public event EventHandler<EventArgs>? RaiseCoeffCompleted;
         public event EventHandler<EventArgs>? RaiseExitCalibrationEvent;
       
 
@@ -34,14 +36,18 @@ namespace CoreServices.Calibration
 
         private PredictionFileMetadata _currentPredictionFile;
         private CalibrationFileMetadata _currentCalibrationFile;
+        private bool _caLibrationCompleted;
+        private string _coeffFileName;
+        private int _numofSets;
 
         public CalibrationService()
         {
             _predictionMetadataList = new ConcurrentDictionary<String, PredictionFileMetadata>();
             _calibrationFilePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\CalibrationFiles\\";
             _stateEngine = new StateEngine(NotifyUI, NotifyScreenOverLayChange, ExitCalibration, OnCalibrationComplete,OnCalibrationPaused, ActivateUI);
+            _caLibrationCompleted= false;
             LoadCalibrationFiles();
-          
+            //GenerateCOEFFile("myfirstone", 5);
         }
 
         public IEnumerable<PredictionFileMetadata> GetPredictionFilesMetadata()
@@ -195,6 +201,25 @@ namespace CoreServices.Calibration
 
         private void ExitCalibration()
         {
+            if(RaiseCoeffInProgress!=null)
+            {
+                RaiseCoeffInProgress(this, EventArgs.Empty);
+            }
+            if (_caLibrationCompleted && !string.IsNullOrEmpty(_coeffFileName) && _numofSets > 0)
+            {
+                GenerateCOEFFile(_coeffFileName, _numofSets);
+                var predictionFile = new PredictionFileMetadata
+                {
+                    Name = _coeffFileName,
+                    FilePath = _calibrationFilePath
+                };
+                _predictionMetadataList.TryAdd(_coeffFileName, predictionFile);
+            }
+            if (RaiseCoeffCompleted!=null)
+            {
+                RaiseCoeffCompleted(this, EventArgs.Empty);
+            }
+           
             if (RaiseExitCalibrationEvent != null) RaiseExitCalibrationEvent(this, new EventArgs());
         }
         public void ReceiveNotificationFromUI(UIInstruction instruction)
@@ -203,6 +228,9 @@ namespace CoreServices.Calibration
         }
         public void User_Actual_Start()
         {
+            _caLibrationCompleted = false;
+            _coeffFileName = string.Empty;
+            _numofSets = 0;
             _stateEngine.SetCalibrationFile(_currentCalibrationFile);
             Task.Run(_stateEngine.CalibrationMode);
         }
@@ -231,11 +259,14 @@ namespace CoreServices.Calibration
         }
         public void OnCalibrationComplete()
         {
-            string fileName = _currentCalibrationFile.UserGivenName;
-            int numOfSets = _currentCalibrationFile.NumofSets;
+            _coeffFileName = _currentCalibrationFile.UserGivenName;
+            _numofSets = _currentCalibrationFile.NumofSets;
+            
             UpdateCurrentCalibrationFileState("Completed");
+            _caLibrationCompleted = true;
             //Generate COEF file
-            GenerateCOEFFile(fileName, numOfSets);
+            
+
         }
         public void GenerateCOEFFile(string fileName, int numOfSets)
         {

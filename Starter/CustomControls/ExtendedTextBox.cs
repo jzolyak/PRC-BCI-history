@@ -29,6 +29,15 @@ namespace Starter.CustomControls
             this.GotTouchCapture += ExtendedTextBox_GotTouchCapture;
             GotFocus += ExtendedTextBox_GotFocus;
             this.PreviewTextInput += ExtendedTextBox_PreviewTextInput;
+            this.PreviewKeyDown += ExtendedTextBox_PreviewKeyDown;
+        }
+
+        private void ExtendedTextBox_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if(e.Key==System.Windows.Input.Key.Space)
+            {
+                e.Handled = true;
+            }
         }
 
         private void ExtendedTextBox_PreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)

@@ -70,7 +70,7 @@ namespace ViewModels
                 _connectivityViewModel.IsInTablet = IsInTablet; }
             else if (mode == Constants.Calibration) { CurrentViewModel = _calibrationViewModel; _calibrationViewModel.IsInTablet = IsInTablet; }
             else if (mode == Constants.Validation) { CurrentViewModel = _validationViewModel; }
-            else if (mode == Constants.Prediction) { CurrentViewModel = _predictionViewModel; }
+            else if (mode == Constants.Prediction) { _predictionViewModel.Refresh(); CurrentViewModel = _predictionViewModel; }
             else if (mode == Constants.Settings) { CurrentViewModel = _settingsViewModel; }
             else if (mode == Constants.ConnectivitySettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.Connectivity); CurrentViewModel = _settingsDetailViewModel; }
             else if (mode == Constants.CalibrationSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.Calibration); CurrentViewModel = _settingsDetailViewModel; }

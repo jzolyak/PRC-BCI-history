@@ -16,19 +16,19 @@ namespace ViewModels.Connectivity
         private const string portKey= "HeadSetPort";
         public HeadsetConnectionStatusViewModel? HeadsetConnectionStatusViewModel { get; set; }
         public ObservableCollection<SensorMeasurementViewModel>? MeasurementList { get; set; }
-        private List<SensorMeasurementViewModel> _measurements;
+        private List<SensorMeasurementViewModel> _measurements;                                              
         private UserSettingsService _userSettingsService;
         private HeadSetConnectivityService _headSetConnectivityService;
         private string _recommandation;
         private string _port;
         public string Recommandation { get { return _recommandation; } set { _recommandation = value; OnPropertyChanged(nameof(Recommandation)); } }
-        public bool IsInTablet { get; set; }
+        public bool IsInTablet { get; set; }                                                                                          
 
         public ICommand StartCommand { get; set; }
         public ICommand ContinueCommand { get; set; }
         public ICommand ResetCommand { get; set; }
 
-        public ICommand DisconnectCommand { get; set; }
+        public ICommand DisconnectCommand { get; set; }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
         private bool _enableStart;
         private bool _enableMiscCommands;
         private bool _enableExit;

@@ -30,11 +30,11 @@
                     <RowDefinition Height=".25*"></RowDefinition>
                 </Grid.RowDefinitions>
                 <StackPanel Grid.Row="0">
-                    <Button x:Name="StartButton" Style="{StaticResource ButtonStyle}" Content="Start New Calibration" HorizontalAlignment="Center" Width="200" Height="70" FontSize="20" VerticalAlignment="Center" Command="{Binding StartCmd}"></Button>
+                    <Button x:Name="StartButton" Style="{StaticResource ButtonStyle}" Content="Start New Calibration" HorizontalAlignment="Center" Width="215" Height="70" FontSize="20" VerticalAlignment="Center" Command="{Binding StartCmd}"></Button>
                 </StackPanel>
 
                 <StackPanel Grid.Row="1">
-                    <Button Style="{StaticResource ButtonStyle}" Content="Resume Calibrating" HorizontalAlignment="Center" Width="200" Height="70" FontSize="20" VerticalAlignment="Center" Command="{Binding ResumeCmd}" Visibility="{Binding EnableResume,Converter={StaticResource booltoVisibilityConverter}}"></Button>
+                    <Button Style="{StaticResource ButtonStyle}" Content="Resume Calibrating" HorizontalAlignment="Center" Width="215" Height="70" FontSize="20" VerticalAlignment="Center" Command="{Binding ResumeCmd}" Visibility="{Binding EnableResume,Converter={StaticResource booltoVisibilityConverter}}"></Button>
                     <StackPanel Orientation="Horizontal" Visibility="{Binding EnableResume,Converter={StaticResource booltoVisibilityConverter}}" HorizontalAlignment="Center">
                         <Label Margin="2,2,0,0" Style="{StaticResource MediumLabelStyle}">
                             <TextBlock>
@@ -51,7 +51,7 @@
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Grid.Row="2">
-                    <Button Style="{StaticResource ButtonStyle}" Content="Calibration Help" HorizontalAlignment="Center" Width="200" Height="70" FontSize="20" VerticalAlignment="Top" Command="{Binding HelpCmd}"></Button>
+                    <Button Style="{StaticResource ButtonStyle}" Content="Calibration Help" HorizontalAlignment="Center" Width="215" Height="70" FontSize="20" VerticalAlignment="Top" Command="{Binding HelpCmd}"></Button>
                 </StackPanel>
             </Grid>
             <Grid Grid.Column="1">
@@ -103,7 +103,7 @@
                     </behavior:Interaction.Triggers>
                 </ListBox>
                 <StackPanel Grid.Row="2">
-                    <Button Style="{StaticResource ButtonStyle}" Content="Use Selected Calibration File for Prediction" HorizontalAlignment="Center" Width="400" Height="50" FontSize="18" VerticalAlignment="Top" Command="{Binding ChangePredictionFileCmd}" IsEnabled="{Binding EnablePredictionSelection}"></Button>
+                    <Button Style="{StaticResource ButtonStyle}" Content="Use Selected Calibration File for Prediction" HorizontalAlignment="Center" Width="400" Height="50" FontSize="16" VerticalAlignment="Top" Command="{Binding ChangePredictionFileCmd}" IsEnabled="{Binding EnablePredictionSelection}"></Button>
                 </StackPanel>
                 <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Left" Margin="130,0,0,0" >
                     <Button Style="{StaticResource ButtonStyle}" Content="Cancel" HorizontalAlignment="Center" Width="100" Height="70" FontSize="20" VerticalAlignment="Top" Command="{Binding ExitCommand}" Margin="10,0,0,0"></Button>

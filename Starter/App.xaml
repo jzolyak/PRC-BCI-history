@@ -164,6 +164,10 @@
             <calibrationView:CalibrationInstructions DataContext="{Binding}" Height="Auto" Width="Auto"></calibrationView:CalibrationInstructions>
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type calibratevm:CoeffFileGenerationProgressViewModel}">
+            <calibrationView:CoeffFileGenerationProgressView DataContext="{Binding}" Height="Auto" Width="Auto"></calibrationView:CoeffFileGenerationProgressView>
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type predictionvm:PredictionViewModel}">
             <predictionView:PredictionView DataContext="{Binding}" Height="Auto" Width="Auto"></predictionView:PredictionView>
         </DataTemplate>

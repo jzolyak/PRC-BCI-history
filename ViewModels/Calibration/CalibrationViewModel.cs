@@ -71,6 +71,7 @@ namespace ViewModels.Calibration
 
         public object? PopupContentViewModel { get => _popupContentViewModel; set { _popupContentViewModel = value; OnPropertyChanged(nameof(PopupContentViewModel)); } }
 
+
         public CalibrationViewModel(Action exitAction,Action<bool> showorHideMainWindow,Action<ChildWindowSettings> showorHideChildWindow) : base(exitAction, showorHideMainWindow, showorHideChildWindow)
         {
             StartCmd = new RelayCommand(StartCalibrationPreCheck);
@@ -80,7 +81,7 @@ namespace ViewModels.Calibration
             _calibrationService = ServiceLocator.CalibrationService;
             _calibrationService.RaiseFileMetadataChange += _calibrationService_RaiseFileMetadataChange;
             _calibrationService.RaiseExitCalibrationEvent += _calibrationService_RaiseExitCalibrationEvent;
-            _calibrationService.RaiseActiveUIEvent += _calibrationService_RaiseActiveUIEvent;
+            _calibrationService.RaiseActiveUIEvent += _calibrationService_RaiseActiveUIEvent;            
             _userSettingsService = ServiceLocator.UserSettingsService;
             LoadPredictionFilesMetadata();
             CurrentFileMetadata = _calibrationService.GetCurrentCalibrationFileMetadata();
@@ -114,7 +115,8 @@ namespace ViewModels.Calibration
         }
 
         private void _calibrationService_RaiseExitCalibrationEvent(object? sender, EventArgs e)
-        {  
+        {
+            LoadPredictionFilesMetadata();
             var childWindowpref = new ChildWindowSettings { ShowWindow = false };
             _showorHideChildWindow(childWindowpref);
             if (_showorHideMainWindow != null) _showorHideMainWindow(true);

@@ -34,7 +34,7 @@ namespace CoreServices.Prediction
             LoadPredictionFiles();
         }
 
-        private void LoadPredictionFiles()
+        public void LoadPredictionFiles()
         {
             try
             {
