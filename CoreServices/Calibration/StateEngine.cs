@@ -349,6 +349,10 @@ namespace CoreServices.Calibration
                                         calibrationCompleted = true;
                                         calibrationFileMetadata.CurrentSet = calibrationFileMetadata.NumofSets;
                                         calibrationFileMetadata.IsCurrent = false;
+                                        if (completeAction != null)
+                                        {
+                                            completeAction();
+                                        }
                                         uiInstruction.Result = false;
                                         NotifyUI(uiInstruction);
                                     }
@@ -430,7 +434,15 @@ namespace CoreServices.Calibration
                             break;
 
                         case CalibrationStates.Read_Command:
-
+                            if(currentSetNum < startSetNum)
+                            {
+                                if (completeAction != null)
+                                {
+                                    completeAction();
+                                }
+                                modeState = CalibrationStates.Clean_Up;
+                                break;
+                            }
                             // Check if reached end of script file yet
                             if (currentLine >= maxLinesInFile)
                             {
@@ -1065,10 +1077,10 @@ namespace CoreServices.Calibration
                 {
                     FileHandlerService.CloseBinaryWriter(binaryWriter);
                 }
-                if(calibrationCompleted&&completeAction!=null)
-                {
-                    completeAction();
-                }
+                //if(calibrationCompleted&&completeAction!=null)
+                //{
+                  //  completeAction();
+                //}
                 //return Task.CompletedTask;
             }
             catch (Exception ex)

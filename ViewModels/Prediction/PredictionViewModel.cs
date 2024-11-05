@@ -87,6 +87,11 @@ namespace ViewModels.Prediction
             _flashStimulusViewModel = new FlashStimulusViewModel("prediction",exitAction);
         }
 
+        public void Refresh()
+        {
+            _predictionService.LoadPredictionFiles();
+            LoadPredictionFilesMetadata();
+        }
         private void OnSimulationModePreferenceChange(object obj)
         {
             _predictionService.UpdateSimulationModePreference(SimulationModePreference);

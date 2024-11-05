@@ -15,7 +15,10 @@ namespace CoreServices.Common
         private string _settingsFileName;
         private string _defaultSettingsFileName;
         private string _settingsFilePath;
+        private static UserSettingsService instance;
 
+        public static UserSettingsService Instance
+        { get { if (instance == null) { instance = new UserSettingsService(); } return instance; } }
         public UserSettingsService()
         {
             _userSettings = new ConcurrentDictionary<string, string>();
@@ -98,6 +101,7 @@ namespace CoreServices.Common
             return _userSettings[key];
         }
 
+       
         public Dictionary<string, string> GetSettings(string pattern)
         {
             if (_userSettings.IsEmpty) { Logger.Error(this, "Settings file is empty. Cannot Find Setting " + pattern); return null; }

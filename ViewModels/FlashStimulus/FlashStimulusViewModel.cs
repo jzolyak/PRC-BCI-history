@@ -34,6 +34,7 @@ namespace ViewModels.FlashStimulus
         private CalibrationRepeatQueryViewModel _repeatQueryViewModel;
         private CountDownViewModel _countDownViewModel;
         private WindowSizeProperties _windowSizeProp;
+        private CoeffFileGenerationProgressViewModel _coeffFileGenerationProgressViewModel;
 
 
         public double Top { get { return _top; } set { _top = value; OnPropertyChanged(nameof(Top)); } }
@@ -53,15 +54,29 @@ namespace ViewModels.FlashStimulus
             _buttonCollection = new ObservableCollection<ButtonElement>();
             _calibrationService.RaiseScreenOverLayChange += _calibrationService_RaiseScreenOverLayChange;
             _calibrationService.RaiseUIRequestChange += _calibrationService_RaiseUIRequestChange;
+            _calibrationService.RaiseCoeffInProgress += _calibrationService_RaiseCoeffInProgress;
+            _calibrationService.RaiseCoeffCompleted += _calibrationService_RaiseCoeffCompleted;
             _predictionService.RaiseScreenOverLayChange += _calibrationService_RaiseScreenOverLayChange;
             _stopQueryViewModel = new CalibrationStopQueryViewModel(NotificationFromUI);
             _beginQueryViewModel = new CalibrationBeginQueryViewModel(NotificationFromUI);
             _completeViewModel = new CalibrationCompleteViewModel(NotificationFromUI);
             _repeatQueryViewModel = new CalibrationRepeatQueryViewModel(NotificationFromUI);
             _countDownViewModel = new CountDownViewModel(ClosePopup, NotificationFromUI);
+            _coeffFileGenerationProgressViewModel = new CoeffFileGenerationProgressViewModel();
+
             WindowSizeProp = null;
             _mode = mode;
             _exitAction = exitAction;
+        }
+
+        private void _calibrationService_RaiseCoeffCompleted(object? sender, EventArgs e)
+        {
+            ClosePopup();
+        }
+        private void _calibrationService_RaiseCoeffInProgress(object? sender, EventArgs e)
+        {
+            PopupContentViewModel = _coeffFileGenerationProgressViewModel;
+            OpenPopup();
         }
 
         private void _calibrationService_RaiseUIRequestChange(object? sender, CoreServices.Models.EventArgs<CoreServices.Models.UIInstruction> e)
