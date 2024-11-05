@@ -434,7 +434,15 @@ namespace CoreServices.Calibration
                             break;
 
                         case CalibrationStates.Read_Command:
-
+                            if(currentSetNum < startSetNum)
+                            {
+                                if (completeAction != null)
+                                {
+                                    completeAction();
+                                }
+                                modeState = CalibrationStates.Clean_Up;
+                                break;
+                            }
                             // Check if reached end of script file yet
                             if (currentLine >= maxLinesInFile)
                             {
