@@ -808,17 +808,17 @@ namespace CoreServices.Connectivity
                     statusSensorScores[channelIndex, 2] = 10;    // Red - Might need to take special action to resolve this
                     sensorEventCounters[channelIndex].noiseLevelOutOfRange++;
                 }
-                else if (signalValue > 60.0)
+                else if (signalValue > 80.0)
                 {
                     statusSensorScores[channelIndex, 2] = 5;    // Red
                     sensorEventCounters[channelIndex].noiseLevelOutOfRange++;
                 }
-                else if (signalValue > 30.0)
+                else if (signalValue > 45.0)
                 {
                     statusSensorScores[channelIndex, 2] = 3;    // Yellow
                     sensorEventCounters[channelIndex].noiseLevelAdjust++;
                 }
-                else  // value is lower than 30.0 Vrms
+                else  // value is lower than 45.0 Vrms
                 {
                     statusSensorScores[channelIndex, 2] = 0;    // Green
                     sensorEventCounters[channelIndex].noiseLevelGood++;
