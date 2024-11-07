@@ -434,7 +434,7 @@ namespace CoreServices.Calibration
                             break;
 
                         case CalibrationStates.Read_Command:
-                            if(currentSetNum < startSetNum)
+                            if(startSetNum > 5)
                             {
                                 if (completeAction != null)
                                 {
