@@ -1,2 +1,3 @@
 ShowDemoVideo=false
 Version=Brain-Computer Interface - MVP.Beta.v1.0.1
+calibration;UI_delay_msec=500
