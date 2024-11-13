@@ -303,7 +303,7 @@ namespace CoreServices.FlashControl
 
                                     // Shuffle the order in which the stim codes are flashed for each flash sequence.
                                     // The key grouping remain the same, just the relative order gets shuffled around.
-                                    flashOrder.ShuffleTableOrdering3(ref flashOrderTable);
+                                    flashOrder.ShuffleTableOrdering4(ref flashOrderTable);
 
                                     // Need to keep count of entire # times passed thru entire flash sequence list.
                                     // Value for numFlashSeqPerTarget is a key user preference configuration preset!
@@ -419,16 +419,31 @@ namespace CoreServices.FlashControl
 
     public class FlashOrder
     {
+        // The code in FlashGrouping class randomizes which keys are assigned to two hidden matrixes.
+        // The rows and columns of the matrixes define which keys are flashed together as a group.
+        // In order to randomize when the key groups are flashed on the display, we create a flash
+        // order table. On the first flash sequence, the key groupings are flashed in the order
+        // they appear in the flashSequenceTable. 
+        //
+        // This class creates a flashOrderTable that randomizes the order in which the groupings
+        // are flashed as sequence. This randomization is done by shuffling a list of index values
+        // into the flashSequenceTable.
+
         public int maxtrix1_Size;
         public int maxtrix2_Size;
         public int row_col_size;
         public int numStimGroups;
 
-        public int num_rows;
-        public int num_cols;
+        //public int num_rows;
+        //public int num_cols;
 
-        public int[] rowIndexes;
-        public int[] colIndexes;
+        //public int[] rowIndexes;
+        //public int[] colIndexes;
+
+        public int[] m1_rowIndexes;
+        public int[] m1_colIndexes;
+        public int[] m2_rowIndexes;
+        public int[] m2_colIndexes;
 
         Random rnd = new Random();
 
@@ -439,6 +454,7 @@ namespace CoreServices.FlashControl
         {
             numStimGroups = flashSequenceTable.Count;
 
+            /*
             num_rows = numStimGroups / 2;
             num_cols = numStimGroups / 2;
 
@@ -453,6 +469,7 @@ namespace CoreServices.FlashControl
 
             RandomizeIndexes(ref rowIndexes);
             RandomizeIndexes(ref colIndexes);
+            */
 
             int[] flashOrderTable = new int[numStimGroups];
 
@@ -475,12 +492,37 @@ namespace CoreServices.FlashControl
                 maxtrix1_Size = row_col_size + 1;
             }
 
+            m1_rowIndexes = CreateRandomizedArray(maxtrix1_Size);
+            m1_colIndexes = CreateRandomizedArray(maxtrix1_Size);
+            m2_rowIndexes = CreateRandomizedArray(maxtrix2_Size);
+            m2_colIndexes = CreateRandomizedArray(maxtrix2_Size);
+
+            // For the first flash sequence, the key groupings are flashed based on their original order
+            // in the flashSequenceTable[].
             for (int i = 0; i < numStimGroups; i++)
             {
-                flashOrderTable[i] = flashSequenceTable[i].sequenceNum - 1;
+                flashOrderTable[i] = i;
             }
 
             return flashOrderTable;
+        }
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+        public int[] CreateRandomizedArray(int arraySize)
+        {
+            int[] randomizedArray = new int[arraySize];
+
+            // Initialize array with sequential list of non repeating postive index values
+            for (int i = 0; i < arraySize; i++)
+            {
+                randomizedArray[i] = i;
+            }
+
+            // Randomize the contents of the array
+            RandomizeIndexes(ref randomizedArray);
+
+            return randomizedArray;
         }
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
@@ -506,7 +548,7 @@ namespace CoreServices.FlashControl
         }
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-
+        /*
         public void ShuffleTableOrdering(ref int[] flashOrderTable)
         {
             int prevStimCode;
@@ -589,9 +631,10 @@ namespace CoreServices.FlashControl
             }
 
         }  // ShuffleTableOrdering()
+        */
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-
+        /*
         public void ShuffleTableOrdering2(ref int[] flashOrderTable)
         {
 
@@ -641,9 +684,10 @@ namespace CoreServices.FlashControl
             }
 
         }  // ShuffleTableOrdering2()
+        */
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-
+        /*
         public void ShuffleTableOrdering3(ref int[] flashOrderTable)
         {
 
@@ -657,6 +701,47 @@ namespace CoreServices.FlashControl
             }
 
         }  // ShuffleTableOrdering3()
+        */
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+        public void ShuffleTableOrdering4(ref int[] flashOrderTable)
+        {
+            int offset1, offset2, offset3;
+
+            RandomizeIndexes(ref m1_rowIndexes);
+            RandomizeIndexes(ref m1_colIndexes);
+            RandomizeIndexes(ref m2_rowIndexes);
+            RandomizeIndexes(ref m2_colIndexes);
+
+            // The flash groupings are stored in the flash seqeuence table is a very specific order:
+            //   - All the rows from Hidden Matrix 1
+            //   - All the rows from Hidden Matrix 2
+            //   - All the cols from Hidden Matrix 1
+            //   - All the cols from Hidden Matrix 2
+            // This creates a time separation between when the row and col containing target keyID are flashed
+
+            offset1 = maxtrix1_Size;
+            offset2 = maxtrix1_Size + maxtrix2_Size;
+            offset3 = maxtrix1_Size + maxtrix1_Size + maxtrix2_Size;
+
+            // Shuffle the array indexes into flash sequence table to randomize the order in which the
+            // rows and cols are flashed in Hidden Matrix 1
+            for (int i = 0; i < maxtrix1_Size; i++)
+            {
+                flashOrderTable[i] = m1_rowIndexes[i];
+                flashOrderTable[i + offset2] = m1_colIndexes[i] + offset2;
+            }
+
+            // Shuffle the array indexes into flash sequence table to randomize the order in which the
+            // rows and cols are flashed in Hidden Matrix 2
+            for (int i = 0; i < maxtrix2_Size; i++)
+            {
+                flashOrderTable[i + offset1] = m2_rowIndexes[i] + offset1;
+                flashOrderTable[i + offset3] = m2_colIndexes[i] + offset3;
+            }
+
+        }  // ShuffleTableOrdering4()
 
     }  // class FlashOrder
 }
