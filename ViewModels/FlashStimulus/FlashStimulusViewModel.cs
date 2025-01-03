@@ -113,11 +113,11 @@ namespace ViewModels.FlashStimulus
         private ButtonElement GetExitToMainScreen(ButtonElement firstElement)
         {
             var buttonelement = new ButtonElement();
-            buttonelement.Left = 200;
-            buttonelement.Top = 180;
+            buttonelement.Left = firstElement.Left;
+            buttonelement.Top = firstElement.Top - 100;
             buttonelement.Height = 50;
-            buttonelement.Width = 200;
-            buttonelement.Name = "Exit From BCI";
+            buttonelement.Width = 250;
+            buttonelement.Name = "Exit From Prediction";
             buttonelement.IsEnabled = true;
             buttonelement.ClickAction = ExitToMainMenu;
             buttonelement.BorderBrush = CustomBrushes.Red;
@@ -136,7 +136,7 @@ namespace ViewModels.FlashStimulus
                     _calibrationService.ForceExit();
                 }
             }
-            Environment.Exit(1);
+            //Environment.Exit(1);
 
         }
         private void NotificationFromUI(UIInstruction uIInstruction)

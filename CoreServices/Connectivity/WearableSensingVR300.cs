@@ -236,11 +236,17 @@ namespace BCI_Headset
         {
             DSI_Headset_ConfigureBatch(handle, nSamples, targetDelaySeconds);
         }
-
         public double WaitForBatch()
         {
-            double timerValue = DSI_Headset_WaitForBatch(handle);
-            return timerValue;
+            try
+            {
+                double timerValue = DSI_Headset_WaitForBatch(handle);
+                return timerValue;
+            }
+            catch (AccessViolationException e)
+            {
+                return 0.0;
+            }
         }
 
         public double ReadBuffered(IntPtr channel)

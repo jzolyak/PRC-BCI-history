@@ -78,6 +78,7 @@ namespace ViewModels.Prediction
             SimulationModePreferenceModeChangeCmd = new RelayCommand(OnSimulationModePreferenceChange);
             _predictionService = ServiceLocator.PredictionService;
             _userSettingsService = ServiceLocator.UserSettingsService;
+            _predictionService.RaiseExitPredictionEvent += _predictionService_RaiseExitPredictionEvent;
             LoadPredictionFilesMetadata();          
             ShowPopup = false;
             PopupContentViewModel = null;
@@ -85,6 +86,13 @@ namespace ViewModels.Prediction
             Opacity = 1;
             
             _flashStimulusViewModel = new FlashStimulusViewModel("prediction",exitAction);
+        }
+
+        private void _predictionService_RaiseExitPredictionEvent(object? sender, EventArgs e)
+        {
+            var childWindowpref = new ChildWindowSettings { ShowWindow = false };
+            _showorHideChildWindow(childWindowpref);
+            if (_showorHideMainWindow != null) _showorHideMainWindow(true);
         }
 
         public void Refresh()

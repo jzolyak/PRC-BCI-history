@@ -84,6 +84,7 @@ namespace CoreServices.Prediction
 
         public void User_Actual_Start()
         {
+            _predictionStateEngine.UnsetExitFlag();
             _predictionStateEngine.SetPredictionFile(_currentPredictionFile);
             Task.Run(_predictionStateEngine.PredictionMode);
         }
