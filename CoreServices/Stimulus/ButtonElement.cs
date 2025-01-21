@@ -1,5 +1,7 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
 using System.Drawing;
+using System.Windows.Input;
 
 namespace CoreServices.Stimulus
 {
@@ -12,10 +14,17 @@ namespace CoreServices.Stimulus
         private CustomBrushes _borderBrush;
         private CustomBrushes _backgroundBrush;
         private string _content;
+        private double _opacity;
         public double Height
         {
             get { return _height; }
             set { _height = value; OnPropertyChanged(nameof(Height)); }
+        }
+
+        public double Opacity
+        {
+            get { return _opacity; }
+            set { _opacity = value; OnPropertyChanged(nameof(Opacity)); }
         }
         public double Width { get { return _width; } set { _width = value; OnPropertyChanged(nameof(Width)); } }
         public double Top { get { return _top; } set { _top = value; OnPropertyChanged(nameof(Top)); } }
@@ -35,9 +44,12 @@ namespace CoreServices.Stimulus
         }
         public Color BackgroundBrushClr { get { return GetColor(BackgroundBrush); } }
 
+        public ICommand ClickCmd { get; set; }
+        public bool IsEnabled { get; set; }
         public event PropertyChangedEventHandler? PropertyChanged;
 
-
+        public Action<string> ClickAction { get; set; }
+        public string Name { get; set; }
         public void OnPropertyChanged(string propertyName)
         {
             if (string.IsNullOrEmpty(propertyName)) return;
@@ -57,6 +69,22 @@ namespace CoreServices.Stimulus
 
             }
             return Color.Transparent;
+        }
+
+        public ButtonElement()
+        {
+            ClickCmd = new RelayCommand(OnClick);
+            IsEnabled = false;
+            Name=String.Empty;
+            Opacity = 1;
+        }
+
+        private void OnClick(object obj)
+        {
+           if(ClickAction!=null && !string.IsNullOrEmpty(Name))
+            {
+                ClickAction(Name);
+            }
         }
     }
 }

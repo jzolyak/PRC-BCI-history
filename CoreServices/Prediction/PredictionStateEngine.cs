@@ -14,6 +14,10 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using System.Diagnostics;
+
+using CoreServices.Headset;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace CoreServices.Prediction
 {
@@ -25,8 +29,9 @@ namespace CoreServices.Prediction
         private UIInstruction uiInstruction;
         private Action<UIInstruction> notifyUIAction;
         private Action<ScreenOverlay> notifyScreenOverLayChange;
+        private bool _forceExit;
 
-        private CalibrationFileMetadata calibrationFileMetadata;    // Still need ???
+        private PredictionFileMetadata predictionFileMetadata;    // Still need ???
 
         private Action exitAction;
         private Action completeAction;
@@ -45,7 +50,7 @@ namespace CoreServices.Prediction
             "Show_Instructions", "Open_Files", "Remote_Display", "Get_Remote_Elements",
             "Local_Display", "Get_Local_Elements", "Assign_Key_Mapping", "Create_Grouping", "Create_Sequence",
             "Core_Loop", "Click_Key", "Programmed_Delay", "Monitor_Prediction_Interfaces",
-            "Clean_Up", "Exit_Mode", "Notify_UI", "Wait_On_UI", "Process_UI_Notification"
+            "Clean_Up", "Exit_Mode", "Notify_UI", "Wait_On_UI", "Process_UI_Notification", "Read_Command"
         };
 
         public PredictionStateEngine(Action<UIInstruction> notifyUIAction,Action<ScreenOverlay> notifyScreenOverLayChange, Action exitAction,Action completeAction,Action pauseAction)
@@ -67,7 +72,7 @@ namespace CoreServices.Prediction
             inputParam.arrangement = Arrangement.Magic;
             inputParam.indexMapping = IndexMapping.GridSize;
 
-            bool calibrationCompleted = false;
+            //bool calibrationCompleted = false;
 
             //int startSetNum = 1;
             //int totalSetNum = 0;
@@ -75,30 +80,35 @@ namespace CoreServices.Prediction
             //int targetsReadFromSet = 0;
 
             int numGetElementRetries = 0;
-            int repeatCalibrationLine = 0;      // Still need ???
-            int currentLine = 0;
-            int maxLinesInFile = 0;
+            //int repeatCalibrationLine = 0;      // Still need ???
+            //int currentLine = 0;
+            //int maxLinesInFile = 0;
             int targetkeyIDvalue = 0;
+            int selectedKeyIDvalue = 0;
             int matrixSize1 = 0;
             int matrixSize2 = 0;
-            bool showCountDownTimer = true;
+            //bool showCountDownTimer = true;
 
             int elementIndex = 0;
 
             int UI_delay_msec = 200;
             int programmable_delay_msec = 1000;
 
-            string targetKeyName;
-            string[] commandLines = null;
+            //string targetKeyName;
+            //string[] commandLines = null;
 
             bool modeExit = false;
-            bool foundMatch = false;
+            //bool foundMatch = false;
 
-            const int MAX_MSG_LENGTH = 8;
+            const int MAX_FLASH_MSG_LENGTH = 8;
+            const int MAX_PREDICT_MSG_LENGTH = 20;
 
             const int FLASH_ON = 1;
             const int FLASH_OFF = 2;
             const int END_SEQUENCE = 3;
+
+            const int ENABLE_PIPELINE_SENSOR_DATA = 1;
+            const int DISABLE_PIPELINE_SENSOR_DATA = 2;
 
             const int samplesPerBatch = 9;              // 9 samples = 30 msec @ Fs=300 Hz
             const double bufferAheadSec = 0.100;        // 100 msec
@@ -106,14 +116,20 @@ namespace CoreServices.Prediction
             int numTargets = 1;
 
             int messageType;
+            int messageLen;
             int indexValue;
+            int stimCode;
             int phaseInSequence;
+            int reportedAction;
             int elapsedTime;
             int sourceTimer;
 
-            int[] messageBuffer = new int[MAX_MSG_LENGTH];
+            WeightCoefficients testWeightCoef = new WeightCoefficients();
 
-            modeState = PredictionStates.Read_Command;
+            
+            modeState = PredictionStates.Open_Files;
+
+
             UserSettingsService userSettingsService = new UserSettingsService();
             UI_delay_msec = Convert.ToInt32(userSettingsService.GetSettings("UI_delay_msec"));
 
@@ -139,15 +155,22 @@ namespace CoreServices.Prediction
 
             PredictionPresets predictionConfiguration = new PredictionPresets();
 
+            //string currentDirectory = Directory.GetCurrentDirectory();
+            //string coefficientFilename = "WeightCoefficients.coef";
 
-            /*   *****************************
-            **   ***  Instantiate classes  ***   
-            **   *****************************
-            */
-            string currentDirectory = Directory.GetCurrentDirectory();
+            string currentDirectory = predictionFileMetadata.FilePath;
+            string coefficientFilename =predictionFileMetadata.Name+"_current.COEF";
+            string filePath = System.IO.Path.Combine(currentDirectory, coefficientFilename);
 
+            // string currentDirectory = Directory.GetCurrentDirectory();
             //string scriptFilename = "CalibrationCommands.txt";
             //string filePath = System.IO.Path.Combine(currentDirectory, scriptFilename);
+
+
+            /*   *****************************
+            **   ***   Configure Headset   ***   
+            **   *****************************
+            */
 
             WearableSensingVR300 headset = new WearableSensingVR300();
 
@@ -211,9 +234,42 @@ namespace CoreServices.Prediction
 
             headset.ConfigureBatch(samplesPerBatch, bufferAheadSec);
 
+            // Start the headset driver at the operating system level
+            headset.StartBackgroundAcquisition();
+
+
+            /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+            // 
+            // The following code changes the design so that data acquisition starts at the
+            // beginning of the mode and stops at the end of the mode. The data must be constantly
+            // read from the headset, otherwise the buffers in the bluetooth driver will overflow.
+            // A new headset task has been created and started outside the core loop. The data
+            // is constantly read from the headset as soon as it arrives. The state engine
+            // controls the data flow to the processing pipeline by sending a command to the
+            // headset task to enable its output to the Buffer Block at the head of the pipeline.
+            //
+
+            // Create the TPL Dataflow pipeline pieces and start the new headset control task.
+            HeadsetControl headsetControl = new HeadsetControl();
+
+            CancellationTokenSource headsetTokenSource = new CancellationTokenSource();
+
+            var headsetDataBufferBlock = new BufferBlock<double[]>();
+            var headsetMsgBufferBlock = new BufferBlock<HeadsetControlMessage>();
+
+            HeadsetControlMessage headsetControlMessage = new HeadsetControlMessage();
+
+
+            Task t0 = Task.Run(() => headsetControl.ReadHeadsetDataAsync(headset, headsetTokenSource.Token, headsetDataBufferBlock, headsetMsgBufferBlock));
+
+
+            /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
             try
             {
-                BinaryWriter? binaryWriter = null;
+                // Don't need binaryWriter for Prediction to work. JAZ 4-12-24
+                //BinaryWriter? binaryWriter = null;
 
                 /*
                 commandLines = File.ReadAllLines(filePath);
@@ -387,6 +443,25 @@ namespace CoreServices.Prediction
                             //   3.  Text file for logging Prediction related information. Currently I don't know where the file name
                             //       originates from, so we will use dummy default name of PredictionLog.txt for now.
 
+                            // Temporarily generate a set of weight coefficients that are easy to test for a pattern
+                            // to ensure that they are received correctly by the Prediction task.
+
+                            try
+                            {
+                                int index = 0;
+                                BinaryReader br = new BinaryReader(new FileStream(filePath, FileMode.Open));
+
+                                while (br.BaseStream.Position != br.BaseStream.Length)
+                                {
+                                    testWeightCoef.values[index++] = br.ReadDouble();
+                                }
+                            }
+                            catch (IOException e)
+                            {
+                                Logger.Info(this, "\n Cannot open Weight Coefficient file.");
+                                return;
+                            }
+
                             modeState = PredictionStates.Remote_Display;
                             break;
 
@@ -415,6 +490,9 @@ namespace CoreServices.Prediction
                                 // Sometimes MUIA does not find the children elements of the desktop (root) element on the first try.
                                 if (numGetElementRetries == 0)
                                 {
+                                    // Try inserting a small delay before attempting to fetch elements again
+                                    await Task.Delay(200);
+
                                     // Try fetching the list one more time
                                     numGetElementRetries++;
                                     modeState = PredictionStates.Get_Remote_Elements;
@@ -521,106 +599,302 @@ namespace CoreServices.Prediction
                         case PredictionStates.Core_Loop:
 
                             bool exitFlag = false;
+                            bool predictStatusReceived = false;
 
-                            headset.StartBackgroundAcquisition();
+                            int fseq;
+                            int code1;
+                            int code2;
+                            int code3;
+                            int code4;
+                            int code5;
 
-                            CancellationTokenSource tokenSource = new CancellationTokenSource();
+                            int iPoint1;
+                            int iPoint2;
 
-                            // Create instances of BufferBlocks to pass data between pipelined tasks.
-                            var messageBufferBlock = new BufferBlock<int[]>();
-                            var dataBufferBlock    = new BufferBlock<double[]>();
-                            var filterBufferBlock  = new BufferBlock<double[]>();
-                            var weightCoefBufferBlock = new BufferBlock<double[]>(); 
-                            //var packetDataBufferBlock = new BufferBlock<double[]>();
-                            var commandMsgBufferBlock = new BufferBlock<int[]>();
-                            var statusMsgBufferBlock  = new BufferBlock<int[]>();
+                            int score1;
+                            int score2;
+                            int score3;
+                            int score4;
+                            int score5;
+                            int predKey;
+                            int winCnt;
+                            int selKey;
 
-                            // Create instances of classed that comprise the processing pipeline tasks
-                            FlashTiming flashTiming = new FlashTiming();
-                            SensorFiltering sensorFiltering = new SensorFiltering();
-                            PredictionControl predictionControl = new PredictionControl();
-                            RecordBinaryData recordBinary = new RecordBinaryData();
-
+                            /* ********************************* */
+                            /*
                             if (calibrationFileMetadata ==null)
                             {
                                 Logger.Error(this, "calibration file meta data is not available.unable to proceed");
                                 modeState = PredictionStates.Clean_Up; break;
                             }    
                            
+                            // Don't need binaryWriter for Prediction to work. JAZ 4-12-24
                             binaryWriter = FileHandlerService.CreateAndOpenBinaryFile(calibrationFileMetadata.GetCurrentBinFileName(), "CalibrationFiles");
                             if (binaryWriter == null)
                             {
                                 Logger.Error(this, "unable to create binary writer.");
                                 modeState = PredictionStates.Clean_Up; break;
                             }
+                            */
+                            /* ********************************* */
+
+
+                            CancellationTokenSource pipelineTokenSource = new CancellationTokenSource();
+
+                            DataflowBlockOptions blockOptions = new DataflowBlockOptions();
+                            blockOptions.CancellationToken = pipelineTokenSource.Token;
+
+                            // Create instances of BufferBlocks to pass data between pipelined tasks.
+                            var flashMsgBufferBlock = new BufferBlock<int[]>(blockOptions);
+                            var flashDataBufferBlock = new BufferBlock<double[]>(blockOptions);
+                            var filterDataBufferBlock = new BufferBlock<double[]>(blockOptions);
+
+                            var weightCoefBufferBlock = new BufferBlock<WeightCoefficients>(blockOptions);
+                            var commandMsgBufferBlock = new BufferBlock<int[]>(blockOptions);
+                            var statusMsgBufferBlock = new BufferBlock<PredictStatusMessage>(blockOptions);
+
+                            int[] flashControlMessage = new int[MAX_FLASH_MSG_LENGTH];
+
+                            PredictStatusMessage predictStatusMessage = new PredictStatusMessage();
+
+                            // Create instances of classes that comprise the processing pipeline tasks
+                            // HeadsetControl headsetControl = new HeadsetControl();
+                            FlashTiming flashTiming = new FlashTiming();
+                            SensorFiltering sensorFiltering = new SensorFiltering();
+                            PredictionControl predictionControl = new PredictionControl();
+                            //RecordBinaryData recordBinary = new RecordBinaryData();
+
                             // Start separate tasks that fetch sensor samples from headset while flashing keys on display screen,
                             // filtering the data for each sensor channel, and recording the filtered sensor data.
-                            Task t1 = Task.Run(() => flashTiming.FlashDataAsync(headset, tokenSource.Token, flashSequenceTable, 
-                                                        messageBufferBlock, dataBufferBlock));
 
-                            Task t2 = Task.Run(() => sensorFiltering.FilterDataAsync(tokenSource.Token, dataBufferBlock, filterBufferBlock));
+                            // Task t0 = Task.Run(() => headsetControl.ReadHeadsetDataAsync(headset, headsetTokenSource.Token, headsetDataBufferBlock, headsetMsgBufferBlock));
 
-                            //Task t3 = Task.Run(() => recordBinary.RecordDataAsync(tokenSource.Token, filterBufferBlock, binaryWriter));
+                            Task t1 = Task.Run(() => flashTiming.FlashDataAsync(headset, pipelineTokenSource.Token, flashSequenceTable,
+                                                        headsetDataBufferBlock, flashDataBufferBlock, flashMsgBufferBlock));
 
-                            Task t4 = Task.Run(() => predictionControl.PredictionControlAsync(tokenSource.Token, predictionConfiguration,
-                                                        weightCoefBufferBlock, filterBufferBlock, commandMsgBufferBlock, statusMsgBufferBlock));
+                            Task t2 = Task.Run(() => sensorFiltering.FilterDataAsync(pipelineTokenSource.Token, flashDataBufferBlock, filterDataBufferBlock));
 
+                            //Task t3 = Task.Run(() => recordBinary.RecordDataAsync(pipelineTokenSource.Token, filterDataBufferBlock, binaryWriter));
+
+                            Task t4 = Task.Run(() => predictionControl.PredictionControlAsync(pipelineTokenSource.Token, predictionConfiguration,
+                                                        weightCoefBufferBlock, filterDataBufferBlock, commandMsgBufferBlock, statusMsgBufferBlock));
+
+
+                            // Enable the flow of sensor data from the headset to the processing pipeline now.
+                            headsetControlMessage.content[0] = ENABLE_PIPELINE_SENSOR_DATA;     // message ID
+                            headsetControlMessage.content[1] = 2;                               //message length
+
+                            // Send command message to the headset task.
+                            headsetMsgBufferBlock.Post(headsetControlMessage);
+
+                            /* ********************************* */
 
                             while (exitFlag == false)
                             {
-                                messageBuffer = await flashTiming.GetFlashControlMessageAsync(messageBufferBlock);
+                                flashControlMessage = await flashTiming.GetFlashControlMessageAsync(flashMsgBufferBlock);
 
+                                if (_forceExit)
+                                {
+                                    _forceExit = false;
+                                    exitFlag = true;
+                                }
                                 string flashTime = DateTime.Now.ToString("HH:mm:ss:ffff");
 
-                                messageType = messageBuffer[0];
+                                messageType = flashControlMessage[0];
 
                                 if (messageType == FLASH_ON)
                                 {
-                                    indexValue = messageBuffer[1] - 1;
-                                    phaseInSequence = messageBuffer[2];
-                                    elapsedTime = messageBuffer[3];
+                                    indexValue = flashControlMessage[1] - 1;
+                                    phaseInSequence = flashControlMessage[2];
+                                    elapsedTime = flashControlMessage[3];
 
                                     flashStimulus.FlashStimulusON(targetkeyIDvalue, indexValue, flashSequenceTable);
 
                                     sourceTimer = elapsedTime % 65536;
                                     //Console.WriteLine("{0}  Flash ON,  seq num = {1},  phase = {2},   time = {3} \n", flashTime, indexValue, phaseInSequence, sourceTimer);
+                                    //Debug.WriteLine("{0}  Flash ON,  seq num = {1},  phase = {2},   time = {3} \n", flashTime, indexValue, phaseInSequence, sourceTimer);
                                 }
                                 else if (messageType == FLASH_OFF)
                                 {
-                                    indexValue = messageBuffer[1] - 1;
-                                    phaseInSequence = messageBuffer[2];
-                                    elapsedTime = messageBuffer[3];
+                                    indexValue = flashControlMessage[1] - 1;
+                                    phaseInSequence = flashControlMessage[2];
+                                    elapsedTime = flashControlMessage[3];
 
                                     flashStimulus.FlashStimulusOFF(targetkeyIDvalue, indexValue, flashSequenceTable);
 
                                     sourceTimer = elapsedTime % 65536;
                                     //Console.WriteLine("{0}  Flash OFF,  seq num = {1},  phase = {2},   time = {3}  \n", flashTime, indexValue, phaseInSequence, sourceTimer);
+                                    //Debug.WriteLine("{0}  Flash OFF,  seq num = {1},  phase = {2},   time = {3}  \n", flashTime, indexValue, phaseInSequence, sourceTimer);
                                 }
-                                else if (messageType == END_SEQUENCE)
+                                else if (messageType != END_SEQUENCE)
                                 {
+                                    Logger.Info(this, flashTime + "FlashControlAsync() returned invalid message!!!  messageType = " + messageType);
                                     exitFlag = true;
                                 }
-                                else
+
+                                /* ********************************* */
+
+                                // Next poll for any status or debug messaged sent from the Prediction task...
+                                predictStatusReceived = statusMsgBufferBlock.TryReceive(out predictStatusMessage);
+
+                                if (predictStatusReceived == true)
                                 {
-                                    Logger.Info(this, flashTime + "FlashControlAsync() returned invalid message!!!  messageType = "+ messageType);
-                                    exitFlag = true;
-                                }
+                                    predictStatusReceived = false;
+
+                                    messageType = predictStatusMessage.content[0];
+
+                                    if (messageType == 18)
+                                    {
+                                        // MARK_STATE_CHANGE
+                                        messageLen = predictStatusMessage.content[1];
+                                        phaseInSequence = predictStatusMessage.content[2];
+                                        stimCode = predictStatusMessage.content[3];
+                                        reportedAction = predictStatusMessage.content[4];
+
+                                        //Debug.WriteLine("{0}  MARK_STATE,  seq num = {1},  phase = {2},   time = {3} \n", flashTime, stimCode, phaseInSequence, sourceTimer);
+                                        //Debug.WriteLine("{0}  MARK_STATE,  phase = {1}, seq num = {2}, action = {3} \n", flashTime, phaseInSequence, stimCode, reportedAction);
+
+                                        if (phaseInSequence == 1)
+                                        {
+                                            weightCoefBufferBlock.Post(testWeightCoef);
+                                        }
+                                    }
+
+                                    else if (messageType == 20)
+                                    {
+                                        // MARK_STIM_CHANGE
+                                        messageLen = predictStatusMessage.content[1];
+                                        phaseInSequence = predictStatusMessage.content[2];
+                                        stimCode = predictStatusMessage.content[3];
+                                        reportedAction = predictStatusMessage.content[4];
+
+                                        //Debug.WriteLine("{0}  MARK_STIM,   seq num = {1},  phase = {2},   time = {3} \n", flashTime, stimCode, phaseInSequence, sourceTimer);
+                                        //Debug.WriteLine("{0}  MARK_STIM,  phase = {1}, seq num = {2}, action = {3} \n", flashTime, phaseInSequence, stimCode, reportedAction);
+                                    }
+                                    
+                                    else if (messageType == 21)
+                                    {
+                                        // PREDICT_STATUS
+                                        messageLen = predictStatusMessage.content[1];
+                                        fseq  = predictStatusMessage.content[2];
+                                        code1 = predictStatusMessage.content[3];
+                                        code2 = predictStatusMessage.content[4];
+                                        code3 = predictStatusMessage.content[5];
+                                        code4 = predictStatusMessage.content[6];
+                                        code5 = predictStatusMessage.content[7];
+
+                                        iPoint1 = predictStatusMessage.content[8];
+                                        iPoint2 = predictStatusMessage.content[9];
+
+                                        score1 = predictStatusMessage.content[10];
+                                        score2 = predictStatusMessage.content[11];
+                                        score3 = predictStatusMessage.content[12];
+                                        score4 = predictStatusMessage.content[13];
+                                        score5 = predictStatusMessage.content[14];
+
+                                        predKey = predictStatusMessage.content[15];
+                                        winCnt = predictStatusMessage.content[16];
+                                        selKey = predictStatusMessage.content[17];
+
+                                        //Logger.Info(this, "fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + " code3 = " + code3 + " code4 = " + code4);
+                                        //Logger.Info(this, " code5 = " + code5 + " predKey = " + predKey + " winct = " + winct + " selKey = " + selKey + "\n");
+                                        //Debug.WriteLine("{0}  STATUS,  fseq = {1}, code1 = {2}, code2 = {3}, code3 = {4}, code4 = {5}, code5 = {6} \n", flashTime, fseq, code1, code2, code3, code4, code5);
+
+                                        //Debug.WriteLine("{0}  STATUS,  fseq = {1}, code1 = {2}, code2 = {3}, code3 = {4}, code4 = {5}, code5 = {6}, \n", flashTime, fseq, code1, code2, code3, code4, code5);
+                                        //Debug.WriteLine("              score1 = {0}, score2 = {1}, score3 = {2}, score4 = {3}, score5 = {4}, predKey = {5}, winCnt = {6}, selKey = {7}  \n", score1, score2, score3, score4, score5, predKey, winCnt, selKey);
+
+                                        //Logger.Info("STATUS,  fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + " code3 = " + code3 + " code4 = " + code4 + " code5 = " + code5 + " iPoint1 = " + iPoint1 + " iPoint2 = " + iPoint2 + "\n");
+                                        //Logger.Info("         score1 = " + score1 + " score2 = " + score2 + " score3 = " + score3 + " score4 = " + score4 + " score5 = " + score5 + " predKey = " + predKey + " winCnt = " + winCnt + " selKey = " + selKey + "\n");
+
+                                        Logger.Info("STATUS,  fseq = " + fseq + "  code1 = " + code1 + "   code2 = " + code2 + "      code3 = " + code3 + "       code4 = " + code4 + "       code5 = " + code5 + "      iPoint1 = " + iPoint1 + "  iPoint2 = " + iPoint2);
+                                        Logger.Info("                score1 = " + score1 + "  score2 = " + score2 + "   score3 = " + score3 + "   score4 = " + score4 + "  score5 = " + score5 + "   predKey = " + predKey + "  winCnt = " + winCnt + "  selKey = " + selKey + "\n");
+
+                                    }
+
+                                    else if (messageType == 99)
+                                    {
+                                        // END_OF_PREDICTION
+                                        exitFlag = true;
+
+                                        messageLen = predictStatusMessage.content[1];
+                                        fseq = predictStatusMessage.content[2];
+                                        code1 = predictStatusMessage.content[3];
+                                        code2 = predictStatusMessage.content[4];
+                                        code3 = predictStatusMessage.content[5];
+                                        code4 = predictStatusMessage.content[6];
+                                        code5 = predictStatusMessage.content[7];
+
+                                        iPoint1 = predictStatusMessage.content[8];
+                                        iPoint2 = predictStatusMessage.content[9];
+
+                                        score1 = predictStatusMessage.content[10];
+                                        score2 = predictStatusMessage.content[11];
+                                        score3 = predictStatusMessage.content[12];
+                                        score4 = predictStatusMessage.content[13];
+                                        score5 = predictStatusMessage.content[14];
+
+                                        predKey = predictStatusMessage.content[15];
+                                        winCnt = predictStatusMessage.content[16];
+                                        selKey = predictStatusMessage.content[17];
+
+                                        // We have a winner if Prediction task returns nonzero value for selectedKeyIDvalue !!!
+                                        // If value is zero, then Prediction could not be made within a preset number of flash sequences,
+                                        // i.e. the sensor signals did not reach the preset config values set for detection criteria.
+                                        selectedKeyIDvalue = selKey;
+
+                                        //Logger.Info(this, "fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + "code3 = " + code3 + " code4 = " + code4);
+                                        //Logger.Info(this, " code5 = " + code5 + "  predKey " + predKey + " winCnt = " + winCnt + "selKey = " + selKey + "\n");
+
+                                        //Debug.WriteLine("{0}  STATUS,  fseq = {1}, code1 = {2}, code2 = {3}, code3 = {4}, code4 = {5}, code5 = {6}, \n", flashTime, fseq, code1, code2, code3, code4, code5);
+                                        //Debug.WriteLine("              score1 = {0}, score2 = {1}, score3 = {2}, score4 = {3}, score5 = {4}, predKey = {5}, winCnt = {6}, selKey = {7}  \n", score1, score2, score3, score4, score5, predKey, winCnt, selKey);
+
+                                        //Logger.Info("STATUS,  fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + " code3 = " + code3 + " code4 = " + code4 + " code5 = " + code5 + " iPoint1 = " + iPoint1 + " iPoint2 = " + iPoint2 + "\n");
+                                        //Logger.Info("         score1 = " + score1 + " score2 = " + score2 + " score3 = " + score3 + " score4 = " + score4 + " score5 = " + score5 + " predKey = " + predKey + " winCnt = " + winCnt + " selKey = " + selKey + "\n");
+
+                                        Logger.Info("SELECT,  fseq = " + fseq + "  code1 = " + code1 + "   code2 = " + code2 + "      code3 = " + code3 + "       code4 = " + code4 + "       code5 = " + code5 + "      iPoint1 = " + iPoint1 + "  iPoint2 = " + iPoint2);
+                                        Logger.Info("                score1 = " + score1 + "  score2 = " + score2 + "   score3 = " + score3 + "   score4 = " + score4 + "  score5 = " + score5 + "   predKey = " + predKey + "  winCnt = " + winCnt + "  selKey = " + selKey + "\n");
+                                        Logger.Info("\n\n\n ************************ \n\n");
+
+                                    }
+
+                                }  // if (predictStatusReceived == true)
 
                             }  // while (exitFlag == false)
 
+                            /* +++++++++++++++++++++++++++++++++++++++ */
+
                             ++numTargets;
 
-                            // Stop task that is fetching sensor samples from headset
-                            tokenSource.Cancel();
+                            // Disable the flow of sensor data from the headset to the processing pipeline now.
+                            headsetControlMessage.content[0] = DISABLE_PIPELINE_SENSOR_DATA;     // message ID
+                            headsetControlMessage.content[1] = 2;                               //message length
 
-                            //await Task.Delay(50);
-                            headset.StopBackgroundAcquisition();
-                            headset.Idle(0.200);
+                            // Send command message to the headset task.
+                            headsetMsgBufferBlock.Post(headsetControlMessage);
 
-                            messageBufferBlock.Complete();
-                            dataBufferBlock.Complete();
+                            await Task.Delay(100);
 
-                            modeState = PredictionStates.Click_Key;
+                            // Stop processing pipeline tasks by cancelling the shared token
+                            pipelineTokenSource.Cancel();
+
+                            await Task.Delay(100);
+
+                            filterDataBufferBlock.Complete();
+                            flashDataBufferBlock.Complete();
+                            flashMsgBufferBlock.Complete();
+
+                            weightCoefBufferBlock.Complete();
+                            commandMsgBufferBlock.Complete();
+                            statusMsgBufferBlock.Complete();
+
+                            //await Task.Delay(100);
+                            //Logger.Info(this, "Status of Task t0: " + t0.Status);
+                            //Logger.Info(this, "Status of Task t1: " + t1.Status);
+                            //Logger.Info(this, "Status of Task t2: " + t2.Status);
+                            //Logger.Info(this, "Status of task t4: " + t4.Status);
+
+                            modeState = PredictionStates.Click_Key;      // Don't click key until Prediction is working
+                            // modeState = PredictionStates.Programmed_Delay;
                             break;
 
                         /* ********************************* */
@@ -632,31 +906,46 @@ namespace CoreServices.Prediction
                             // Clicking target key generates speech (in REMOTE) and displays key name.
                             // flashableKeys[] contains the mapping between the clickable elements seen on the display with
                             // the flashable elements created in the artificial screen overlay. Find the index location in
-                            // flashableKeys[] with a keyID matching the targetkeyIDvalue, then use either the corresponding
+                            // flashableKeys[] with a keyID matching the selKey, then use either the corresponding
                             // elementIndex to access the list of clickable GUI elements on the screen, or the buttonIndex
                             // to flash the corresponding button in the screen overlay.
 
-                            elementIndex = 0;
-                            for (int i = 0; i < flashableKeys.Count; i++)
+                            if (selectedKeyIDvalue == 0)
                             {
-                                if (flashableKeys[i].keyID == targetkeyIDvalue)
-                                {
-                                    elementIndex = flashableKeys[i].elementIndex;
-                                    break;
-                                }
-                            }
+                                // Prediction failed to detect user key selection within given time limit.
+                                // Record message in log for now, and simply try again one more time.
 
-							logString = "  ******  targetkeyIDvalue  = " + targetkeyIDvalue.ToString() + "\n";
-                            Logger.Info(this, logString);
-
-                            if (elementIndex == 0)
-                            {
-                                logString = "Matching targetkeyIDvalue NOT FOUND!!! = " + targetkeyIDvalue.ToString() + "\n";
+                                logString = " ++++++>  WARNING: Prediction could not detect user key selection within time limit!  <++++++ \n";
                                 Logger.Info(this, logString);
                             }
                             else
                             {
-                                remoteDisplay.SelectElement(elementIndex);
+                                // Determine which key was selected on the display.
+                                elementIndex = 0;
+                                for (int i = 0; i < flashableKeys.Count; i++)
+                                {
+                                    if (flashableKeys[i].keyID == selectedKeyIDvalue)
+                                    {
+                                        elementIndex = flashableKeys[i].elementIndex;
+                                        break;
+                                    }
+                                }
+
+                                if (elementIndex == 0)
+                                {
+                                    // There is a mapping problem between the list of elements on the display and
+                                    // the key ID number assigned to the overlayed keyboard for flash grouping.
+                                    logString = "Matching selectedKeyIDvalue NOT FOUND!!! = " + selectedKeyIDvalue.ToString() + "\n";
+                                    Logger.Info(this, logString);
+                                }
+                                else
+                                {
+                                    logString = "  ******  selectedKeyIDvalue  = " + selectedKeyIDvalue.ToString() + "\n";
+                                    Logger.Info(this, logString);
+
+                                    // It's time to click on the key!
+                                    remoteDisplay.SelectElement(elementIndex);
+                                }
                             }
 
                             modeState = PredictionStates.Programmed_Delay;
@@ -681,7 +970,9 @@ namespace CoreServices.Prediction
                             //    modeState = PredictionStates.Clean_Up;
                             // else
                             //    modeState = PredictionStates.Get_Remote_Elements;
-                            modeState = PredictionStates.Clean_Up;
+
+                            // modeState = PredictionStates.Clean_Up;               // <-- Use this to run once, then stop
+                            modeState = PredictionStates.Get_Remote_Elements;       // <-- Use this to run forever...
                             break;
 
                         /*
@@ -712,15 +1003,24 @@ namespace CoreServices.Prediction
 
                 }  // while (!modeExit)
 
-                // this.Close();
+                // Stop headset task by cancelling the token
+                headsetTokenSource.Cancel();
+                headset.StopBackgroundAcquisition();
+                await Task.Delay(50);
+
+                headsetMsgBufferBlock.Complete();
+                headsetDataBufferBlock.Complete();
 
                 headset.Disconnect();
                 headset.Delete();
 
+                /*
+                // Don't need binaryWriter for Prediction to work. JAZ 4-12-24
                 if (binaryWriter != null)
                 {
                     FileHandlerService.CloseBinaryWriter(binaryWriter);
                 }
+                */
 
                 /*
                 if(calibrationCompleted&&completeAction!=null)
@@ -728,6 +1028,7 @@ namespace CoreServices.Prediction
                     completeAction();
                 }
                 */
+
             }
             catch (Exception ex)
             {
@@ -755,18 +1056,21 @@ namespace CoreServices.Prediction
 
         private void NotifyUI(UIInstruction uiInstruction)
         {
-            if (calibrationFileMetadata != null) uiInstruction.Param = calibrationFileMetadata;
+            if (predictionFileMetadata != null) uiInstruction.Param = predictionFileMetadata;
             if(notifyUIAction!=null)
             {
                 notifyUIAction(uiInstruction);
             }
         }
 
-        public void SetCalibrationFile(CalibrationFileMetadata calibrationFileMetadata)
+        public void SetPredictionFile(PredictionFileMetadata predictionFileMetadata)
         {
-            this.calibrationFileMetadata = calibrationFileMetadata;
+            this.predictionFileMetadata = predictionFileMetadata;
         }
-
+        public void ForceExit()
+        {
+            _forceExit = true;
+        }
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 

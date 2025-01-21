@@ -71,6 +71,7 @@ namespace ViewModels.Calibration
 
         public object? PopupContentViewModel { get => _popupContentViewModel; set { _popupContentViewModel = value; OnPropertyChanged(nameof(PopupContentViewModel)); } }
 
+
         public CalibrationViewModel(Action exitAction,Action<bool> showorHideMainWindow,Action<ChildWindowSettings> showorHideChildWindow) : base(exitAction, showorHideMainWindow, showorHideChildWindow)
         {
             StartCmd = new RelayCommand(StartCalibrationPreCheck);
@@ -80,6 +81,7 @@ namespace ViewModels.Calibration
             _calibrationService = ServiceLocator.CalibrationService;
             _calibrationService.RaiseFileMetadataChange += _calibrationService_RaiseFileMetadataChange;
             _calibrationService.RaiseExitCalibrationEvent += _calibrationService_RaiseExitCalibrationEvent;
+            _calibrationService.RaiseActiveUIEvent += _calibrationService_RaiseActiveUIEvent;            
             _userSettingsService = ServiceLocator.UserSettingsService;
             LoadPredictionFilesMetadata();
             CurrentFileMetadata = _calibrationService.GetCurrentCalibrationFileMetadata();
@@ -92,14 +94,19 @@ namespace ViewModels.Calibration
             PopupContentViewModel = null;
             _deleteConfirmationViewModel = new DeleteConfirmationViewModel(DeleteCurrentCalibFileandStartNew, ClosePopup, CurrentFileMetadata);
             _fileNameEntryViewModel = new FileNameEntryViewModel(DisplayDemoVideo, ClosePopup, CurrentFileMetadata);
-            _demoVideoViewModel = new DemoVideoViewModel(ShowCalibrationInstructions, ClosePopup);
+            _demoVideoViewModel = new DemoVideoViewModel(ShowCalibrationInstructions, ShowCalibrationInstructions);
             _calibrationInstructionsViewModel = new CalibrationInstructionsViewModel(StartActualCalibration, ClosePopup);
             _calibrationHelpViewModel = new CalibrationHelpViewModel(ClosePopup);
             _showDemoVideo = _userSettingsService.GetSettingsValue(Constants.DemoVideo_Preference_Key) == null ? true : !_userSettingsService.GetSettingsValue("ShowDemoVideo").ToLower().StartsWith("false");
             Opacity = 1;
             MoveUpCmd = new RelayCommand(MoveFileMetadataIndexUp);
             MoveDownCmd = new RelayCommand(MoveFileMetadataIndexDown);
-            _flashStimulusViewModel = new FlashStimulusViewModel();
+            _flashStimulusViewModel = new FlashStimulusViewModel("calibration",exitAction);
+        }
+
+        private void _calibrationService_RaiseActiveUIEvent(object? sender, EventArgs e)
+        {
+            _flashStimulusViewModel.UpdateTopMost();
         }
 
         private void ChangePredictionFile(object obj)
@@ -108,7 +115,8 @@ namespace ViewModels.Calibration
         }
 
         private void _calibrationService_RaiseExitCalibrationEvent(object? sender, EventArgs e)
-        {  
+        {
+            LoadPredictionFilesMetadata();
             var childWindowpref = new ChildWindowSettings { ShowWindow = false };
             _showorHideChildWindow(childWindowpref);
             if (_showorHideMainWindow != null) _showorHideMainWindow(true);
@@ -218,6 +226,7 @@ namespace ViewModels.Calibration
                 return;
             }
             //get file name from user
+            _fileNameEntryViewModel.IsInTablet = IsInTablet;
             DisplayPopup(_fileNameEntryViewModel);
                
         }
@@ -245,6 +254,7 @@ namespace ViewModels.Calibration
             //if file is not available 
             if(string.IsNullOrEmpty(_fileNameEntryViewModel.FileName))
             {
+                _fileNameEntryViewModel.IsInTablet = IsInTablet;
                 DisplayPopup(_fileNameEntryViewModel);
                 return;
             }
@@ -265,7 +275,7 @@ namespace ViewModels.Calibration
 
         private void ShowCalibrationInstructions()
         {
-            if (_showorHideMainWindow != null) _showorHideMainWindow(false);
+            //if (_showorHideMainWindow != null) _showorHideMainWindow(false);
             DisplayPopup(_calibrationInstructionsViewModel);
         }
 

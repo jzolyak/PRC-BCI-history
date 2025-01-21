@@ -9,6 +9,7 @@ using System.Threading.Tasks.Dataflow;
 using System.IO;
 
 using BCI_Headset;
+using System.Diagnostics;
 
 namespace CoreServices.Connectivity
 {
@@ -154,7 +155,8 @@ namespace CoreServices.Connectivity
             // For now just create a dummy binary file to store the status results
             try
             {
-                bw = new BinaryWriter(new FileStream("SensorData.bin", FileMode.Create));
+                string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI";
+                bw = new BinaryWriter(new FileStream(path+"\\SensorData.bin", FileMode.Create));
             }
             catch (IOException e)
             {
@@ -772,7 +774,13 @@ namespace CoreServices.Connectivity
             {
                 signalValue = statusTableValues[channelIndex, 1];
 
-                if ((signalValue < -9000.0) || (signalValue > 9000.0))
+                if (Double.IsNaN(signalValue))
+                {
+                    // Sensor reported "NotANumber" (i.e. infinity) for signal value
+                    statusSensorScores[channelIndex, 1] = 10;    // Red - Might need to take special action to resolve this
+                    sensorEventCounters[channelIndex].baselineLevelOutOfRange++;
+                }
+                else if ((signalValue < -9000.0) || (signalValue > 9000.0))
                 {
                     statusSensorScores[channelIndex, 1] = 5;    // Red - requires twist thru hair and push down on sensor
                     sensorEventCounters[channelIndex].baselineLevelOutOfRange++;
@@ -794,18 +802,23 @@ namespace CoreServices.Connectivity
             {
                 signalValue = statusTableValues[channelIndex, 2];
 
-                if (signalValue > 100.0)
+                if (Double.IsNaN(signalValue))
+                {
+                    // Sensor reported "NotANumber" (i.e. infinity) for signal value
+                    statusSensorScores[channelIndex, 2] = 10;    // Red - Might need to take special action to resolve this
+                    sensorEventCounters[channelIndex].noiseLevelOutOfRange++;
+                }
+                else if (signalValue > 80.0)
                 {
                     statusSensorScores[channelIndex, 2] = 5;    // Red
                     sensorEventCounters[channelIndex].noiseLevelOutOfRange++;
                 }
-
-                else if (signalValue > 50.0)
+                else if (signalValue > 45.0)
                 {
                     statusSensorScores[channelIndex, 2] = 3;    // Yellow
                     sensorEventCounters[channelIndex].noiseLevelAdjust++;
                 }
-                else  // value is lower than 30.0 Vrms
+                else  // value is lower than 45.0 Vrms
                 {
                     statusSensorScores[channelIndex, 2] = 0;    // Green
                     sensorEventCounters[channelIndex].noiseLevelGood++;
@@ -902,7 +915,8 @@ namespace CoreServices.Connectivity
             {
                 if ((sensorEventCounters[sourceIndex].noiseLevelOutOfRange >= threshold) ||
                      (sensorEventCounters[sourceIndex].baselineLevelOutOfRange >= threshold) ||
-                     (sensorEventCounters[sourceIndex].impedancOutOfRange >= threshold))
+                     (sensorEventCounters[sourceIndex].impedancOutOfRange >= threshold) ||
+                     (sensorEventCounters[sourceIndex].impedanceBad >= threshold))
                 {
                     recommendColorCode[sourceIndex] = 5;
                     testPassed = false;
@@ -910,7 +924,8 @@ namespace CoreServices.Connectivity
 
                 else if (((sensorEventCounters[sourceIndex].noiseLevelOutOfRange + sensorEventCounters[sourceIndex].noiseLevelAdjust) >= threshold) ||
                      ((sensorEventCounters[sourceIndex].baselineLevelOutOfRange + sensorEventCounters[sourceIndex].baselineLevelAdjust) >= threshold) ||
-                     ((sensorEventCounters[sourceIndex].impedancOutOfRange + sensorEventCounters[sourceIndex].impedanceAdjust) >= threshold))
+                     ((sensorEventCounters[sourceIndex].impedancOutOfRange + sensorEventCounters[sourceIndex].impedanceAdjust +
+                       sensorEventCounters[sourceIndex].impedanceBad) >= threshold))
                 {
                     recommendColorCode[sourceIndex] = 3;
                     testPassed = false;

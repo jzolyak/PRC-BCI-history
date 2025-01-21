@@ -28,6 +28,7 @@ namespace CoreServices.Recording
             const int SAMPLES_PER_BATCH = 9;
             const int NUM_SAMPLE_SIZE = NUM_CHANNELS * SAMPLES_PER_BATCH;
 
+            int blockSize;
             int bufferIndex;
 
             Byte[] markers_8bit = new Byte[NUM_MARKERS_8BIT];
@@ -35,9 +36,30 @@ namespace CoreServices.Recording
             UInt16[] stimulusTags = new UInt16[NUM_TAG_MARKERS];
             Single[] sensorData = new Single[NUM_SAMPLE_SIZE];
 
+            double[] rawDataBuffer = null;
+
+
             while (!cts.IsCancellationRequested)
             {
-                double[] rawDataBuffer = await dataBufferBlock.ReceiveAsync();
+                // Wait for next block of sensor packet data sent from preceeding pipeline task.
+                if (await dataBufferBlock.OutputAvailableAsync())
+                {
+                    try
+                    {
+                        rawDataBuffer = await dataBufferBlock.ReceiveAsync();
+                        blockSize = rawDataBuffer.Length;
+                    }
+                    catch(Exception ex)
+                    {
+                        Logger.Error(this, ex.Message);
+                        continue;
+                    }
+                    //break;
+                }
+                else
+                {
+                    continue;
+                }
 
                 // First fetch the data from data buffer block and recast to pre-assigned recorded size.
                 bufferIndex = 0;

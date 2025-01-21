@@ -21,14 +21,14 @@
         </Style>
 
         <Style x:Key="HeaderLabelStyle" TargetType="{x:Type Label}">
-            <Setter Property="FontFamily" Value="Calibri"></Setter>
+            <Setter Property="FontFamily" Value="Microsoft Sans Serif"></Setter>
             <Setter Property="FontWeight" Value="Bold"></Setter>
             <Setter Property="FontSize" Value="25"></Setter>
             <Setter Property="FontStretch" Value="Condensed"></Setter>
         </Style>
 
         <Style x:Key="SubHeaderLabelStyle" TargetType="{x:Type Label}">
-            <Setter Property="FontFamily" Value="Calibri"></Setter>
+            <Setter Property="FontFamily" Value="Microsoft Sans Serif"></Setter>
             <Setter Property="FontWeight" Value="Bold"></Setter>
             <Setter Property="FontSize" Value="20"></Setter>
             <Setter Property="FontStretch" Value="Condensed"></Setter>
@@ -36,13 +36,13 @@
         
 
         <Style x:Key="MediumLabelStyle" TargetType="{x:Type Label}">
-            <Setter Property="FontFamily" Value="Calibri"></Setter>
+            <Setter Property="FontFamily" Value="Microsoft Sans Serif"></Setter>
             <Setter Property="FontWeight" Value="Bold"></Setter>
             <Setter Property="FontSize" Value="18"></Setter>
             <Setter Property="FontStretch" Value="Condensed"></Setter>
         </Style>
         <Style x:Key="RedLabelStyle" TargetType="{x:Type Label}">
-            <Setter Property="FontFamily" Value="Calibri"></Setter>
+            <Setter Property="FontFamily" Value="Microsoft Sans Serif"></Setter>
             <Setter Property="FontWeight" Value="Bold"></Setter>
             <Setter Property="FontSize" Value="18"></Setter>
             <Setter Property="FontStretch" Value="Condensed"></Setter>
@@ -53,7 +53,8 @@
         <UIHelpers:SensorStatusConverter x:Key="sensorStatusConverter"></UIHelpers:SensorStatusConverter>
         <UIHelpers:BooltoVisibilityConverter x:Key="booltoVisibilityConverter"></UIHelpers:BooltoVisibilityConverter>
         <SolidColorBrush x:Key="ContentScreenBackGround">#f5f7f8</SolidColorBrush>
-        <SolidColorBrush x:Key="ContentScreenBackGroundBrush">#EFF1F3</SolidColorBrush>
+        <SolidColorBrush x:Key="ContentScreenBackGroundBrush">#ECEFF1</SolidColorBrush>
+       
 
         <Style x:Key="ButtonStyle" TargetType="{x:Type Button}">
             <!--Setter Property="Effect">
@@ -61,11 +62,22 @@
                     <DropShadowEffect ShadowDepth="4" Direction="330" Color="Black" Opacity="0.5" BlurRadius="4"/>
                 </Setter.Value>
             </Setter-->
-            <Setter Property="BorderThickness" Value="2"></Setter>
-            <Setter Property="FontFamily" Value="Calibri"></Setter>
-            <Setter Property="FontWeight" Value="Bold"></Setter>
-            <Setter Property="FontStretch" Value="Condensed"></Setter>
+            <Style.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="5" />
+                </Style>
+            </Style.Resources>
+            <Setter Property="BorderThickness" Value="3"></Setter>
+            <Setter Property="FontFamily" Value="Microsoft Sans Serif"></Setter>
             <Setter Property="Background" Value="White"></Setter>
+            <Setter Property="FontWeight" Value="Bold"></Setter>
+            <Setter Property="BorderBrush" Value="#B0BEC5"></Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#B0BEC5"/>
+                </Trigger>
+            </Style.Triggers>
+           
         </Style>
         <Style x:Key="ButtonStyleSmall" TargetType="{x:Type Button}">
             <!--Setter Property="Effect">
@@ -73,11 +85,20 @@
                     <DropShadowEffect ShadowDepth="4" Direction="330" Color="Black" Opacity="0.5" BlurRadius="4"/>
                 </Setter.Value>
             </Setter-->
+            <Style.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="5" />
+                </Style>
+            </Style.Resources>
             <Setter Property="BorderThickness" Value="1"></Setter>
-            <Setter Property="FontFamily" Value="Calibri"></Setter>
-            <Setter Property="FontWeight" Value="Bold"></Setter>
+            <Setter Property="FontFamily" Value="Microsoft Sans Serif"></Setter>
             <Setter Property="FontStretch" Value="Condensed"></Setter>
             <Setter Property="Background" Value="White"></Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="LightGray"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
         <Style x:Key="MyBorderStyle" TargetType="Border">
@@ -143,6 +164,10 @@
             <calibrationView:CalibrationInstructions DataContext="{Binding}" Height="Auto" Width="Auto"></calibrationView:CalibrationInstructions>
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type calibratevm:CoeffFileGenerationProgressViewModel}">
+            <calibrationView:CoeffFileGenerationProgressView DataContext="{Binding}" Height="Auto" Width="Auto"></calibrationView:CoeffFileGenerationProgressView>
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type predictionvm:PredictionViewModel}">
             <predictionView:PredictionView DataContext="{Binding}" Height="Auto" Width="Auto"></predictionView:PredictionView>
         </DataTemplate>
@@ -197,9 +222,11 @@
                 <TextBlock Foreground="Red" FontSize="20">!</TextBlock>
                 <AdornedElementPlaceholder/>
             </DockPanel>
+            
         </ControlTemplate>
-
-       
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="FontSize" Value="22"/>
+        </Style>
 
     </Application.Resources>
 </Application>

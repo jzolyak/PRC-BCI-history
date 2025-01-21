@@ -84,9 +84,14 @@ namespace ViewModels.Prediction
             _predictionInstructionsViewModel = new PredictionInstructionsViewModel(StartActualPrediction, ClosePopup);
             Opacity = 1;
             
-            _flashStimulusViewModel = new FlashStimulusViewModel();
+            _flashStimulusViewModel = new FlashStimulusViewModel("prediction",exitAction);
         }
 
+        public void Refresh()
+        {
+            _predictionService.LoadPredictionFiles();
+            LoadPredictionFilesMetadata();
+        }
         private void OnSimulationModePreferenceChange(object obj)
         {
             _predictionService.UpdateSimulationModePreference(SimulationModePreference);
@@ -127,7 +132,7 @@ namespace ViewModels.Prediction
             Opacity = 1;
             PopupContentViewModel = null;
             ShowPopup = false;
-            if (_showorHideMainWindow != null) _showorHideMainWindow(true);
+           // if (_showorHideMainWindow != null) _showorHideMainWindow(true);
         }
 
 
@@ -151,14 +156,14 @@ namespace ViewModels.Prediction
 
         private void ShowPredictionInstructions()
         {
-            if (_showorHideMainWindow != null) _showorHideMainWindow(false);
+          //  if (_showorHideMainWindow != null) _showorHideMainWindow(false);
             DisplayPopup(_predictionInstructionsViewModel);
         }
 
        
         private void DisplayPopup(object contentViewModel)
         {
-            Opacity = .1;
+            Opacity = 0;
             PopupContentViewModel = contentViewModel;
             ShowPopup = true;
            

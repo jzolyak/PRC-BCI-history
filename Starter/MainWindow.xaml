@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:Starter"
         xmlns:UIHelpers="clr-namespace:Starter.UIHelpers"
         mc:Ignorable="d"
-        ResizeMode="NoResize" ShowInTaskbar="True" AllowDrop="False" WindowStyle="None" WindowStartupLocation="CenterScreen" Visibility="{Binding IsVisible,Converter={StaticResource booltoVisibilityConverter},Mode=TwoWay}" UIHelpers:AttachedPropertyService.ChildWindowPreferece="{Binding ChildWindowPref}" Topmost="true" >
+        ResizeMode="NoResize" ShowInTaskbar="True" AllowDrop="False" WindowStyle="None"  WindowStartupLocation="CenterScreen" Visibility="{Binding IsVisible,Converter={StaticResource booltoVisibilityConverter},Mode=TwoWay}" UIHelpers:AttachedPropertyService.ChildWindowPreferece="{Binding ChildWindowPref}" Topmost="true">
     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
         <Grid.RowDefinitions>
             <RowDefinition Height="50"></RowDefinition>

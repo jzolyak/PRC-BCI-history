@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CoreServices.Files;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -13,13 +14,18 @@ namespace CoreServices.Common
         private ConcurrentDictionary<string, string> _userSettings;
         private string _settingsFileName;
         private string _defaultSettingsFileName;
+        private string _settingsFilePath;
+        private static UserSettingsService instance;
 
+        public static UserSettingsService Instance
+        { get { if (instance == null) { instance = new UserSettingsService(); } return instance; } }
         public UserSettingsService()
         {
             _userSettings = new ConcurrentDictionary<string, string>();
             _defaultSettingsFileName = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\DefaultSettings.txt";
+            _settingsFilePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\Settings";
             LoadSettings(_defaultSettingsFileName);
-            _settingsFileName = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\UserSettings.txt";
+            _settingsFileName = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\Settings\\UserSettings.txt";
             LoadSettings(_settingsFileName);
         }
 
@@ -72,11 +78,12 @@ namespace CoreServices.Common
 
         public void SaveUserSettings(string key, string value)
         {
+            FileHandlerService.EnsureFolder(_settingsFilePath+Path.DirectorySeparatorChar);
             if (_userSettings.ContainsKey(key))
             {
                 _userSettings[key] = value;
                 var allLines = _userSettings.Select(x => x.Key + "=" + x.Value);
-                File.WriteAllLines(_settingsFileName, allLines);
+                File.AppendAllLines(_settingsFileName, allLines);
             }
             else
             {
@@ -94,6 +101,7 @@ namespace CoreServices.Common
             return _userSettings[key];
         }
 
+       
         public Dictionary<string, string> GetSettings(string pattern)
         {
             if (_userSettings.IsEmpty) { Logger.Error(this, "Settings file is empty. Cannot Find Setting " + pattern); return null; }

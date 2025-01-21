@@ -17,7 +17,7 @@ namespace Starter.Prediction
     /// <summary>
     /// Interaction logic for PredictionInstructionsView.xaml
     /// </summary>
-    public partial class PredictionInstructionsView : Window
+    public partial class PredictionInstructionsView : UserControl
     {
         public PredictionInstructionsView()
         {

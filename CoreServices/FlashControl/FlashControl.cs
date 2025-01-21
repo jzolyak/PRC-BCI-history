@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,9 +17,9 @@ namespace CoreServices.FlashControl
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-        public async Task<int[]> GetFlashControlMessageAsync(ISourceBlock<int[]> messageBufferBlock)
+        public async Task<int[]> GetFlashControlMessageAsync(ISourceBlock<int[]> flashMsgBufferBlock)
         {
-            int[] messageBuffer = await messageBufferBlock.ReceiveAsync();
+            int[] messageBuffer = await flashMsgBufferBlock.ReceiveAsync();
 
             return messageBuffer;
         }
@@ -26,7 +27,8 @@ namespace CoreServices.FlashControl
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
         public async Task FlashDataAsync(IHeadset headset, CancellationToken cts, List<FlashTableEntry> flashSequenceTable,
-                                         ITargetBlock<int[]> messageBufferBlock, ITargetBlock<double[]> dataBufferBlock)
+                                         ISourceBlock<double[]> headsetDataBufferBlock, ITargetBlock<double[]> flashDataBufferBlock,
+                                         ITargetBlock<int[]> flashMsgBufferBlock)
         {
             const int CIRCULAR_BUF_LEN = 512;       // Num sensor samples per chan in the circular buffer
 
@@ -44,7 +46,10 @@ namespace CoreServices.FlashControl
             const int samplesPerBatch = 9;          // 9 samples = 30 msec @ Fs=300 Hz
 
             // const double PRESET_1 = 100.0;          // 0.1 second
-            const double PRESET_1 = 500.0;          // 0.5 second
+            // const double PRESET_1 = 500.0;          // 0.5 second
+            // const double PRESET_1 = 1000.0;         // 1.0 second
+            const double PRESET_1 = 3000.0;         // 3.0 second, increase by 2 sec to give user more time to locate target
+
             const double PRESET_2 = 1000.0;         // 1.0 second
             const double PRESET_3 = 90.0;           // 90 msec = Flash ON
             const double PRESET_4 = 60.0;           // 60 msec = Flash OFF
@@ -60,13 +65,16 @@ namespace CoreServices.FlashControl
             int numStimulusGroups = flashSequenceTable.Count;
 
             int numFlashSeqPerTarget = 15;
+            //int numFlashSeqPerTarget = 4;
 
             int listIndex = 0;
             int flashCycleCount = 0;
+            int shuffledIndex = 0;
 
             int batchCounter = 0;           // Track # of batches received from headset over one flash interval
             int phaseInSequence = 0;
 
+            int blockSize;
             int bufferIndex;
             int dataIndex;
             int circBufReadIndex = 0;
@@ -98,14 +106,23 @@ namespace CoreServices.FlashControl
             //double target = 0.0;
             double stimulusON = 0.0;        // Flag indicating when flash is ON during flash interval
 
+            double[] headsetDataBuffer = null;
 
             double[] keyIDs = new double[FlashSequence.MAX_KEYS_PER_FLASH];
 
             double[,] CircularBuffer = new double[MAX_CHANNELS, CIRCULAR_BUF_LEN];
 
-            double[] dataBuffer = new double[(MAX_CHANNELS + MARKER_LENGTH + FlashSequence.MAX_KEYS_PER_FLASH) * samplesPerBatch];
+            // Buffer is sized to hold one sensor data packet. Packet size = one header per batch of sample data.
+            double[] dataBuffer = new double[(MARKER_LENGTH + FlashSequence.MAX_KEYS_PER_FLASH) + (MAX_CHANNELS * samplesPerBatch)];
 
             // Stopwatch stopwatch = new Stopwatch();
+
+            FlashOrder flashOrder = new FlashOrder();
+
+            int[] flashOrderTable = flashOrder.InitializeTableOrdering(flashSequenceTable);
+
+            //flashOrder.ShuffleTableOrdering(ref flashOrderTable);
+
 
             /* +++++++++++++++++++++++++++++++++++++++ */
 
@@ -115,32 +132,51 @@ namespace CoreServices.FlashControl
             {
                 // This blocking call aims to ensure that batches of samples are picked up at
                 // regular intervals (timestamps should be +/- 2 msec of expected interval).
-                sourceTime = headset.WaitForBatch();
+                // sourceTime = headset.WaitForBatch();
+
+                if (await headsetDataBufferBlock.OutputAvailableAsync(cts))
+                {
+                    try
+                    {
+                        headsetDataBuffer = await headsetDataBufferBlock.ReceiveAsync(cts);
+                        blockSize = headsetDataBuffer.Length;
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error(this, ex.Message);
+                        continue;
+                    }
+                    //break;
+                }
+                else
+                {
+                    continue;
+                }
 
                 // Start separate, independent timer to detect packet receipt errors.
                 // stopwatch.Start();
 
                 batchCounter++;
 
-                // Track time since beginning of individual flash interval (e.g. 150 msec = Flash On + Flash Off)
+                // Track time since beginning of each phase in sequnce, or individual
+                // flash interval (e.g. 150 msec = Flash On + Flash Off)
                 timeElapsed = batchCounter * batchIntervalMsec;
 
-                for (channelIndex = 0; channelIndex < numberOfChannels; channelIndex++)
+                dataIndex = 0;
+                bufferIndex = circBufWriteIndex;
+
+                for (sampleIndex = 0; sampleIndex < samplesPerBatch; sampleIndex++)
                 {
-                    IntPtr c = headset.GetChannel(channelIndex);
-
-                    bufferIndex = circBufWriteIndex;
-
-                    for (sampleIndex = 0; sampleIndex < samplesPerBatch; sampleIndex++)
+                    for (channelIndex = 0; channelIndex < numberOfChannels; channelIndex++)
                     {
                         // The background thread is filling the buffers. This is where you empty them:
-                        signalValue = headset.ReadBuffered(c);
+                        signalValue = headsetDataBuffer[dataIndex++];
 
                         // Store the signal value in an array for processing.
                         CircularBuffer[channelIndex, bufferIndex] = signalValue;
-
-                        bufferIndex = (++bufferIndex) & (CIRCULAR_BUF_LEN - 1);
                     }
+
+                    bufferIndex = (++bufferIndex) & (CIRCULAR_BUF_LEN - 1);
                 }
 
                 circBufWriteIndex = (circBufWriteIndex + samplesPerBatch) & (CIRCULAR_BUF_LEN - 1);
@@ -207,25 +243,28 @@ namespace CoreServices.FlashControl
                             phInSeq = (double)phaseInSequence;
                             stimulusON = 1.0;
 
+                            // Use shuffled index to access flashSequenceTable[] to randomize flash order for each flash sequence.
+                            shuffledIndex = flashOrderTable[listIndex];
+
                             // Fetch marker value and convert them to double at start of each new flash
-                            matrixPosCode = (double)flashSequenceTable[listIndex].matrixPosition;
-                            stimulusCode = (double)flashSequenceTable[listIndex].sequenceNum;
-                            stimulusType = (double)flashSequenceTable[listIndex].target;
+                            matrixPosCode = (double)flashSequenceTable[shuffledIndex].matrixPosition;
+                            stimulusCode = (double)flashSequenceTable[shuffledIndex].sequenceNum;
+                            stimulusType = (double)flashSequenceTable[shuffledIndex].target;
 
                             // This is a marker for BCI2000 to indicate the first block of data in flash interval
                             stimulusBegin = 1.0;
 
                             for (int i = 0; i < FlashSequence.MAX_KEYS_PER_FLASH; i++)
                             {
-                                keyIDs[i] = (double)flashSequenceTable[listIndex].keyIDgrouping[i];
+                                keyIDs[i] = (double)flashSequenceTable[shuffledIndex].keyIDgrouping[i];
                             }
 
                             messageBuffer[0] = FLASH_ON;
-                            messageBuffer[1] = flashSequenceTable[listIndex].sequenceNum;
+                            messageBuffer[1] = flashSequenceTable[shuffledIndex].sequenceNum;
                             messageBuffer[2] = phaseInSequence;
                             messageBuffer[3] = (int)(sourceTime * 1000.0);
 
-                            messageBufferBlock.Post(messageBuffer);
+                            flashMsgBufferBlock.Post(messageBuffer);
                         }
                         else
                         {   // Set marker to 0.0 for remainder of flash interval
@@ -241,12 +280,14 @@ namespace CoreServices.FlashControl
                                 stimulusCode = 0.0;
                                 stimulusType = 0.0;
 
+                                shuffledIndex = flashOrderTable[listIndex];
+
                                 messageBuffer[0] = FLASH_OFF;
-                                messageBuffer[1] = flashSequenceTable[listIndex].sequenceNum;
+                                messageBuffer[1] = flashSequenceTable[shuffledIndex].sequenceNum;
                                 messageBuffer[2] = phaseInSequence;
                                 messageBuffer[3] = (int)(sourceTime * 1000.0);
 
-                                messageBufferBlock.Post(messageBuffer);
+                                flashMsgBufferBlock.Post(messageBuffer);
                             }
                         }
                         else
@@ -259,6 +300,10 @@ namespace CoreServices.FlashControl
                                 if (++listIndex == numStimulusGroups)
                                 {
                                     listIndex = 0;
+
+                                    // Shuffle the order in which the stim codes are flashed for each flash sequence.
+                                    // The key grouping remain the same, just the relative order gets shuffled around.
+                                    flashOrder.ShuffleTableOrdering4(ref flashOrderTable);
 
                                     // Need to keep count of entire # times passed thru entire flash sequence list.
                                     // Value for numFlashSeqPerTarget is a key user preference configuration preset!
@@ -298,9 +343,10 @@ namespace CoreServices.FlashControl
                             flashCycleCount = 0;
 
                             messageBuffer[0] = END_SEQUENCE;
-                            messageBufferBlock.Post(messageBuffer);
+                            flashMsgBufferBlock.Post(messageBuffer);
                         }
                         break;
+
                 }  // switch(phaseInSequence)
 
                 /* ++++++++++++++++++++++++++++++++++++++ */
@@ -350,9 +396,9 @@ namespace CoreServices.FlashControl
                     bufferIndex = (++bufferIndex) & (CIRCULAR_BUF_LEN - 1);
                 }
 
-                dataBufferBlock.Post(dataBuffer);
-
                 circBufReadIndex = (circBufReadIndex + samplesPerBatch) & (CIRCULAR_BUF_LEN - 1);
+
+                flashDataBufferBlock.Post(dataBuffer);
 
                 /* ++++++++++++++++++++++++++++++++++++++ */
 
@@ -367,7 +413,335 @@ namespace CoreServices.FlashControl
 
         }  // FlashControlAsync()
 
+    }
+
+    /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+    public class FlashOrder
+    {
+        // The code in FlashGrouping class randomizes which keys are assigned to two hidden matrixes.
+        // The rows and columns of the matrixes define which keys are flashed together as a group.
+        // In order to randomize when the key groups are flashed on the display, we create a flash
+        // order table. On the first flash sequence, the key groupings are flashed in the order
+        // they appear in the flashSequenceTable. 
+        //
+        // This class creates a flashOrderTable that randomizes the order in which the groupings
+        // are flashed as sequence. This randomization is done by shuffling a list of index values
+        // into the flashSequenceTable.
+
+        public int maxtrix1_Size;
+        public int maxtrix2_Size;
+        public int row_col_size;
+        public int numStimGroups;
+
+        //public int num_rows;
+        //public int num_cols;
+
+        //public int[] rowIndexes;
+        //public int[] colIndexes;
+
+        public int[] m1_rowIndexes;
+        public int[] m1_colIndexes;
+        public int[] m2_rowIndexes;
+        public int[] m2_colIndexes;
+
+        Random rnd = new Random();
+
+
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-    }
+        public int[] InitializeTableOrdering(List<FlashTableEntry> flashSequenceTable)
+        {
+            numStimGroups = flashSequenceTable.Count;
+
+            /*
+            num_rows = numStimGroups / 2;
+            num_cols = numStimGroups / 2;
+
+            rowIndexes = new int[num_rows];
+            colIndexes = new int[num_cols];
+
+            for (int i = 0; i < num_cols; i++)
+            {
+                rowIndexes[i] = i;
+                colIndexes[i] = num_cols + i;
+            }
+
+            RandomizeIndexes(ref rowIndexes);
+            RandomizeIndexes(ref colIndexes);
+            */
+
+            int[] flashOrderTable = new int[numStimGroups];
+
+            // Test if HiddenMatrix1 and HiddenMatrix2 have the same square (row*col) matrix size.
+            if ( (numStimGroups % 4) == 0)
+            {
+                maxtrix1_Size = numStimGroups / 4;
+                maxtrix2_Size = numStimGroups / 4;
+            }
+            else
+            {
+                // numStimGroups = maxtrix1_Size_Row + maxtrix1_Size_Col + maxtrix2_Size_Row + maxtrix2_Size_Col
+                // numStimGroups = (row_col_size + 1) + (row_col_size + 1) + (row_col_size) + (row_col_size)
+                // numStimGroups = (4 * row_col_size) + 2
+
+                row_col_size = (numStimGroups - 2) / 4;
+
+                // maxtrix1_Size is always greater than or equal to maxtrix2_Size. (See FlashGrouping)
+                maxtrix2_Size = row_col_size;
+                maxtrix1_Size = row_col_size + 1;
+            }
+
+            m1_rowIndexes = CreateRandomizedArray(maxtrix1_Size);
+            m1_colIndexes = CreateRandomizedArray(maxtrix1_Size);
+            m2_rowIndexes = CreateRandomizedArray(maxtrix2_Size);
+            m2_colIndexes = CreateRandomizedArray(maxtrix2_Size);
+
+            // For the first flash sequence, the key groupings are flashed based on their original order
+            // in the flashSequenceTable[].
+            for (int i = 0; i < numStimGroups; i++)
+            {
+                flashOrderTable[i] = i;
+            }
+
+            return flashOrderTable;
+        }
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+        public int[] CreateRandomizedArray(int arraySize)
+        {
+            int[] randomizedArray = new int[arraySize];
+
+            // Initialize array with sequential list of non repeating postive index values
+            for (int i = 0; i < arraySize; i++)
+            {
+                randomizedArray[i] = i;
+            }
+
+            // Randomize the contents of the array
+            RandomizeIndexes(ref randomizedArray);
+
+            return randomizedArray;
+        }
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+        public void RandomizeIndexes(ref int[] tableOfIndexes)
+        {
+            int randomValue;
+            int indexValue;
+
+            int numIndexes = tableOfIndexes.Length;
+
+            // Use Fisher-Yates algorithm to randomize the elements of an array.
+            for (int n = numIndexes - 1; n > 0; --n)
+            {
+                // Randomly pick an item which has not been shuffled
+                randomValue = rnd.Next(n + 1);
+
+                // Swap the selected item woth the last unstruck inumber in the table
+                indexValue = tableOfIndexes[n];
+                tableOfIndexes[n] = tableOfIndexes[randomValue];
+                tableOfIndexes[randomValue] = indexValue;
+            }
+        }
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+        /*
+        public void ShuffleTableOrdering(ref int[] flashOrderTable)
+        {
+            int prevStimCode;
+            int newStimCode;
+            int randomValue1;
+            int randomValue2;
+            int lowerLimit;
+            int upperLimit;
+
+            randomValue1 = rnd.Next(1, maxtrix1_Size);
+
+            lowerLimit = 0;
+            upperLimit = maxtrix1_Size;
+
+            // Hidden Matrix 1 - row stim code assignment
+            for (int i = lowerLimit; i < upperLimit; i++)
+            {
+                prevStimCode = flashOrderTable[i];
+                newStimCode = (prevStimCode + randomValue1);
+
+                if (newStimCode >= upperLimit)
+                {
+                    newStimCode = newStimCode - maxtrix1_Size;
+                }
+
+                flashOrderTable[i] = newStimCode;
+            }
+
+            randomValue2 = rnd.Next(1, maxtrix2_Size);
+
+            lowerLimit = maxtrix1_Size;
+            upperLimit = maxtrix1_Size + maxtrix2_Size;
+
+            // Hidden Matrix 2 - row stim code assignment
+            for (int i = lowerLimit; i < upperLimit; i++)
+            {
+                prevStimCode = flashOrderTable[i];
+                newStimCode = (prevStimCode + randomValue2);
+
+                if (newStimCode >= upperLimit)
+                {
+                    newStimCode = newStimCode - maxtrix2_Size;
+                }
+
+                flashOrderTable[i] = newStimCode;
+            }
+
+            lowerLimit = maxtrix1_Size + maxtrix2_Size;
+            upperLimit = maxtrix1_Size + maxtrix2_Size + maxtrix1_Size;
+
+            // Hidden Matrix 1 - col stim code assignment
+            for (int i = lowerLimit; i < upperLimit; i++)
+            {
+                prevStimCode = flashOrderTable[i];
+                newStimCode = (prevStimCode + randomValue1);
+
+                if (newStimCode >= upperLimit)
+                {
+                    newStimCode = newStimCode - maxtrix1_Size;
+                }
+
+                flashOrderTable[i] = newStimCode;
+            }
+
+            lowerLimit = maxtrix1_Size + maxtrix2_Size + maxtrix1_Size;
+            upperLimit = maxtrix1_Size + maxtrix2_Size + maxtrix1_Size + maxtrix2_Size;
+
+            // Hidden Matrix 2 - col stim code assignment
+            for (int i = lowerLimit; i < upperLimit; i++)
+            {
+                prevStimCode = flashOrderTable[i];
+                newStimCode = (prevStimCode + randomValue1);
+
+                if (newStimCode >= upperLimit)
+                {
+                    newStimCode = newStimCode - maxtrix2_Size;
+                }
+
+                flashOrderTable[i] = newStimCode;
+            }
+
+        }  // ShuffleTableOrdering()
+        */
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+        /*
+        public void ShuffleTableOrdering2(ref int[] flashOrderTable)
+        {
+
+            int randomValue1;
+            int randomValue2;
+            int randomValue3;
+            int randomValue4;
+            int stimCode1;
+            int stimCode2;
+
+            int maxtrix1_rows = 0;
+            int maxtrix2_rows = maxtrix1_Size;
+            int maxtrix1_cols = maxtrix1_Size + maxtrix2_Size;
+            int maxtrix2_cols = maxtrix1_Size + maxtrix2_Size + maxtrix1_Size;
+
+            // Hidden Matrix 1 - row stim code assignment
+            for (int i = 0; i < maxtrix2_Size; i++)
+            {
+                randomValue1 = rnd.Next(0, maxtrix1_Size);
+                randomValue2 = rnd.Next(0, maxtrix1_Size);
+                randomValue3 = rnd.Next(0, maxtrix2_Size);
+                randomValue4 = rnd.Next(0, maxtrix2_Size);
+
+                // Hidden Matrix 1 - swap stim code row assignment
+                stimCode1 = flashOrderTable[maxtrix1_rows + randomValue1];
+                stimCode2 = flashOrderTable[maxtrix1_rows + randomValue2];
+                flashOrderTable[maxtrix1_rows + randomValue1] = stimCode2;
+                flashOrderTable[maxtrix1_rows + randomValue2] = stimCode1;
+
+                // Hidden Matrix 2 - swap stim code row assignment
+                stimCode1 = flashOrderTable[maxtrix2_rows + randomValue3];
+                stimCode2 = flashOrderTable[maxtrix2_rows + randomValue4];
+                flashOrderTable[maxtrix2_rows + randomValue3] = stimCode2;
+                flashOrderTable[maxtrix2_rows + randomValue4] = stimCode1;
+
+                // Hidden Matrix 1 - swap stim code col assignment
+                stimCode1 = flashOrderTable[maxtrix1_cols + randomValue2];
+                stimCode2 = flashOrderTable[maxtrix1_cols + randomValue1];
+                flashOrderTable[maxtrix1_cols + randomValue2] = stimCode2;
+                flashOrderTable[maxtrix1_cols + randomValue1] = stimCode1;
+
+                // Hidden Matrix 2 - swap stim code col assignment
+                stimCode1 = flashOrderTable[maxtrix2_cols + randomValue4];
+                stimCode2 = flashOrderTable[maxtrix2_cols + randomValue3];
+                flashOrderTable[maxtrix2_cols + randomValue4] = stimCode2;
+                flashOrderTable[maxtrix2_cols + randomValue3] = stimCode1;
+            }
+
+        }  // ShuffleTableOrdering2()
+        */
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+        /*
+        public void ShuffleTableOrdering3(ref int[] flashOrderTable)
+        {
+
+            RandomizeIndexes(ref rowIndexes);
+            RandomizeIndexes(ref colIndexes);
+
+            for (int i = 0; i < num_cols; i++)
+            {
+                flashOrderTable[i] = rowIndexes[i];
+                flashOrderTable[num_cols + i] = colIndexes[i];
+            }
+
+        }  // ShuffleTableOrdering3()
+        */
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+        public void ShuffleTableOrdering4(ref int[] flashOrderTable)
+        {
+            int offset1, offset2, offset3;
+
+            RandomizeIndexes(ref m1_rowIndexes);
+            RandomizeIndexes(ref m1_colIndexes);
+            RandomizeIndexes(ref m2_rowIndexes);
+            RandomizeIndexes(ref m2_colIndexes);
+
+            // The flash groupings are stored in the flash seqeuence table is a very specific order:
+            //   - All the rows from Hidden Matrix 1
+            //   - All the rows from Hidden Matrix 2
+            //   - All the cols from Hidden Matrix 1
+            //   - All the cols from Hidden Matrix 2
+            // This creates a time separation between when the row and col containing target keyID are flashed
+
+            offset1 = maxtrix1_Size;
+            offset2 = maxtrix1_Size + maxtrix2_Size;
+            offset3 = maxtrix1_Size + maxtrix1_Size + maxtrix2_Size;
+
+            // Shuffle the array indexes into flash sequence table to randomize the order in which the
+            // rows and cols are flashed in Hidden Matrix 1
+            for (int i = 0; i < maxtrix1_Size; i++)
+            {
+                flashOrderTable[i] = m1_rowIndexes[i];
+                flashOrderTable[i + offset2] = m1_colIndexes[i] + offset2;
+            }
+
+            // Shuffle the array indexes into flash sequence table to randomize the order in which the
+            // rows and cols are flashed in Hidden Matrix 2
+            for (int i = 0; i < maxtrix2_Size; i++)
+            {
+                flashOrderTable[i + offset1] = m2_rowIndexes[i] + offset1;
+                flashOrderTable[i + offset3] = m2_colIndexes[i] + offset3;
+            }
+
+        }  // ShuffleTableOrdering4()
+
+    }  // class FlashOrder
 }

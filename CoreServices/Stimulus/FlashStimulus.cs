@@ -138,7 +138,7 @@ namespace CoreServices.Stimulus
             {
                 buttonIndex = flashableKeys[i].buttonIndex;
 
-                buttonList[buttonIndex].BackgroundBrush = 
+                buttonList[buttonIndex].BackgroundBrush = CustomBrushes.Transparent;
                 buttonList[buttonIndex].BorderBrush = CustomBrushes.Transparent;
                 buttonList[buttonIndex].Content = "";
             }
@@ -153,7 +153,7 @@ namespace CoreServices.Stimulus
             int buttonIndex;
 
             buttonIndex = crossReferenceTable[keyID];
-
+            buttonList[buttonIndex].BackgroundBrush = CustomBrushes.CornflowerBlue;
             buttonList[buttonIndex].BorderBrush = CustomBrushes.Red;
         }
 
@@ -164,7 +164,7 @@ namespace CoreServices.Stimulus
             int buttonIndex;
 
             buttonIndex = crossReferenceTable[keyID];
-
+            buttonList[buttonIndex].BackgroundBrush = CustomBrushes.Transparent;
             buttonList[buttonIndex].BorderBrush = CustomBrushes.Transparent;
         }
 
@@ -188,6 +188,8 @@ namespace CoreServices.Stimulus
                     if (keyID == targetKeyID)
                     {   // Keep the target key highlighted
                         buttonList[buttonIndex].BorderBrush = CustomBrushes.Red;
+                        buttonList[buttonIndex].Opacity = 0.6;
+                        buttonList[buttonIndex].BackgroundBrush = CustomBrushes.CornflowerBlue;
                     }
                     else
                     {
@@ -221,6 +223,8 @@ namespace CoreServices.Stimulus
                     if (keyID == targetKeyID)
                     {   // Keep the target key highlighted
                         buttonList[buttonIndex].BorderBrush = CustomBrushes.Red;
+                        buttonList[buttonIndex].Opacity = 0.6;
+                        buttonList[buttonIndex].BackgroundBrush = CustomBrushes.CornflowerBlue;
                     }
                     else
                     {

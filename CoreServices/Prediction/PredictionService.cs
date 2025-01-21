@@ -29,12 +29,12 @@ namespace CoreServices.Prediction
         public PredictionService()
         {
             _predictionMetadataList = new ConcurrentDictionary<String, PredictionFileMetadata>();
-            _predictionFilePath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\CalibrationFiles\\";
+            _predictionFilePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\CalibrationFiles\\";
             _predictionStateEngine = new PredictionStateEngine(NotifyUI, NotifyScreenOverLayChange, ExitPrediction, null, null);
             LoadPredictionFiles();
         }
 
-        private void LoadPredictionFiles()
+        public void LoadPredictionFiles()
         {
             try
             {
@@ -62,12 +62,18 @@ namespace CoreServices.Prediction
                 var fileName = Path.GetFileName(file);
                 var lastUpdatedTime = File.GetLastWriteTime(file);
                 var metadata = Path.GetFileNameWithoutExtension(fileName).Split("_");
-
+                var fileName_NoExt = Path.GetFileNameWithoutExtension(fileName);
+                var name = fileName_NoExt;
+                if (fileName_NoExt.Contains("_current"))
+                {
+                    name = fileName_NoExt.Replace("_current", "").Trim();
+                }
                 var predictionFile = new PredictionFileMetadata
                 {
-                    Name = metadata[0],
+                    Name = name,
+                    FilePath = _predictionFilePath
                 };
-                if (metadata.Length > 1 && metadata[1].ToLower().Equals("current"))
+                if (metadata.Length > 1 && metadata[metadata.Length - 1].ToLower().Equals("current"))
                 {
                     predictionFile.IsCurrent = true;
                     _currentPredictionFile = predictionFile;
@@ -78,6 +84,7 @@ namespace CoreServices.Prediction
 
         public void User_Actual_Start()
         {
+            _predictionStateEngine.SetPredictionFile(_currentPredictionFile);
             Task.Run(_predictionStateEngine.PredictionMode);
         }
 
@@ -111,18 +118,26 @@ namespace CoreServices.Prediction
         }
         public void UpdateCurrentPredictionFileMetadata(PredictionFileMetadata newFile)
         {
-            _currentPredictionFile.IsCurrent = false;
-            FileHandlerService.RenameFile(_currentPredictionFile.Name + "_" + "current.COEF", _currentPredictionFile.Name+ ".COEF", _predictionFilePath);
+            if(_currentPredictionFile!=null)
+            {
+                _currentPredictionFile.IsCurrent = false;
+                FileHandlerService.RenameFile(_currentPredictionFile.Name + "_" + "current.COEF", _currentPredictionFile.Name + ".COEF", _predictionFilePath);
+            }
+            
             FileHandlerService.RenameFile(newFile.Name+ ".COEF", newFile.Name + "_" + "current.COEF", _predictionFilePath);
             _currentPredictionFile = newFile;
             _currentPredictionFile.IsCurrent = true;
+            
         }
 
         public void UpdateSimulationModePreference(bool simulationMode)
         {
             _inSimulationMode = simulationMode;
         }
-
+        public void ForceExit()
+        {
+            _predictionStateEngine.ForceExit();
+        }
 
 
     }

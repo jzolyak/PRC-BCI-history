@@ -27,9 +27,9 @@ namespace CoreServices.Stimulus
 
         public const int NOT_ASSIGNED = 0;
         public const int HIDDEN1_ROW = 1;
-        public const int HIDDEN2_ROW = 2;
+        public const int HIDDEN2_ROW = 20;
         public const int HIDDEN1_COL = 3;
-        public const int HIDDEN2_COL = 4;
+        public const int HIDDEN2_COL = 40;
 
         public const int TARGET_GROUP = 1;
         public const int NONTARGET_GROUP = 0;

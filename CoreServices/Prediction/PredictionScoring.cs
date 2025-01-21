@@ -17,38 +17,42 @@ namespace CoreServices.Prediction
         // of tables used in KeyID Prediction Algorithm
         public const int MAX_NUM_KEYIDS = 144;
 
+        // Create another temporary constant that assigns the number of weight coefficients
+        // per sensor channel equal to the number of samples in the scoring size window.
+        public const int WT_COEFF_PER_CHAN = 240;
+
         // The number of flash stimulus intervals changes with each target selection.
         // Don't know the number of stimulus groupings until the start of Phase 2 (ActiveStim).
 
         public double[,] weightedScores;
 
         public double[,] combinedStimScoreTable;
-
         public double[,] accumulatedStimScoreTable;
+
 
         public double[,] combinedKeyIdScoreTable;
 
         public double[,] accumulatedKeyIdScoreTable;
 
         // Create dummy array in order to compile for now...
-        public double[,] weightCoef = new double[7, 240];
+        public double[,] weightCoeffArray = new double[SensorConstants.NUM_CHANNELS, WT_COEFF_PER_CHAN];
 
 
         /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
         public void AllocateScoringTables(int numberChannels, int numStimGroupings, int numFlashSequences)
         {
-            double[,] weightedScores = new double[numberChannels, numStimGroupings+1];
+            weightedScores = new double[numberChannels, numStimGroupings+1];
 
-            double[] combinedWeightedScores = new double[numStimGroupings+1];
+            //combinedWeightedScores = new double[numStimGroupings+1];
 
-            double[,] combinedStimScoreTable = new double[numStimGroupings+1, numFlashSequences];
+            combinedStimScoreTable = new double[numStimGroupings+1, numFlashSequences];
 
-            double[,] accumulatedStimScoreTable = new double[numStimGroupings+1, numFlashSequences];
+            accumulatedStimScoreTable = new double[numStimGroupings+1, numFlashSequences];
 
-            double[,] combinedKeyIdScoreTable = new double[MAX_NUM_KEYIDS+1, numFlashSequences];
+            combinedKeyIdScoreTable = new double[MAX_NUM_KEYIDS+1, numFlashSequences];
 
-            double[,] accumulatedKeyIdScoreTable = new double[MAX_NUM_KEYIDS + 1, numFlashSequences];
+            accumulatedKeyIdScoreTable = new double[MAX_NUM_KEYIDS + 1, numFlashSequences];
         }
 
         /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
@@ -57,15 +61,15 @@ namespace CoreServices.Prediction
         {
             int sampleIndex;
             int startIndex;
-            int numChannels = SensorConstants.NUM_CHANNELS;
+            int numberChannels = SensorConstants.NUM_CHANNELS;
 
             double sum;
-            double[] meanScores = new double[numChannels];
+            double[] meanScores = new double[numberChannels];
 
             // Fetch starting column index into sampleValues[,] associated with event in packet header
             startIndex = sensorData.packetHeaderTable[eventStartHeaderIndex].crossRefIndex;
 
-            for (int channelIndex = 0; channelIndex < numChannels; channelIndex++)
+            for (int channelIndex = 0; channelIndex < numberChannels; channelIndex++)
             {
                 sum = 0.0;
                 sampleIndex = startIndex;
@@ -88,18 +92,18 @@ namespace CoreServices.Prediction
         {
             int sampleIndex;
             int startIndex;
-            int numChannels = SensorConstants.NUM_CHANNELS;
+            int numberChannels = SensorConstants.NUM_CHANNELS;
 
             double meanValue;
             double difference;
             double variance;
 
-            double[] standardDevScores = new double[numChannels];
+            double[] standardDevScores = new double[numberChannels];
 
             // Fetch starting column index into sampleValues[,] associated with event in packet header
             startIndex = sensorData.packetHeaderTable[eventStartHeaderIndex].crossRefIndex;
 
-            for (int channelIndex = 0; channelIndex < numChannels; channelIndex++)
+            for (int channelIndex = 0; channelIndex < numberChannels; channelIndex++)
             {
                 variance = 0.0;
                 meanValue = meanScores[channelIndex];
@@ -125,15 +129,15 @@ namespace CoreServices.Prediction
         {
             int sampleIndex;
             int startIndex;
-            int numChannels = SensorConstants.NUM_CHANNELS;
+            int numberChannels = SensorConstants.NUM_CHANNELS;
 
             double sum;
-            double[] flashScores = new double[numChannels];
+            double[] flashScores = new double[numberChannels];
 
             // Fetch starting column index into sampleValues[,] associated with event in packet header
             startIndex = sensorData.packetHeaderTable[eventStartHeaderIndex].crossRefIndex;
 
-            for (int channelIndex = 0; channelIndex < numChannels; channelIndex++)
+            for (int channelIndex = 0; channelIndex < numberChannels; channelIndex++)
             {
                 sum = 0.0;
                 sampleIndex = startIndex;
@@ -141,7 +145,7 @@ namespace CoreServices.Prediction
                 for (int i = 0; i < windowLength; i++)
                 {
                     // Compute a weighted score for flash interval over a window length for each sensor
-                    sum += sensorData.sampleValues[channelIndex, sampleIndex] * weightCoef[channelIndex,i];
+                    sum += sensorData.sampleValues[channelIndex, sampleIndex] * weightCoeffArray[channelIndex,i];
                     sampleIndex = (++sampleIndex) & (PacketizedSensorData.SAMPLE_CIRC_BUF_LEN - 1);
                 }
 
@@ -154,9 +158,9 @@ namespace CoreServices.Prediction
 
         public void StoreWeightedSensorScores(double[] flashScores, int stimulusCode)
         {
-            int numChannels = SensorConstants.NUM_CHANNELS;
+            int numberChannels = SensorConstants.NUM_CHANNELS;
 
-            for (int channelIndex = 0; channelIndex < numChannels; channelIndex++)
+            for (int channelIndex = 0; channelIndex < numberChannels; channelIndex++)
             {
                 // Store the weighted score for each sensor into single table convering all
                 // stimulus intervals in one flash sequence.
@@ -166,18 +170,19 @@ namespace CoreServices.Prediction
 
         /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-        public void StoreWeightCoefficients(double[] rawDataBuffer, int numberChannels, int weightCoefPerChannel)
+        public void StoreWeightCoefficients(WeightCoefficients coefficientBuffer)
         {
             int bufIndex = 0;
+            int numberChannels = SensorConstants.NUM_CHANNELS;
 
             // The weight coefficient values computed in the Calibration mode are saved to a file.
             // The Prediction task receives the coefficient values from a data buffer block. The
             // buffer contents are unpacked and stored into a 2 dimensional array format here.
-            for (int i = 0; i < weightCoefPerChannel; i++)
+            for (int i = 0; i < WT_COEFF_PER_CHAN; i++)
             {
                 for (int channelIndex = 0; channelIndex < numberChannels; channelIndex++)
                 {
-                    weightCoef[channelIndex, i] = rawDataBuffer[bufIndex++];
+                    weightCoeffArray[channelIndex, i] = coefficientBuffer.values[bufIndex++];
                 }
             }
         }
@@ -187,7 +192,7 @@ namespace CoreServices.Prediction
         public double[] ComputeCombinedWeightedScores(int numberChannels, int numStimGroupings)
         {
             double sum;
-            double[] combinedWeightedScores = new double[numStimGroupings];
+            double[] combinedWeightedScores = new double[numStimGroupings+1];
 
             for (int stimCode = 1; stimCode <= numStimGroupings; stimCode++)
             {
@@ -211,8 +216,8 @@ namespace CoreServices.Prediction
 
         public void StoreCombinedWeigtedStimScores(double[] combinedWeightedScores, int numStimGroupings, int flashSeqNum)
         {
-            // combinedWeightedScores[] holds score for each stimulus group over one flash sequence
-            for (int stimCode = 0; stimCode < numStimGroupings; stimCode++)
+            // combinedWeightedScres[] holds score for each stimulus group over one flash sequence
+            for (int stimCode = 1; stimCode <= numStimGroupings; stimCode++)
             {
                 // combinedStimScoreTable[] holds score for each stimulus group over each "good" flash sequence
                 combinedStimScoreTable[stimCode, flashSeqNum] = combinedWeightedScores[stimCode];
@@ -224,11 +229,11 @@ namespace CoreServices.Prediction
         public double[] ComputeAccumulatedWeightedStimScores(int numStimGroupings, int flashSeqNum)
         {
             double acumSum;
-            double[] accumulatedStimScores = new double[numStimGroupings];
+            double[] accumulatedStimScores = new double[numStimGroupings+1];
 
-            if (flashSeqNum == 1)
+            if (flashSeqNum == 0)
             {
-                for (int stimCode = 0; stimCode < numStimGroupings; stimCode++)
+                for (int stimCode = 1; stimCode <= numStimGroupings; stimCode++)
                 {   // Transfer the score value from first flash sequence to accumulated score initial value.
                     // Store accumulated scores over each flash sequences to later create a heat map of data to  
                     // show how the evoked response rises to top pair of stim scores over time.
@@ -239,7 +244,7 @@ namespace CoreServices.Prediction
             }
             else
             {
-                for (int stimCode = 0; stimCode < numStimGroupings; stimCode++)
+                for (int stimCode = 1; stimCode <= numStimGroupings; stimCode++)
                 {
                     acumSum = accumulatedStimScoreTable[stimCode, flashSeqNum-1] + combinedStimScoreTable[stimCode, flashSeqNum];
                     accumulatedStimScoreTable[stimCode, flashSeqNum] = acumSum;
@@ -254,7 +259,7 @@ namespace CoreServices.Prediction
 
         /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-        public double[] ConvertStimCodeToKeyIdScores(double[] combinedWeightedScores, 
+        public double[] ConvertStimCodeToKeyIdScores(double[] combinedWeightedScores,
                                                      StimGroupEntry[] stimulusGroupingTable, int numStimGroupings)
         {
             int keyID;

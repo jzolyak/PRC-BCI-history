@@ -4,6 +4,7 @@ using CoreServices.Stimulus;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text;
@@ -25,6 +26,9 @@ namespace CoreServices.Calibration
 
         public event EventHandler<EventArgs<ScreenOverlay>>? RaiseScreenOverLayChange;
         public event EventHandler<EventArgs<UIInstruction>>? RaiseUIRequestChange;
+        public event EventHandler<EventArgs>? RaiseActiveUIEvent;
+        public event EventHandler<EventArgs>? RaiseCoeffInProgress;
+        public event EventHandler<EventArgs>? RaiseCoeffCompleted;
         public event EventHandler<EventArgs>? RaiseExitCalibrationEvent;
       
 
@@ -32,13 +36,18 @@ namespace CoreServices.Calibration
 
         private PredictionFileMetadata _currentPredictionFile;
         private CalibrationFileMetadata _currentCalibrationFile;
+        private bool _caLibrationCompleted;
+        private string _coeffFileName;
+        private int _numofSets;
 
         public CalibrationService()
         {
             _predictionMetadataList = new ConcurrentDictionary<String, PredictionFileMetadata>();
-            _calibrationFilePath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)+ "\\CalibrationFiles\\";
-            _stateEngine = new StateEngine(NotifyUI, NotifyScreenOverLayChange, ExitCalibration, OnCalibrationComplete,OnCalibrationPaused);
+            _calibrationFilePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\CalibrationFiles\\";
+            _stateEngine = new StateEngine(NotifyUI, NotifyScreenOverLayChange, ExitCalibration, OnCalibrationComplete,OnCalibrationPaused, ActivateUI);
+            _caLibrationCompleted= false;
             LoadCalibrationFiles();
+            //GenerateCOEFFile("myfirstone", 5);
         }
 
         public IEnumerable<PredictionFileMetadata> GetPredictionFilesMetadata()
@@ -54,6 +63,7 @@ namespace CoreServices.Calibration
         {
             try
             {
+                Logger.Info("special message");
                 //Load the calibration files from local disk
                 if (!Directory.Exists(_calibrationFilePath))
                 {
@@ -89,7 +99,8 @@ namespace CoreServices.Calibration
                         UserGivenName = metadata[0],
                         NumofSets = Int32.Parse(metadata[2]),
                         CurrentSet = Int32.Parse(metadata[1]),
-                        IsCurrent = true
+                        IsCurrent = true,
+                        FilePath=_calibrationFilePath
                     };
                 }
                 else
@@ -116,14 +127,21 @@ namespace CoreServices.Calibration
                 var fileName = Path.GetFileName(file);
                 var lastUpdatedTime = File.GetLastWriteTime(file);
                 var metadata = Path.GetFileNameWithoutExtension(fileName).Split("_");
-
+                var fileName_NoExt = Path.GetFileNameWithoutExtension(fileName);
+                var name = fileName_NoExt;
+                if(fileName_NoExt.Contains("_current"))
+                {
+                    name = fileName_NoExt.Replace("_current", "").Trim();
+                }
                 var predictionFile = new PredictionFileMetadata
                 {
-                    Name = metadata[0],
+                    Name = name,
+                    FilePath = _calibrationFilePath
                 };
-                if (metadata.Length > 1 && metadata[1].ToLower().Equals("current"))
+                if (metadata.Length > 1 && metadata[metadata.Length-1].ToLower().Equals("current"))
                 {
                     predictionFile.IsCurrent = true;
+                    _currentPredictionFile = predictionFile;
                 }
                 _predictionMetadataList.TryAdd(metadata[0], predictionFile);
             }
@@ -144,6 +162,7 @@ namespace CoreServices.Calibration
         public CalibrationFileMetadata CreateNewCalibrationFile(string name)
         {
             var calibrationFileMetadata = new CalibrationFileMetadata { UserGivenName = name, NumofSets = 5, CurrentSet = 1, IsCurrent = true, IsStale =false };
+            calibrationFileMetadata.FilePath = _calibrationFilePath;
             //NotifyFileMetadataChange(calibrationFileMetadata);
             _currentCalibrationFile = calibrationFileMetadata;
             NotifyFileMetadataChange(calibrationFileMetadata);
@@ -174,9 +193,33 @@ namespace CoreServices.Calibration
             if(RaiseUIRequestChange == null) return;
             RaiseUIRequestChange(this, new EventArgs<UIInstruction>(uiInsturction));
         }
+        private void ActivateUI()
+        {
+            if (RaiseActiveUIEvent == null) return;
+            RaiseActiveUIEvent(this, EventArgs.Empty);
+        }
 
         private void ExitCalibration()
         {
+            if(RaiseCoeffInProgress!=null)
+            {
+                RaiseCoeffInProgress(this, EventArgs.Empty);
+            }
+            if (_caLibrationCompleted && !string.IsNullOrEmpty(_coeffFileName) && _numofSets > 0)
+            {
+                GenerateCOEFFile(_coeffFileName, _numofSets);
+                var predictionFile = new PredictionFileMetadata
+                {
+                    Name = _coeffFileName,
+                    FilePath = _calibrationFilePath
+                };
+                _predictionMetadataList.TryAdd(_coeffFileName, predictionFile);
+            }
+            if (RaiseCoeffCompleted!=null)
+            {
+                RaiseCoeffCompleted(this, EventArgs.Empty);
+            }
+           
             if (RaiseExitCalibrationEvent != null) RaiseExitCalibrationEvent(this, new EventArgs());
         }
         public void ReceiveNotificationFromUI(UIInstruction instruction)
@@ -185,6 +228,9 @@ namespace CoreServices.Calibration
         }
         public void User_Actual_Start()
         {
+            _caLibrationCompleted = false;
+            _coeffFileName = string.Empty;
+            _numofSets = 0;
             _stateEngine.SetCalibrationFile(_currentCalibrationFile);
             Task.Run(_stateEngine.CalibrationMode);
         }
@@ -213,12 +259,84 @@ namespace CoreServices.Calibration
         }
         public void OnCalibrationComplete()
         {
+            _coeffFileName = _currentCalibrationFile.UserGivenName;
+            _numofSets = _currentCalibrationFile.NumofSets;
+            
             UpdateCurrentCalibrationFileState("Completed");
+            _caLibrationCompleted = true;
+            //Generate COEF file
+            
+
+        }
+        public void GenerateCOEFFile(string fileName, int numOfSets)
+        {
+            try
+            {
+
+
+                const int timeout = 10000;
+                if (numOfSets <= 0)
+                {
+                    Logger.Error(this, "number of sets are 0. unable to generate the coef file");
+                    return;
+                }
+
+                string calibrationFilesFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BCI", "CalibrationFiles");
+                string cmdName = "\"\"" + Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "script.bat") + "\"";
+                for (int setNum = 1; setNum <= numOfSets; setNum++)
+                {
+                    cmdName = cmdName + " \"" + fileName + "_" + setNum + "_" + numOfSets + "\"";
+                }
+                // P300Classifier_electrode_selection.exe can't accept a space in the .coef file name, so make up a temporary name.
+                string spacelessFileName = fileName.Replace(' ', '_');
+                cmdName = cmdName + " " + spacelessFileName + "\"";
+                Logger.Info(this, "Command to be run: " + cmdName);
+                int ExitCode;
+                ProcessStartInfo ProcessInfo;
+                Process process;
+
+                ProcessInfo = new ProcessStartInfo("cmd.exe", "/c " + cmdName);
+                ProcessInfo.CreateNoWindow = true;
+                ProcessInfo.UseShellExecute = false;
+                ProcessInfo.WorkingDirectory = Path.Combine(calibrationFilesFolderPath, "Completed");
+                // *** Redirect the output ***
+                ProcessInfo.RedirectStandardError = true;
+                ProcessInfo.RedirectStandardOutput = true;
+
+
+                process = Process.Start(ProcessInfo);
+                // *** Read the streams ***
+                string output = process.StandardOutput.ReadToEnd();
+                string error = process.StandardError.ReadToEnd();
+
+                process.WaitForExit(timeout);
+
+                // *** Read the streams ***
+
+                ExitCode = process.ExitCode;
+
+                process.Close();
+                Logger.Info(this, "output>>" + (String.IsNullOrEmpty(output) ? "(none)" : output));
+                Logger.Info(this, "error>>" + (String.IsNullOrEmpty(error) ? "(none)" : error));
+                Logger.Info(this, "ExitCode: " + ExitCode.ToString());
+
+                // Rename the .coef file to what the user expects
+                FileHandlerService.RenameFile(spacelessFileName, fileName, calibrationFilesFolderPath);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(this, ex.Message);
+            }
         }
 
         public void OnCalibrationPaused()
         {
             NotifyFileMetadataChange(_currentCalibrationFile);
+        }
+
+        public void ForceExit()
+        {
+            _stateEngine.ForceExit();
         }
     }
 

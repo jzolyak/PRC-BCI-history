@@ -30,14 +30,16 @@ namespace CoreServices.SensorData
         public const int INTERLEAVED_SAMPLE_SIZE = NUM_CHANNELS * INTERLEAVED_SAMPLES_PER_TRANSFER;
     }
 
-    public struct PacketDataFields
+    // public struct PacketDataFields
+    public class PacketDataFields
     {
         public Byte[] markers_8bit;
         public UInt16[] markers_16bit;
         public UInt16[] stimulusTags;
         public double[] sensorDataValues;
 
-        public PacketDataFields(SensorConstants constants)
+        // public PacketDataFields(SensorConstants constants)
+        public PacketDataFields()
         {
             markers_8bit = new Byte[SensorConstants.NUM_MARKERS_8BIT];
             markers_16bit = new UInt16[SensorConstants.NUM_MARKERS_16BIT];
@@ -46,12 +48,23 @@ namespace CoreServices.SensorData
         }
     }
 
-    public struct StimGroupEntry
+    // public struct StimGroupEntry
+    public class StimGroupEntry
     {
         public UInt16 attendedTarget;
         public UInt16 matrixPosCode;
         public UInt16 stimulusType;
         public UInt16[] keyIDs;
+
+        public StimGroupEntry()
+        {
+            attendedTarget = 0;
+            matrixPosCode = 0;
+            stimulusType = 0;
+
+            //keyIDs = new UInt16[12];
+            keyIDs = new UInt16[SensorConstants.NUM_TAG_MARKERS];
+        }
     }
 
     /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
@@ -71,7 +84,8 @@ namespace CoreServices.SensorData
         // Samples received from headset are double float point values and move thru pipeline as doubles.
         // public double[] sensorDataValues = new double[NUM_SAMPLE_SIZE];
 
-        public struct PacketTableEntry
+        // public struct PacketTableEntry
+        public class PacketTableEntry
         {
             public int crossRefIndex;
 
@@ -91,6 +105,27 @@ namespace CoreServices.SensorData
             public Byte numStimulusGroups; 
 
             public UInt16[] keyIDs;
+
+            public PacketTableEntry()
+            {
+                crossRefIndex = 0;
+                sourceTime = 0;
+                stimulusTime = 0;
+                blueToothCode = 0;
+                matrixPosCode = 0;
+                attendedTarget = 0;
+                bufferLevel = 0;
+                running = 0;
+                recording = 0;
+                stimulusCode = 0;
+                stimulusBegin = 0;
+                stimulusType = 0;
+                phaseInSeq = 0;
+                numStimulusGroups = 0;
+
+                //keyIDs = new UInt16[12]; 
+                keyIDs = new UInt16[SensorConstants.NUM_TAG_MARKERS];
+            }
         }
 
         // After a block of sensor packetized data has been received, it is parsed and stored 
@@ -102,7 +137,9 @@ namespace CoreServices.SensorData
         public int headerTableWriteIndex = 0;
         public int headerTableReadIndex = 0;
 
-        public PacketTableEntry[] packetHeaderTable = new PacketTableEntry[HEADER_CIRC_BUF_LEN];
+        //public PacketTableEntry[] packetHeaderTable = new PacketTableEntry[HEADER_CIRC_BUF_LEN];
+        public PacketTableEntry[]? packetHeaderTable;
+
 
         // The second circular buffer stores the sampled sensor data received from the headet.
         // The specific headset has NUM_CHANNELS of sensors and sends SAMPLES_PER_BATCH values
@@ -115,8 +152,8 @@ namespace CoreServices.SensorData
 
         public double[,] sampleValues = new double[SensorConstants.NUM_CHANNELS, SAMPLE_CIRC_BUF_LEN];
 
-        //
-        public StimGroupEntry[] stimulusGroupingTable;
+        public StimGroupEntry[]? stimulusGroupingTable;
+        // public List<StimGroupEntry> stimulusGroupingTable;
 
 
         /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
@@ -125,6 +162,9 @@ namespace CoreServices.SensorData
         {
             int bufferIndex;
 
+            // SensorConstants sensorConstants;
+            // PacketDataFields packetRecord = new PacketDataFields(sensorConstants);
+            
             PacketDataFields packetRecord = new PacketDataFields();
 
 
@@ -158,6 +198,18 @@ namespace CoreServices.SensorData
 
         /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
+        public void CreatePacketHeaderTable()
+        {
+            packetHeaderTable = new PacketTableEntry[HEADER_CIRC_BUF_LEN];
+
+            for (int i = 0; i < HEADER_CIRC_BUF_LEN; i++)
+            {
+                packetHeaderTable[i] = new PacketTableEntry();
+            }
+        }
+
+        /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
         public void StoreHeaderAndSensorData(PacketDataFields packetRecord)
         {
             // Create link to where sensor data is stored associated with this packet header.
@@ -174,7 +226,7 @@ namespace CoreServices.SensorData
             packetHeaderTable[headerTableWriteIndex].bufferLevel = packetRecord.markers_8bit[0];
             packetHeaderTable[headerTableWriteIndex].running     = packetRecord.markers_8bit[1];
             packetHeaderTable[headerTableWriteIndex].recording   = packetRecord.markers_8bit[2];
-            packetHeaderTable[headerTableWriteIndex].stimulusCode  = packetRecord.markers_8bit[3];
+            packetHeaderTable[headerTableWriteIndex].stimulusCode = packetRecord.markers_8bit[3];
             packetHeaderTable[headerTableWriteIndex].stimulusBegin = packetRecord.markers_8bit[4];
             packetHeaderTable[headerTableWriteIndex].stimulusType  = packetRecord.markers_8bit[5];
             packetHeaderTable[headerTableWriteIndex].phaseInSeq    = packetRecord.markers_8bit[6];
@@ -205,7 +257,12 @@ namespace CoreServices.SensorData
 
         public void CreateStimulusGroupingTable(int numStimGroupings)
         {
-            StimGroupEntry[] stimulusGroupingTable = new StimGroupEntry[numStimGroupings + 1];
+            stimulusGroupingTable = new StimGroupEntry[numStimGroupings + 1];
+
+            for (int i = 0; i < (numStimGroupings + 1); i++)
+            {
+                stimulusGroupingTable[i] = new StimGroupEntry();
+            }
         }
 
         /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
@@ -214,6 +271,8 @@ namespace CoreServices.SensorData
         {
             int stimCode = (int)packetHeaderTable[headerIndex].stimulusCode;
 
+            // Create a cross reference entry between which keys are flashing for
+            // each stimulus code grouping.
             stimulusGroupingTable[stimCode].attendedTarget = packetHeaderTable[headerIndex].attendedTarget;
             stimulusGroupingTable[stimCode].matrixPosCode = packetHeaderTable[headerIndex].matrixPosCode;
             stimulusGroupingTable[stimCode].stimulusType = (UInt16)packetHeaderTable[headerIndex].stimulusType;
@@ -224,9 +283,7 @@ namespace CoreServices.SensorData
             }
         }
 
-        /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-
-    }
+    }  // public class PacketizedSensorData
 
     /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
     /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */

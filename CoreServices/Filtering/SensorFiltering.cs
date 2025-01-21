@@ -21,13 +21,19 @@ namespace CoreServices.Filtering
             const int BATCH_SIZE = 9;    // 9 samples = 30 msec @ Fs=300 Hz
             const int HEADER_SIZE = 25;  // Number of 8-bit and 16-bit markers, plus keyID Tags prefacing each batch of data
 
+            const int PACKET_TOTAL_SIZE = (HEADER_SIZE + MAX_CHANNELS * BATCH_SIZE);
+
             bool filteringDisabled = false;
+            //bool filteringDisabled = true;
 
             int blockSize;
             int bufferIndex;
 
+            double[] rawDataBuffer = null;
+
             double[] HPF_bcoef = new double[] { 1.00000000000000, -1.00000000000000 };    // Filter transfer numerator coef
-            double[] HPF_acoef = new double[] { 1.00000000000000, -0.996378967773846 };   // Filter transfer denominator coef
+            //double[] HPF_acoef = new double[] { 1.00000000000000, -0.996378967773846 };   // Filter transfer denominator coef
+            double[] HPF_acoef = new double[] { 1.00000000000000, -0.985594038922712 };   // Filter transfer denominator coef
 
             double[] Notch_bcoef = new double[] { 1.00000000000000, -0.618033988749895, 1.00000000000000 };
             double[] Notch_acoef = new double[] { 1.00000000000000, -0.556230589874906, 0.810000000000000 };
@@ -55,21 +61,44 @@ namespace CoreServices.Filtering
             double[,] SensorInputData = new double[MAX_CHANNELS, BATCH_SIZE];
             double[,] SensorOutputData = new double[MAX_CHANNELS, BATCH_SIZE];
 
+            double[] filterOutputBuffer = new double[PACKET_TOTAL_SIZE];
+
+
             // Stopwatch stopwatch = new Stopwatch();
 
             while (!cts.IsCancellationRequested)
             {
-
                 // Start separate, independent timer to measure filter execution time.
                 // stopwatch.Start();
 
-                double[] rawDataBuffer = await inputBufferBlock.ReceiveAsync();
-                blockSize = rawDataBuffer.Length;
+                // Wait for next block of sensor packet data sent from preceeding pipeline task.
+                if (await inputBufferBlock.OutputAvailableAsync(cts))
+                {
+                    try
+                    {
+                        rawDataBuffer = await inputBufferBlock.ReceiveAsync(cts);
+                        blockSize = rawDataBuffer.Length;
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error(this, ex.Message);
+                        continue;
+                    }
+                    //break;
+                }
+                else
+                {
+                    continue;
+                }
 
-                // Check if sensor filtering is disabled. If yes, then directly pass sensor data to next stage.
+                // If sensor filtering is disabled, then directly pass sensor data packet to next stage.
                 if (filteringDisabled == true)
                 {
-                    outputBufferBlock.Post(rawDataBuffer);
+                    for (int i = 0; i < PACKET_TOTAL_SIZE; i++)
+                    {
+                        filterOutputBuffer[i] = rawDataBuffer[i];
+                    }
+                    outputBufferBlock.Post(filterOutputBuffer);
                 }
                 else
                 {
@@ -98,7 +127,7 @@ namespace CoreServices.Filtering
                             Z1delay[j] = HPF_delay[channelIndex, j];
                         }
 
-                        Y1out = HighpassFilter(HPF_bcoef, HPF_acoef, Xin, Z1delay);
+                        Y1out = HighpassFilter(HPF_bcoef, HPF_acoef, Xin, ref Z1delay);
 
                         for (int j = 0; j < HPF_order; j++)
                         {
@@ -114,7 +143,7 @@ namespace CoreServices.Filtering
                         }
 
                         // Use the stage 1 filter output as the stage 2 filter input
-                        Y2out = NotchFilter(Notch_bcoef, Notch_acoef, Y1out, Z2delay);
+                        Y2out = NotchFilter(Notch_bcoef, Notch_acoef, Y1out, ref Z2delay);
 
                         for (int j = 0; j < Notch_order; j++)
                         {
@@ -129,7 +158,7 @@ namespace CoreServices.Filtering
                             Z3delay[j] = LPF_delay[channelIndex, j];
                         }
 
-                        Y3out = LowpassFilter(LPF_bcoef, LPF_acoef, Y2out, Z3delay);   // IIR???
+                        Y3out = LowpassFilter(LPF_bcoef, LPF_acoef, Y2out, ref Z3delay);   // IIR???
 
                         for (int j = 0; j < LPF_order; j++)
                         {
@@ -146,13 +175,20 @@ namespace CoreServices.Filtering
 
                     }  // for (channelIndex)
 
+
+                    // Copy the original packet header to the filter output buffer
+                    for (int i = 0; i < HEADER_SIZE; i++)
+                    {
+                        filterOutputBuffer[i] = rawDataBuffer[i];
+                    }
+
                     // Interleave filtered data from an array row of samples per sensor into a row of one sample per sensor
                     bufferIndex = HEADER_SIZE;
                     for (int sampleIndex = 0; sampleIndex < BATCH_SIZE; sampleIndex++)
                     {
                         for (int channelIndex = 0; channelIndex < MAX_CHANNELS; channelIndex++)
                         {
-                            rawDataBuffer[bufferIndex++] = SensorOutputData[channelIndex, sampleIndex];
+                            filterOutputBuffer[bufferIndex++] = SensorOutputData[channelIndex, sampleIndex];
                         }
                     }
 
@@ -162,7 +198,7 @@ namespace CoreServices.Filtering
                     */
 
                     // Send the filtered data to the next processing task via the buffer block
-                    outputBufferBlock.Post(rawDataBuffer);
+                    outputBufferBlock.Post(filterOutputBuffer);
 
                 }  // if (filteringDisabled)
 
@@ -173,7 +209,7 @@ namespace CoreServices.Filtering
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
         public double[] HighpassFilter(double[] HPF_bcoef, double[] HPF_acoef,
-                                       double[] filterInput, double[] Zdelay)
+                                       double[] filterInput, ref double[] Zdelay)
         {
             int numSamples = filterInput.Length;
             int filterOrder = HPF_acoef.Length - 1;     // For IIR design filters the filter order is the
@@ -199,7 +235,7 @@ namespace CoreServices.Filtering
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
         public double[] NotchFilter(double[] Notch_bcoef, double[] Notch_acoef,
-                                    double[] filterInput, double[] Zdelay)
+                                    double[] filterInput, ref double[] Zdelay)
         {
             int numSamples = filterInput.Length;
             int filterOrder = Notch_acoef.Length - 1;   // For IIR design filters the filter order is the
@@ -225,7 +261,7 @@ namespace CoreServices.Filtering
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
         public double[] LowpassFilter(double[] LPF_bcoef, double[] LPF_acoef,
-                                      double[] filterInput, double[] Zdelay)
+                                      double[] filterInput, ref double[] Zdelay)
         {
             int numSamples = filterInput.Length;
             int filterOrder = LPF_acoef.Length - 1;     // For IIR design filters the filter order is the

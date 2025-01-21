@@ -47,6 +47,7 @@ namespace CoreServices.Prediction
             stoppingMethod   = StoppingMethod.FixedNumberOfSequences;
             winCountForSelection  = 3;
             fixedSequenceLimit    = 15;
+            //fixedSequenceLimit    = 10;
             predictScoreThreshold = 5000;
         }
     }
