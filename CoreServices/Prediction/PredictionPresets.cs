@@ -44,8 +44,10 @@ namespace CoreServices.Prediction
         public PredictionPresets()
         {
             predictionMethod = PredictionMethod.StimulusCode;
-            stoppingMethod   = StoppingMethod.FixedNumberOfSequences;
-            winCountForSelection  = 3;
+            //stoppingMethod   = StoppingMethod.FixedNumberOfSequences;
+            stoppingMethod = StoppingMethod.DynamicStopping;
+
+            winCountForSelection = 3;
             fixedSequenceLimit    = 15;
             //fixedSequenceLimit    = 10;
             predictScoreThreshold = 5000;
