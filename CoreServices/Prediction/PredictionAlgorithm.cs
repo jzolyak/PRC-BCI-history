@@ -189,7 +189,7 @@ namespace CoreServices.Prediction
             // Need to make this into a preset value having a value of 3 or 4. Don't need to
             // search for interest among all top 5 scores because intersections between top score 4
             // and top score 5 yield poor results. Limit search to between top 3 or 4 scores.
-            const int HIGHEST_TOP_SCORES = 3;
+            const int HIGHEST_TOP_SCORES = 4;
 
             const int MATRIX1_ROW_COL_SUM = FlashSequence.HIDDEN1_ROW + FlashSequence.HIDDEN1_COL;    // equals 4
             const int MATRIX2_ROW_COL_SUM = FlashSequence.HIDDEN2_ROW + FlashSequence.HIDDEN2_COL;    // equals 60

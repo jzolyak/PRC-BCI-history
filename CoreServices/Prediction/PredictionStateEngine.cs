@@ -60,6 +60,7 @@ namespace CoreServices.Prediction
             this.exitAction = exitAction;
             this.completeAction = completeAction;
             this.pauseAction = pauseAction;
+
         }
 
         public async Task PredictionMode()
@@ -190,9 +191,12 @@ namespace CoreServices.Prediction
 
             while (!done)
             {
-                headset.ConnectPort(port);
+                if(headset.ConnectPort(port))
+                {
+                    Logger.Info(this,"Headset connected using port"+port);
+                }
                 await Task.Delay(100);
-
+                Logger.Info(this,"After the delay");
                 passedTest = headset.IsConnected();
 
                 if (passedTest == false)
@@ -208,7 +212,7 @@ namespace CoreServices.Prediction
                         // Retry making the connection
                         headset.Disconnect();
                         await Task.Delay(100);
-                    }
+                    }      
                 }
                 else
                 {   // Connected properly
@@ -524,6 +528,10 @@ namespace CoreServices.Prediction
 
                                 modeState = PredictionStates.Assign_Key_Mapping;
                             }
+                            if (_forceExit)
+                            {
+                                modeState = PredictionStates.Clean_Up;
+                            }
                             break;
 
                         case PredictionStates.Local_Display:
@@ -533,6 +541,10 @@ namespace CoreServices.Prediction
                             // TO BE DONE: This functionality will be added after MVP
 
                             modeState = PredictionStates.Get_Local_Elements;
+                            if (_forceExit)
+                            {
+                                modeState = PredictionStates.Clean_Up;
+                            }
                             break;
 
                         case PredictionStates.Get_Local_Elements:
@@ -541,6 +553,10 @@ namespace CoreServices.Prediction
 
                             // Ready to fetch next target from calibration commands
                             modeState = PredictionStates.Assign_Key_Mapping;
+                            if (_forceExit)
+                            {
+                                modeState = PredictionStates.Clean_Up;
+                            }
                             break;
 
                         case PredictionStates.Assign_Key_Mapping:
@@ -570,6 +586,10 @@ namespace CoreServices.Prediction
                             flashStimulus.CreateCrossReferenceTable(flashableKeys);
 
                             modeState = PredictionStates.Create_Grouping;
+                            if (_forceExit)
+                            {
+                                modeState = PredictionStates.Clean_Up;
+                            }
                             break;
 
                         case PredictionStates.Create_Grouping:
@@ -591,6 +611,10 @@ namespace CoreServices.Prediction
                             }
 
                             modeState = PredictionStates.Create_Sequence;
+                            if (_forceExit)
+                            {
+                                modeState = PredictionStates.Clean_Up;
+                            }
                             break;
 
                         case PredictionStates.Create_Sequence:
@@ -601,6 +625,10 @@ namespace CoreServices.Prediction
                             flashSequenceTable = flashSequence.GenerateFlashSequenceTable(groupingMatrix, matrixSize1, matrixSize2, targetkeyIDvalue);
 
                             modeState = PredictionStates.Core_Loop;
+                            if (_forceExit)
+                            {
+                                modeState = PredictionStates.Clean_Up;
+                            }
                             break;
 
                         /*
@@ -713,7 +741,6 @@ namespace CoreServices.Prediction
 
                                 if (_forceExit)
                                 {
-                                    _forceExit = false;
                                     exitFlag = true;
                                 }
                                 string flashTime = DateTime.Now.ToString("HH:mm:ss:ffff");
@@ -910,7 +937,11 @@ namespace CoreServices.Prediction
                             //Logger.Info(this, "Status of Task t1: " + t1.Status);
                             //Logger.Info(this, "Status of Task t2: " + t2.Status);
                             //Logger.Info(this, "Status of task t4: " + t4.Status);
-
+                            if (_forceExit)
+                            {
+                                modeState = PredictionStates.Clean_Up;
+                                break;
+                            }
                             modeState = PredictionStates.Click_Key;      // Don't click key until Prediction is working
                             // modeState = PredictionStates.Programmed_Delay;
                             break;
@@ -918,7 +949,7 @@ namespace CoreServices.Prediction
                         /* ********************************* */
                         /*  End Core Loop                    */
                         /* ********************************* */
-
+                           
 
                         case PredictionStates.Click_Key:
                             // Clicking target key generates speech (in REMOTE) and displays key name.
@@ -965,7 +996,11 @@ namespace CoreServices.Prediction
                                     remoteDisplay.SelectElement(elementIndex);
                                 }
                             }
-
+                            if (_forceExit)
+                            {
+                                modeState = PredictionStates.Clean_Up;
+                                break;
+                            }
                             modeState = PredictionStates.Programmed_Delay;
                             break;
 
@@ -977,6 +1012,11 @@ namespace CoreServices.Prediction
 
                             // Fetch next target in calibration set
                             modeState = PredictionStates.Monitor_Prediction_Interfaces;
+                            if (_forceExit)
+                            {
+                                modeState = PredictionStates.Clean_Up;
+                                break;
+                            }
                             break;
 
                         case PredictionStates.Monitor_Prediction_Interfaces:
@@ -990,7 +1030,9 @@ namespace CoreServices.Prediction
                             //    modeState = PredictionStates.Get_Remote_Elements;
 
                             // modeState = PredictionStates.Clean_Up;               // <-- Use this to run once, then stop
-                            modeState = PredictionStates.Get_Remote_Elements;       // <-- Use this to run forever...
+
+                            modeState = PredictionStates.Get_Remote_Elements;  
+                            // <-- Use this to run forever...
                             break;
 
                         /*
@@ -1014,6 +1056,16 @@ namespace CoreServices.Prediction
                         case PredictionStates.Exit_Mode:
                             // Now ready to return to the BCI app Main Menu
                             modeExit = true;
+                            headsetTokenSource.Cancel();
+                            headset.StopBackgroundAcquisition();
+                            await Task.Delay(50);
+
+                            headsetMsgBufferBlock.Complete();
+                            headsetDataBufferBlock.Complete();
+
+                            headset.Disconnect();
+                            headset.Delete();
+                            await Task.Delay(1000);
                             if (exitAction != null) exitAction();
                             break;
 
@@ -1022,15 +1074,19 @@ namespace CoreServices.Prediction
                 }  // while (!modeExit)
 
                 // Stop headset task by cancelling the token
-                headsetTokenSource.Cancel();
-                headset.StopBackgroundAcquisition();
-                await Task.Delay(50);
+                if (headset.IsConnected())
+                {
+                    headsetTokenSource.Cancel();
+                    headset.StopBackgroundAcquisition();
+                    await Task.Delay(50);
 
-                headsetMsgBufferBlock.Complete();
-                headsetDataBufferBlock.Complete();
+                    headsetMsgBufferBlock.Complete();
+                    headsetDataBufferBlock.Complete();
 
-                headset.Disconnect();
-                headset.Delete();
+                    headset.Disconnect();
+                    headset.Delete();
+                    await Task.Delay(100);
+                }
 
                 /*
                 // Don't need binaryWriter for Prediction to work. JAZ 4-12-24
@@ -1088,6 +1144,10 @@ namespace CoreServices.Prediction
         public void ForceExit()
         {
             _forceExit = true;
+        }
+        public void UnsetExitFlag()
+        {
+            _forceExit = false;
         }
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */

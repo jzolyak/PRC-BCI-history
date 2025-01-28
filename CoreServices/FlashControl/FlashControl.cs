@@ -64,8 +64,8 @@ namespace CoreServices.FlashControl
             // Number of flashes in the complete flash sequence is equal to size of the flash table
             int numStimulusGroups = flashSequenceTable.Count;
 
-            //int numFlashSeqPerTarget = 15;
-            int numFlashSeqPerTarget = 6;
+            int numFlashSeqPerTarget = 15;
+            //int numFlashSeqPerTarget = 6;
 
             int listIndex = 0;
             int flashCycleCount = 0;
