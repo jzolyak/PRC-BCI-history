@@ -51,7 +51,7 @@ namespace ViewModels
             // in the C:\Program Files\PRC-Saltillo\BCI folder. If we're just running some random debug build from some other
             // location, then we could be running any old code, really, so we'll show the old "MVP.Beta.v1.0" test so we don't
             // mislead anyone.
-            var localVersion = "Brain-Computer Interface - MVP.Beta.v1.0";   // Backup, just in case Version.xml isn't found/loaded
+            var localVersion = "Brain-Computer Interface - MVP.Beta v1.0.1 2024-11-15";   // Backup, just in case Version.xml isn't found/loaded
             var versionFilePath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "Version.xml");
 
             XmlDocument xmlDocument = new XmlDocument();

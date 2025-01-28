@@ -73,6 +73,9 @@ namespace CoreServices.Prediction
             inputParam.arrangement = Arrangement.Magic;
             inputParam.indexMapping = IndexMapping.GridSize;
 
+            // PRC_mode eventually needs to be a controllable preset value to support different key grids.
+            bool PRC_mode = true;
+
             //bool calibrationCompleted = false;
 
             //int startSetNum = 1;
@@ -566,10 +569,13 @@ namespace CoreServices.Prediction
 
                             List<List<int>> listOfRows = keyboardGrid.CreateListOfRows(elementList);
                             List<List<int>> listOfColumns = keyboardGrid.CreateListOfColumns(elementList);
-                            gridData.maxKeyRows = listOfRows.Count;
-                            gridData.maxKeyCols = listOfColumns.Count;
 
-                            bool PRC_mode = true;
+                            // If not in PRC_mode, use size of scanned list of elements for max number of rows and columns in grid.
+                            if (PRC_mode == false)
+                            {
+                                gridData.maxKeyRows = listOfRows.Count;
+                                gridData.maxKeyCols = listOfColumns.Count;
+                            }
 
                             // Create a KeyID map of all the keys based on the mapping method and grid size
                             keyIDMap = keyboardGrid.CreateKeyIDMap(gridData, PRC_mode);
@@ -590,7 +596,19 @@ namespace CoreServices.Prediction
                             // Run algorithms to randomize the assignment of flashable keys into two hidden matrices.
                             FlashGrouping flashGroups = new FlashGrouping();
 
-                            groupingMatrix = flashGroups.GenerateGroupingMaxtrix(inputParam, keyIDMap, flashableKeys, gridData, out matrixSize1, out matrixSize2);
+                            // Most of the time the grouping matrix is generated using a Magic Square based algorithm
+                            // to randomize the keys into flash stimulus groups. However, when the number of active 
+                            // keys (or menu choices) is less than 9, then an alternative method is used to create 
+                            // a flashing stimulus where only one key (or choice) is flashed at a time in a group.
+
+                            if (flashableKeys.Count <= FlashGrouping.ACTIVE_KEYS_LOWER_LIMIT)
+                            {
+                                groupingMatrix = flashGroups.GenerateAlternateGroupingMaxtrix(flashableKeys, out matrixSize1, out matrixSize2);
+                            }
+                            else
+                            {
+                                groupingMatrix = flashGroups.GenerateGroupingMaxtrix(inputParam, keyIDMap, flashableKeys, gridData, out matrixSize1, out matrixSize2);
+                            }
 
                             modeState = PredictionStates.Create_Sequence;
                             if (_forceExit)
@@ -830,8 +848,11 @@ namespace CoreServices.Prediction
                                         //Debug.WriteLine("{0}  STATUS,  fseq = {1}, code1 = {2}, code2 = {3}, code3 = {4}, code4 = {5}, code5 = {6}, \n", flashTime, fseq, code1, code2, code3, code4, code5);
                                         //Debug.WriteLine("              score1 = {0}, score2 = {1}, score3 = {2}, score4 = {3}, score5 = {4}, predKey = {5}, winCnt = {6}, selKey = {7}  \n", score1, score2, score3, score4, score5, predKey, winCnt, selKey);
 
-                                        Logger.Info("STATUS,  fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + " code3 = " + code3 + " code4 = " + code4 + " code5 = " + code5 + " iPoint1 = " + iPoint1 + " iPoint2 = " + iPoint2 + "\n");
-                                        Logger.Info("         score1 = " + score1 + " score2 = " + score2 + " score3 = " + score3 + " score4 = " + score4 + " score5 = " + score5 + " predKey = " + predKey + " winCnt = " + winCnt + " selKey = " + selKey + "\n");
+                                        //Logger.Info("STATUS,  fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + " code3 = " + code3 + " code4 = " + code4 + " code5 = " + code5 + " iPoint1 = " + iPoint1 + " iPoint2 = " + iPoint2 + "\n");
+                                        //Logger.Info("         score1 = " + score1 + " score2 = " + score2 + " score3 = " + score3 + " score4 = " + score4 + " score5 = " + score5 + " predKey = " + predKey + " winCnt = " + winCnt + " selKey = " + selKey + "\n");
+
+                                        Logger.Info("STATUS,  fseq = " + fseq + "  code1 = " + code1 + "   code2 = " + code2 + "      code3 = " + code3 + "       code4 = " + code4 + "       code5 = " + code5 + "      iPoint1 = " + iPoint1 + "  iPoint2 = " + iPoint2);
+                                        Logger.Info("                score1 = " + score1 + "  score2 = " + score2 + "   score3 = " + score3 + "   score4 = " + score4 + "  score5 = " + score5 + "   predKey = " + predKey + "  winCnt = " + winCnt + "  selKey = " + selKey + "\n");
 
                                     }
 
@@ -872,8 +893,12 @@ namespace CoreServices.Prediction
                                         //Debug.WriteLine("{0}  STATUS,  fseq = {1}, code1 = {2}, code2 = {3}, code3 = {4}, code4 = {5}, code5 = {6}, \n", flashTime, fseq, code1, code2, code3, code4, code5);
                                         //Debug.WriteLine("              score1 = {0}, score2 = {1}, score3 = {2}, score4 = {3}, score5 = {4}, predKey = {5}, winCnt = {6}, selKey = {7}  \n", score1, score2, score3, score4, score5, predKey, winCnt, selKey);
 
-                                        Logger.Info("STATUS,  fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + " code3 = " + code3 + " code4 = " + code4 + " code5 = " + code5 + " iPoint1 = " + iPoint1 + " iPoint2 = " + iPoint2 + "\n");
-                                        Logger.Info("         score1 = " + score1 + " score2 = " + score2 + " score3 = " + score3 + " score4 = " + score4 + " score5 = " + score5 + " predKey = " + predKey + " winCnt = " + winCnt + " selKey = " + selKey + "\n");
+                                        //Logger.Info("STATUS,  fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + " code3 = " + code3 + " code4 = " + code4 + " code5 = " + code5 + " iPoint1 = " + iPoint1 + " iPoint2 = " + iPoint2 + "\n");
+                                        //Logger.Info("         score1 = " + score1 + " score2 = " + score2 + " score3 = " + score3 + " score4 = " + score4 + " score5 = " + score5 + " predKey = " + predKey + " winCnt = " + winCnt + " selKey = " + selKey + "\n");
+
+                                        Logger.Info("SELECT,  fseq = " + fseq + "  code1 = " + code1 + "   code2 = " + code2 + "      code3 = " + code3 + "       code4 = " + code4 + "       code5 = " + code5 + "      iPoint1 = " + iPoint1 + "  iPoint2 = " + iPoint2);
+                                        Logger.Info("                score1 = " + score1 + "  score2 = " + score2 + "   score3 = " + score3 + "   score4 = " + score4 + "  score5 = " + score5 + "   predKey = " + predKey + "  winCnt = " + winCnt + "  selKey = " + selKey + "\n");
+                                        Logger.Info("\n\n\n ************************ \n\n");
 
                                     }
 

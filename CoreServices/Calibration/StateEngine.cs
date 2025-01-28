@@ -75,7 +75,6 @@ namespace CoreServices.Calibration
             //   int flash_ON_time_msec
             //   int flash_OFF_time_msec
             //   int delayBetweenTargets_msec
-            //
 
             GroupingParam inputParam;
             inputParam.method = Method.NewMethod;
@@ -84,6 +83,9 @@ namespace CoreServices.Calibration
             inputParam.arrangement = Arrangement.Magic;
             inputParam.indexMapping = IndexMapping.GridSize;
             bool calibrationCompleted = false;
+
+            // PRC_mode eventually needs to be a controllable preset value to support different key grids.
+            bool PRC_mode = true;
 
             int startSetNum = 1;
             int totalSetNum = 0;
@@ -547,7 +549,6 @@ namespace CoreServices.Calibration
                                     // Advance index to next command in the script
                                     currentLine++;
 
-                                    //modeState = CalibrationStates.Get_Remote_Elements;
                                     modeState = CalibrationStates.Create_Grouping;
                                 }
 
@@ -591,7 +592,6 @@ namespace CoreServices.Calibration
 
                                     // After selecting a key on the display, restart the processing of fetching new set of
                                     // elements and creating a new overlay because key locations may have changed.
-                                    // modeState = CalibrationStates.Read_Command;
                                     modeState = CalibrationStates.Remote_Display;
                                 }
 
@@ -614,7 +614,6 @@ namespace CoreServices.Calibration
                             // Do what is necessary so that current displayed BCI app page is a transparent window
                             // in order to view displayed screen of other application (e.g. Empower).
 
-                            // modeState = CalibrationStates.Read_Command;
                             modeState = CalibrationStates.Get_Remote_Elements;
                             break;
 
@@ -670,8 +669,7 @@ namespace CoreServices.Calibration
                                 //newWindow.Owner = this;
                                 //newWindow.Show();
 
-                                // Ready to fetch next target from calibration commands
-                                // modeState = CalibrationStates.Click_Key;     // <== This is second time I've fixed same error. JAZ 12/2/22
+                                // Ready to map and assign keys from AAC display onto virtual keyboard overlay
                                 modeState = CalibrationStates.Assign_Key_Mapping;
                             }
                             break;
@@ -703,10 +701,13 @@ namespace CoreServices.Calibration
 
                             List<List<int>> listOfRows = keyboardGrid.CreateListOfRows(elementList);
                             List<List<int>> listOfColumns = keyboardGrid.CreateListOfColumns(elementList);
-                            gridData.maxKeyRows = listOfRows.Count;
-                            gridData.maxKeyCols = listOfColumns.Count;
 
-                            bool PRC_mode = true;
+                            // If not in PRC_mode, use size of scanned list of elements for max number of rows and columns in grid.
+                            if (PRC_mode == false)
+                            {
+                                gridData.maxKeyRows = listOfRows.Count;
+                                gridData.maxKeyCols = listOfColumns.Count;
+                            }
 
                             // Create a KeyID map of all the keys based on the mapping method and grid size
                             keyIDMap = keyboardGrid.CreateKeyIDMap(gridData, PRC_mode);
@@ -716,7 +717,6 @@ namespace CoreServices.Calibration
                             // Create cross reference lookup table between the keyID value and buttonIndex value used in flashing keys.
                             flashStimulus.CreateCrossReferenceTable(flashableKeys);
 
-                            // modeState = CalibrationStates.Create_Grouping;
                             modeState = CalibrationStates.Read_Command;
                             break;
 
@@ -724,7 +724,19 @@ namespace CoreServices.Calibration
                             // Run algorithms to randomize the assignment of flashable keys into two hidden matrices.
                             FlashGrouping flashGroups = new FlashGrouping();
 
-                            groupingMatrix = flashGroups.GenerateGroupingMaxtrix(inputParam, keyIDMap, flashableKeys, gridData, out matrixSize1, out matrixSize2);
+                            // Most of the time the grouping matrix is generated using a Magic Square based algorithm
+                            // to randomize the keys into flash stimulus groups. However, when the number of active 
+                            // keys (or menu choices) is less than 9, then an alternative method is used to create 
+                            // a flashing stimulus where only one key (or choice) is flashed at a time in a group.
+
+                            if (flashableKeys.Count <= FlashGrouping.ACTIVE_KEYS_LOWER_LIMIT)
+                            {
+                                groupingMatrix = flashGroups.GenerateAlternateGroupingMaxtrix(flashableKeys, out matrixSize1, out matrixSize2);
+                            }
+                            else
+                            {
+                                groupingMatrix = flashGroups.GenerateGroupingMaxtrix(inputParam, keyIDMap, flashableKeys, gridData, out matrixSize1, out matrixSize2);
+                            }
 
                             modeState = CalibrationStates.Create_Sequence;
                             break;
@@ -1026,8 +1038,9 @@ namespace CoreServices.Calibration
                             // and possibly update keyboard display with new set of keys.
                             await Task.Delay(programmable_delay_msec);
 
-                            // Fetch next target in calibration set
-                            modeState = CalibrationStates.Read_Command;
+                            // After selecting a key on the display, restart the processing of fetching new set of
+                            // elements and creating a new overlay because key locations may have changed.
+                            modeState = CalibrationStates.Remote_Display;
                             break;
 
                         case CalibrationStates.Clear_Textbox:
