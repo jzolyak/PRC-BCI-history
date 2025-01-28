@@ -265,8 +265,9 @@ namespace CoreServices.Stimulus
                         index++;
                     }  // b2 is not an inner button
 
-                    if (addToList == true)
+                    if ((addToList == true) && (b1.CurrentIsEnabled == 1))
                     {
+                        // If found the outer border of a button and the button is active, then add it to list.
                         left = b1.CurrentBoundingRectangle.left;
                         top = b1.CurrentBoundingRectangle.top;
                         right = b1.CurrentBoundingRectangle.right;

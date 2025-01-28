@@ -64,6 +64,8 @@ namespace CoreServices.Stimulus
             int minKeyHeight;
             int minKeyWidth;
             int numElements;
+            int rowWidth;
+            int colHeight;
 
             GridLayout gridData = new GridLayout();
 
@@ -105,8 +107,15 @@ namespace CoreServices.Stimulus
             gridData.minKeyHeight = minKeyHeight;
             gridData.minKeyWidth = minKeyWidth;
 
-            gridData.maxKeyRows = 0;    // Assign after construct listOfRows
-            gridData.maxKeyCols = 0;    // Assign after construct listOfCols
+            rowWidth = gridData.maxRightCoord - gridData.minLeftCoord;
+            colHeight = gridData.maxBottomCoord - gridData.minTopCoord;
+
+            // As an initial starting point, assign the maxKeyRows and maxKeyCols values equal to the row or column width
+            // divided by the smallest key height or width. This works for PRC keyboard layouts. In state engine logic
+            // check the preset value for keyboard layout, and if not in PRC mode then use the number of rows found in
+            // CreateListOfRows() and number of columns found in CreateListOfColumns().
+            gridData.maxKeyRows = (int)Math.Round((double)colHeight / (double)minKeyHeight); ;
+            gridData.maxKeyCols = (int)Math.Round((double)rowWidth / (double)minKeyWidth);
 
             // Starting guess until collect real display data
             gridData.tolerance = 2;     // pixels

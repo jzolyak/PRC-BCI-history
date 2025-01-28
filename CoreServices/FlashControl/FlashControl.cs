@@ -64,8 +64,8 @@ namespace CoreServices.FlashControl
             // Number of flashes in the complete flash sequence is equal to size of the flash table
             int numStimulusGroups = flashSequenceTable.Count;
 
-            int numFlashSeqPerTarget = 15;
-            //int numFlashSeqPerTarget = 4;
+            //int numFlashSeqPerTarget = 15;
+            int numFlashSeqPerTarget = 6;
 
             int listIndex = 0;
             int flashCycleCount = 0;
@@ -119,9 +119,7 @@ namespace CoreServices.FlashControl
 
             FlashOrder flashOrder = new FlashOrder();
 
-            int[] flashOrderTable = flashOrder.InitializeTableOrdering(flashSequenceTable);
-
-            //flashOrder.ShuffleTableOrdering(ref flashOrderTable);
+            int[] flashOrderTable = flashOrder.InitializeTableOrdering(numStimulusGroups);
 
 
             /* +++++++++++++++++++++++++++++++++++++++ */
@@ -450,9 +448,9 @@ namespace CoreServices.FlashControl
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-        public int[] InitializeTableOrdering(List<FlashTableEntry> flashSequenceTable)
+        public int[] InitializeTableOrdering(int numGroups)
         {
-            numStimGroups = flashSequenceTable.Count;
+            numStimGroups = numGroups;
 
             /*
             num_rows = numStimGroups / 2;
@@ -540,7 +538,7 @@ namespace CoreServices.FlashControl
                 // Randomly pick an item which has not been shuffled
                 randomValue = rnd.Next(n + 1);
 
-                // Swap the selected item woth the last unstruck inumber in the table
+                // Swap the selected item with the last unstruck number in the table
                 indexValue = tableOfIndexes[n];
                 tableOfIndexes[n] = tableOfIndexes[randomValue];
                 tableOfIndexes[randomValue] = indexValue;

@@ -106,7 +106,7 @@ namespace CoreServices.Prediction
 
             PredictionAlgorithm.TopScoreEntry[] topAccumulatedScores = null;
 
-            PredictionAlgorithm.WinCountEntry highestWinCount;
+            PredictionAlgorithm.WinCountEntry highestWinCount = new WinCountEntry();
 
             PredictionAlgorithm.PredictionResult predictionResult = new PredictionResult(); ;
 
@@ -461,9 +461,29 @@ namespace CoreServices.Prediction
 
                     /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-                    // Now comes the fun part. First, there are two methods of predicting which keyID the user 
-                    // is watching. Next, there are also two ways to decide when to stop monitoring the prediction
-                    // results and make a keyboard selection...
+                    // Now comes the fun part. There are also two ways to decide when to stop monitoring the prediction
+                    // results and make a keyboard selection: Fixed Number of Flash Sequences, and Dynamic Stopping...
+
+                    // The original method of selecting the predicted winning key was based on the keyID having the
+                    // highest accumulated score at the end of the fixed number of sequences. Large signal artifacts
+                    // cause by sneezing, headset movement, can create a large noise spike that impacts the total
+                    // accumulated score.
+
+                    // New version of selecting the predicted keyID is to keep track of which keyID won (i.e. met the
+                    // detection criteria) for each individual flash sequence period. The keyID that has the highest
+                    // win total count when it is time to stop is predicted as the selected key. If the win count of
+                    // the keyID does not equal or exceed a preset threshold count value, then no keyID (Abstention)
+                    // is decided.
+
+                    if ((predictionResult.predictedKeyID != 0) & (predictionResult.predictWinCount !=0))
+                    {
+                        // Confirmed that keyID met winning criteria.
+                        if (predictionResult.predictWinCount >= highestWinCount.winCount)
+                        {
+                            highestWinCount.keyID = predictionResult.predictedKeyID;
+                            highestWinCount.winCount = predictionResult.predictWinCount;
+                        }
+                    }
 
                     // Increment after one complete sequences of stimulus inverals has been flashed
                     ++flashSequenceCount;
@@ -479,8 +499,16 @@ namespace CoreServices.Prediction
                         // keyID is specified as the selectedKeyID, it is the keyID clicked in the state engine.
                         if (flashSequenceCount == fixedSequenceLimit)
                         {
-                            predictionResult.selectedKeyID = predictionResult.predictedKeyID;
-                            statusMessageID = END_OF_PREDICTION;
+                            if (highestWinCount.winCount >= winCountForSelection)
+                            {
+                                predictionResult.selectedKeyID = highestWinCount.keyID; // Select this key!
+                                statusMessageID = END_OF_PREDICTION;
+                            }
+                            else
+                            {
+                                predictionResult.selectedKeyID = 0;     // Report Abstention (keyID = 0)
+                                statusMessageID = END_OF_PREDICTION;
+                            }
                         }
                         else
                         {
@@ -499,9 +527,9 @@ namespace CoreServices.Prediction
                         // track of the number of times each keyID has met all the detection requirements,
                         // and once the number of wins reaches a preset level count, prediction is stopped
                         // and that key is selected.
-                        if (predictionResult.predictWinCount >= winCountForSelection)
+                        if (highestWinCount.winCount >= winCountForSelection)
                         {
-                            predictionResult.selectedKeyID = predictionResult.predictedKeyID;
+                            predictionResult.selectedKeyID = highestWinCount.keyID;
                             statusMessageID = END_OF_PREDICTION;
                         }
                         else if (flashSequenceCount == fixedSequenceLimit)

@@ -85,12 +85,12 @@ namespace CoreServices.Prediction
 
             public WinCountEntry()
             {
-                keyID = 0;
+                keyID = 0;              // Init value to no keyID found that meets predition criteria
                 winCount = 0;
             }
         }
 
-        public WinCountEntry topWinner;
+        //public WinCountEntry topWinner;
 
         public int[] predictedtWinCount = new int[PredictionScoring.MAX_NUM_KEYIDS+1];
 
@@ -186,6 +186,11 @@ namespace CoreServices.Prediction
             // Default constructor is set to no intersecting point
             IntersectPoint intersectingPoint = new IntersectPoint();
 
+            // Need to make this into a preset value having a value of 3 or 4. Don't need to
+            // search for interest among all top 5 scores because intersections between top score 4
+            // and top score 5 yield poor results. Limit search to between top 3 or 4 scores.
+            const int HIGHEST_TOP_SCORES = 3;
+
             const int MATRIX1_ROW_COL_SUM = FlashSequence.HIDDEN1_ROW + FlashSequence.HIDDEN1_COL;    // equals 4
             const int MATRIX2_ROW_COL_SUM = FlashSequence.HIDDEN2_ROW + FlashSequence.HIDDEN2_COL;    // equals 60
 
@@ -200,14 +205,14 @@ namespace CoreServices.Prediction
             double stimCodeScore1;
             double stimCodeScore2;
 
-            for (int i = 0; i < MAX_NUM_TOP_SCORES; i++)
+            for (int i = 0; i < HIGHEST_TOP_SCORES; i++)
             {
                 stimCodeIndex1 = topAccumScores[i].indexValue;
                 stimCodeScore1 = topAccumScores[i].accumScore;
 
                 matrixPosCode1 = stimulusGroupingTable[stimCodeIndex1].matrixPosCode;
 
-                for (int j = (i + 1); j < MAX_NUM_TOP_SCORES; j++)
+                for (int j = (i + 1); j < HIGHEST_TOP_SCORES; j++)
                 {
                     stimCodeIndex2 = topAccumScores[j].indexValue;
                     stimCodeScore2 = topAccumScores[j].accumScore;
