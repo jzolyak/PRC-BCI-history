@@ -56,7 +56,7 @@ namespace ViewModels.FlashStimulus
             _calibrationService.RaiseUIRequestChange += _calibrationService_RaiseUIRequestChange;
             _calibrationService.RaiseCoeffInProgress += _calibrationService_RaiseCoeffInProgress;
             _calibrationService.RaiseCoeffCompleted += _calibrationService_RaiseCoeffCompleted;
-            _predictionService.RaiseScreenOverLayChange += _calibrationService_RaiseScreenOverLayChange;
+            _predictionService.RaiseScreenOverLayChange += _predictionService_RaiseScreenOverLayChange;
             _stopQueryViewModel = new CalibrationStopQueryViewModel(NotificationFromUI);
             _beginQueryViewModel = new CalibrationBeginQueryViewModel(NotificationFromUI);
             _completeViewModel = new CalibrationCompleteViewModel(NotificationFromUI);
@@ -96,6 +96,10 @@ namespace ViewModels.FlashStimulus
 
         private void _calibrationService_RaiseScreenOverLayChange(object? sender, CoreServices.Models.EventArgs<ScreenOverlay> e)
         {
+            if (!string.IsNullOrEmpty(_mode) && _mode.ToLower().Equals("prediction"))
+            {
+                return;
+            }
             Topmost = new WindowTopMost();
             ButtonCollection = null;
             if (e==null || e.Value == null) return;  
@@ -110,6 +114,26 @@ namespace ViewModels.FlashStimulus
             WindowSizeProp = new WindowSizeProperties() { Height = screenOverlay.Height, Left = screenOverlay.Left, Top = screenOverlay.Top, Width = screenOverlay.Width };
         }
 
+        private void _predictionService_RaiseScreenOverLayChange(object? sender, CoreServices.Models.EventArgs<ScreenOverlay> e)
+        {
+            if (!string.IsNullOrEmpty(_mode) && _mode.ToLower().Equals("calibration"))
+            {
+                return;
+            }
+            Topmost = new WindowTopMost();
+            ButtonCollection = null;
+            if (e == null || e.Value == null) return;
+            var screenOverlay = e.Value;
+            if (screenOverlay == null || screenOverlay.ButtonElementList == null) return;
+            screenOverlay.ButtonElementList.Add(GetExitToMainScreen(screenOverlay.ButtonElementList[0]));
+            ButtonCollection = new ObservableCollection<ButtonElement>(screenOverlay.ButtonElementList);
+            this.Height = screenOverlay.Height + 150;
+            this.Width = screenOverlay.Width;
+            this.Top = screenOverlay.Top;
+            this.Left = screenOverlay.Left;
+            WindowSizeProp = new WindowSizeProperties() { Height = screenOverlay.Height, Left = screenOverlay.Left, Top = screenOverlay.Top, Width = screenOverlay.Width };
+        }
+
         private ButtonElement GetExitToMainScreen(ButtonElement firstElement)
         {
             var buttonelement = new ButtonElement();
@@ -117,7 +141,7 @@ namespace ViewModels.FlashStimulus
             buttonelement.Top = firstElement.Top - 100;
             buttonelement.Height = 50;
             buttonelement.Width = 250;
-            buttonelement.Name = "Exit From Prediction";
+            buttonelement.Name = !string.IsNullOrEmpty(_mode) && _mode.ToLower().Equals("calibration") ? "Exit From Calibration" :  "Exit From Prediction";
             buttonelement.IsEnabled = true;
             buttonelement.ClickAction = ExitToMainMenu;
             buttonelement.BorderBrush = CustomBrushes.Red;
@@ -133,11 +157,9 @@ namespace ViewModels.FlashStimulus
                 }
                 else if (_mode.ToLower().Equals("calibration"))
                 {
-                    _calibrationService.ForceExit();
+                    Environment.Exit(1);
                 }
             }
-            //Environment.Exit(1);
-
         }
         private void NotificationFromUI(UIInstruction uIInstruction)
         {
