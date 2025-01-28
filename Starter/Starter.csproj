@@ -44,6 +44,15 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<None Update="CalibrationCmd_45key_SelectKeyboard.txt">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="CalibrationCmd_84key_SelectKeyboard.txt">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="CalibrationCommands.txt">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 		<None Update="HeaderTemplate.txt">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
