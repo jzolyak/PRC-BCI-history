@@ -227,7 +227,7 @@ namespace CoreServices.Stimulus
                         }
 
                         else if ((b1.CurrentBoundingRectangle.top == b2.CurrentBoundingRectangle.top) &&
-                                 (b2.CurrentBoundingRectangle.right >= b1.CurrentBoundingRectangle.right))
+                                 (b2.CurrentBoundingRectangle.right > b1.CurrentBoundingRectangle.right))
                         {
                             // Found instance of next button in same row (i.e. same top value)
                             // Add b1 button to list of selectable keys
@@ -236,8 +236,8 @@ namespace CoreServices.Stimulus
                             // Don't update MUIA list index. Re-examine b2 instead as next outer button b1.
                         }
 
-                        else if ((b2.CurrentBoundingRectangle.top >= b1.CurrentBoundingRectangle.top) &&
-                                (b2.CurrentBoundingRectangle.bottom >= b1.CurrentBoundingRectangle.bottom))
+                        else if ((b2.CurrentBoundingRectangle.top > b1.CurrentBoundingRectangle.top) &&
+                                 (b2.CurrentBoundingRectangle.bottom > b1.CurrentBoundingRectangle.bottom))
                         {
                             // Found instance of next button in next row
                             // Add button to report of selectable keys
@@ -255,9 +255,38 @@ namespace CoreServices.Stimulus
 
                             // Update MUIA list index to consume "empty" button b2.
                             index = index + 1;
+                        }
+
+                        else if ((b2.CurrentBoundingRectangle.top == b1.CurrentBoundingRectangle.top) &&
+                                (b2.CurrentBoundingRectangle.left == b1.CurrentBoundingRectangle.left))
+                        {
+                            // Full Screen mode and Icon Tutor button work around: 02-11-2025
+                            // Found 2 additional special cases. In "Full Screen" mode, the message textbox goes away.
+                            // The MENU button is now half the height, twice the width as normal key, and it is *ON TOP*
+                            // of the regular key board. In MUAI, the Empower MENU is listed as two buttons with the exact
+                            // same MUIA dimensions and button location.
+                            //
+                            // At some point around Empower V1.25, a change was made to the format of the icon tutor buttons
+                            // that are underneath the message textbox on the typing keyboard. In MUAI, Empower reports each
+                            // icon tutor buttons as two buttons with the exact same MUIA dimensions and button location. 
+                            //
+                            // The best fix for this problem is to mark the MENU button and icon tutor button's property
+                            // "IsEnabled = 0" so that the BCI can ignore those keys and not make them flashable/selectable
+                            // by the BCI app. (This is now being done for the Empty Appearance keys that have NO Action).
+                            //
+                            // As a work around solution we are going to ignore any two consecutive button elements in the
+                            // MUIA list that have the exact same button dimension/location.
+
+                            // DO NOT add button to list of selectable keys
+                            addToList = false;
+
+                            // Update MUIA list index to consume MENU key (buttons b1 & b2).
+                            index = index + 1;
 
                         }  // if b2 is an inner button
-                    }  
+
+
+                    }
                     else
                     {
                         // Discard the singleton button b1, as well as the element that followed it.
