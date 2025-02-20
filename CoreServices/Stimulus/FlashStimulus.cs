@@ -188,7 +188,8 @@ namespace CoreServices.Stimulus
 
                     if (keyID == targetKeyID)
                     {   // Keep the target key highlighted
-                        buttonList[buttonIndex].BorderBrush = CustomBrushes.Red;
+                        buttonList[buttonIndex].BorderBrush = CustomBrushes.Yellow;
+                        //buttonList[buttonIndex].BorderBrush = CustomBrushes.Red;
                         //buttonList[buttonIndex].Opacity = 1.0;
                         //buttonList[buttonIndex].BackgroundBrush = CustomBrushes.CornflowerBlue;
                     }

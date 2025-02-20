@@ -277,8 +277,18 @@ namespace CoreServices.Prediction
 
             if (candidateKeyID != 0)
             {
-                if ((intersectPoint.stimCodeScore1 > presetScoreThreshold) && 
-                    (intersectPoint.stimCodeScore2 > presetScoreThreshold))
+                //if ((intersectPoint.stimCodeScore1 > presetScoreThreshold) && 
+                //    (intersectPoint.stimCodeScore2 > presetScoreThreshold))
+
+                // Quick improvement patch:  02-14-2025, JAZ
+                // Prof. Huggins and I observed that the accumulated scores were lower when using a 45 key sized
+                // keyboard, or when there were less than 9 active keys. The accumulated score for the second stim
+                // code had a hard time reaching and staying above the presetScoreThreshold. Since stim codes 1 and 2
+                // have a common intersect point and are both in the top 4 accumulated scores, we let stim code 1
+                // help to pull up stim code 2 by averaging them together. Chose this method over lowering the
+                // value of presetScoreThreshold. This needs to be examined further when there is more time.
+                //
+                if (((intersectPoint.stimCodeScore1 + intersectPoint.stimCodeScore2)/2.0) > presetScoreThreshold)
                 {
                     // The signal strength is considered sufficiently high enough to contain the evoked repsonse.
                     // Update predicted win counts for candidateKeyID keyID.
