@@ -160,11 +160,15 @@ namespace ViewModels
             else if (mode == Constants.Validation) { CurrentViewModel = _validationViewModel; }
             else if (mode == Constants.Prediction) { _predictionViewModel.Refresh(); CurrentViewModel = _predictionViewModel; }
             else if (mode == Constants.Settings) { CurrentViewModel = _settingsViewModel; }
-            else if (mode == Constants.ConnectivitySettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.Connectivity); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.CalibrationSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.Calibration); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.PredictionSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.Prediction); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.ValidationSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.Validation); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.MiscSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.Misc); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.ConnectivitySettings) { _settingsDetailViewModel.UpdateGroup(Constants.Connectivity); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.CalibrationSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Calibration); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.PredictionSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Prediction); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.ValidationSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Validation); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.MiscSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Misc); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.FlashSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Flash); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.LoggingSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Logging); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.SystemSettings) { _settingsDetailViewModel.UpdateGroup(Constants.System); CurrentViewModel = _settingsDetailViewModel; }
+
         }
         private void Close()
         {

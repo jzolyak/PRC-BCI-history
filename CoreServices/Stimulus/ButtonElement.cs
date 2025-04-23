@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CoreServices.Common;
+using System;
 using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Input;
@@ -64,6 +65,7 @@ namespace CoreServices.Stimulus
                 case CustomBrushes.Green: return Color.Green;
                 case CustomBrushes.CornflowerBlue: return Color.CornflowerBlue;
                 case CustomBrushes.Red: return Color.Red;
+                case CustomBrushes.Blue: return Color.Blue;
                 case CustomBrushes.Brown: return Color.Brown;
                 case CustomBrushes.Yellow: return Color.Yellow;
 

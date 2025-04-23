@@ -1,4 +1,6 @@
-﻿using System;
+﻿using CoreServices.Common;
+using CoreServices.Presets;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,8 +21,12 @@ namespace CoreServices.Stimulus
         public const double SCALING_FACTOR = 1;
         public const int LEFT_OFFSET = 0;
         public const int TOP_OFFSET = 0;
+        private FlashStimulusPresets flashStimulusPresets;
 
-
+        public FlashStimulus()
+        {
+            flashStimulusPresets = FlashStimulusPresets.Instance;
+        }
         List<ButtonElement> buttonList = new List<ButtonElement>();
         int[] crossReferenceTable = null;
 
@@ -155,7 +161,7 @@ namespace CoreServices.Stimulus
             buttonIndex = crossReferenceTable[keyID];
             //buttonList[buttonIndex].BackgroundBrush = CustomBrushes.CornflowerBlue;
             //buttonList[buttonIndex].Opacity = 0.7;
-            buttonList[buttonIndex].BorderBrush = CustomBrushes.Red;
+            buttonList[buttonIndex].BorderBrush = flashStimulusPresets.FlashAppearancePresets.HighLightON_BorderBrush;
         }
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
@@ -224,7 +230,7 @@ namespace CoreServices.Stimulus
 
                     if (keyID == targetKeyID)
                     {   // Keep the target key highlighted
-                        buttonList[buttonIndex].BorderBrush = CustomBrushes.Red;
+                        buttonList[buttonIndex].BorderBrush = flashStimulusPresets.FlashAppearancePresets.HighLightON_BorderBrush;
                         //buttonList[buttonIndex].Opacity = 0.7;
                         //buttonList[buttonIndex].BackgroundBrush = CustomBrushes.CornflowerBlue;
                     }
@@ -244,14 +250,4 @@ namespace CoreServices.Stimulus
 
     }
 
-    public enum CustomBrushes
-    {
-        Transparent,
-        Red,
-        Green,
-        Blue,
-        Brown,
-        Yellow,
-        CornflowerBlue
-    }
 }

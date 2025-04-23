@@ -24,5 +24,9 @@ namespace Starter.Calibration
         {
             InitializeComponent();
         }
+        private void FloatingButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Floating Button Clicked!");
+        }
     }
 }
