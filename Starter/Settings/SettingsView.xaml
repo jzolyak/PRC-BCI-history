@@ -55,7 +55,7 @@
         <Button Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="PredictionSettings" Content="Prediction" Style="{StaticResource buttonstyle1}" FontSize="20"></Button>
         <Button Grid.Row="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="MiscSettings" Content="Misc" Style="{StaticResource buttonstyle1}" FontSize="20"></Button>
         </WrapPanel>-->
-        <ItemsControl  Grid.Row="1" ItemsSource="{Binding GroupingsCollection}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <ItemsControl  Grid.Row="1" ItemsSource="{Binding GroupingsCollection}" HorizontalAlignment="Center" VerticalAlignment="Stretch">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <WrapPanel HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent"/>

@@ -7,7 +7,7 @@
         xmlns:UIHelpers="clr-namespace:Starter.UIHelpers"
          mc:Ignorable="d"
         Title="CalibrationWindow" AllowsTransparency="True" WindowStyle="None" WindowStartupLocation="CenterScreen" UIHelpers:AttachedPropertyService.WindowSize="{Binding WindowSizeProp}" Height="300" Width="700" UIHelpers:AttachedPropertyService.WindowTopMost="{Binding Topmost,UpdateSourceTrigger=PropertyChanged}">
-    
+
     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent">
         <ItemsControl ItemsSource="{Binding ButtonCollection}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <ItemsControl.ItemsPanel>
@@ -35,16 +35,94 @@
             </Border>
         </Popup>
 
-        <DockPanel LastChildFill="True">
+        <!-- Floating Popup Panel -->
+        <Border x:Name="PopupPanel"
+Background="White"
+BorderBrush="#DDD"
+BorderThickness="1"
+CornerRadius="12"
+Width="380"
+Height="140"
+Padding="10"
+Visibility="Collapsed"
+HorizontalAlignment="Right"
+VerticalAlignment="Top"
+Margin="0,20,110,0">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="10" ShadowDepth="3" Direction="270" Color="#55000000"/>
+            </Border.Effect>
+
+            <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <!-- Reusable Rounded Button Style -->
+                <WrapPanel.Resources>
+                    <Style x:Key="RoundedButtonStyle" TargetType="Button">
+                        <Setter Property="Background" Value="#EAF4FF"/>
+                        <Setter Property="Foreground" Value="#003366"/>
+                        <Setter Property="BorderBrush" Value="#CCE0F5"/>
+                        <Setter Property="BorderThickness" Value="1"/>
+                        <Setter Property="FontWeight" Value="Bold"/>
+                        <Setter Property="Width" Value="100"/>
+                        <Setter Property="Height" Value="100"/>
+                        <Setter Property="Margin" Value="5"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border CornerRadius="8"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </WrapPanel.Resources>
+
+                <!-- Buttons using the style -->
+                <Button Content="Exit Calibration" Style="{StaticResource RoundedButtonStyle}" Command="{Binding ExitCommand}" CommandParameter="calibration"/>
+                <Button Content="Main Window" Style="{StaticResource RoundedButtonStyle}"/>
+                <Button Content="Close" Style="{StaticResource RoundedButtonStyle}" Click="ClosePopup_Click"/>
+                
+            </WrapPanel>
+        </Border>
+
+        <!-- Floating Action Button -->
+        <Button x:Name="FabButton"
+Width="84" Height="84"
+Background="#EAF4FF"
+Foreground="#003366"
+BorderBrush="#CCE0F5"
+BorderThickness="1"
+Cursor="Hand"
+HorizontalAlignment="Right"
+VerticalAlignment="Top"
+Margin="0,20,20,0"
+Click="FabButton_Click">
+
+            <Button.Template>
+                <ControlTemplate TargetType="Button">
+                    <Border CornerRadius="12"
+        Background="{TemplateBinding Background}"
+        BorderBrush="{TemplateBinding BorderBrush}"
+        BorderThickness="{TemplateBinding BorderThickness}">
+                        <Viewbox Stretch="Uniform">
+                            <TextBlock Text="+"
+                   FontWeight="Bold"
+                   FontSize="500"  
+                   Foreground="{TemplateBinding Foreground}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   TextAlignment="Center"
+                   Margin="0"
+                   Padding="0"/>
+                        </Viewbox>
+                    </Border>
+                </ControlTemplate>
+            </Button.Template>
 
 
-
-           
-            <DockPanel Grid.ZIndex="2" Width="Auto" Height="Auto" HorizontalAlignment ="Right" VerticalAlignment="Top" >
-                <Button DockPanel.Dock="Right" Grid.ZIndex="2" x:Name="Edit_Button" Content="Button" HorizontalAlignment="Right" VerticalAlignment="Center" Width="50" Height="49"/>
-            </DockPanel>
-        </DockPanel>
-
+        </Button>
     </Grid>
-    
+
 </Window>

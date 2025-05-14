@@ -34,5 +34,14 @@ namespace Starter.Calibration
             base.OnLostFocus(e);
             this.Focus();
         }
+        private void FabButton_Click(object sender, RoutedEventArgs e)
+        {
+            PopupPanel.Visibility = Visibility.Visible;
+        }
+
+        private void ClosePopup_Click(object sender, RoutedEventArgs e)
+        {
+            PopupPanel.Visibility = Visibility.Collapsed;
+        }
     }
 }
