@@ -6,6 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Prediction\PredictionPresets.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <COMReference Include="UIAutomationClient">
       <WrapperTool>tlbimp</WrapperTool>
       <VersionMinor>0</VersionMinor>

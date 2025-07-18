@@ -181,7 +181,8 @@ namespace CoreServices.Prediction
 
         /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-        public IntersectPoint VerifyIntersectionRules(StimGroupEntry[] stimulusGroupingTable, TopScoreEntry[] topAccumScores)
+        public IntersectPoint VerifyIntersectionRules(StimGroupEntry[] stimulusGroupingTable, TopScoreEntry[] topAccumScores, 
+                                                        int highestTopScores)
         {
             // Default constructor is set to no intersecting point
             IntersectPoint intersectingPoint = new IntersectPoint();
@@ -189,7 +190,7 @@ namespace CoreServices.Prediction
             // Need to make this into a preset value having a value of 3 or 4. Don't need to
             // search for interest among all top 5 scores because intersections between top score 4
             // and top score 5 yield poor results. Limit search to between top 3 or 4 scores.
-            const int HIGHEST_TOP_SCORES = 4;
+            // const int HIGHEST_TOP_SCORES = 4;
 
             const int MATRIX1_ROW_COL_SUM = FlashSequence.HIDDEN1_ROW + FlashSequence.HIDDEN1_COL;    // equals 4
             const int MATRIX2_ROW_COL_SUM = FlashSequence.HIDDEN2_ROW + FlashSequence.HIDDEN2_COL;    // equals 60
@@ -205,14 +206,14 @@ namespace CoreServices.Prediction
             double stimCodeScore1;
             double stimCodeScore2;
 
-            for (int i = 0; i < HIGHEST_TOP_SCORES; i++)
+            for (int i = 0; i < highestTopScores; i++)
             {
                 stimCodeIndex1 = topAccumScores[i].indexValue;
                 stimCodeScore1 = topAccumScores[i].accumScore;
 
                 matrixPosCode1 = stimulusGroupingTable[stimCodeIndex1].matrixPosCode;
 
-                for (int j = (i + 1); j < HIGHEST_TOP_SCORES; j++)
+                for (int j = (i + 1); j < highestTopScores; j++)
                 {
                     stimCodeIndex2 = topAccumScores[j].indexValue;
                     stimCodeScore2 = topAccumScores[j].accumScore;
@@ -255,7 +256,7 @@ namespace CoreServices.Prediction
 
         public PredictionResult StimCodePredictionAlgorithm(StimGroupEntry[] stimulusGroupingTable, 
                                                             TopScoreEntry[] topAccumulatedScores, 
-                                                            double presetScoreThreshold)
+                                                            double predictScoreThreshold, int highestTopScores)
         {
             IntersectPoint intersectPoint = new IntersectPoint();
             PredictionResult predictionResult = new PredictionResult();
@@ -270,25 +271,25 @@ namespace CoreServices.Prediction
             //   -  Verify that there is a common keyID value for both stim code key groupings.
             //   -  The function returns a non-zero keyID value if an intersecting (common) keyID is found.
 
-            intersectPoint = VerifyIntersectionRules(stimulusGroupingTable, topAccumulatedScores);
+            intersectPoint = VerifyIntersectionRules(stimulusGroupingTable, topAccumulatedScores, highestTopScores);
 
             // Use intersecting point as the candidate keyID for prediction for this flash sequence.
             candidateKeyID = intersectPoint.intersectKeyID;
 
             if (candidateKeyID != 0)
             {
-                //if ((intersectPoint.stimCodeScore1 > presetScoreThreshold) && 
-                //    (intersectPoint.stimCodeScore2 > presetScoreThreshold))
+                //if ((intersectPoint.stimCodeScore1 > predictScoreThreshold) && 
+                //    (intersectPoint.stimCodeScore2 > predictScoreThreshold))
 
                 // Quick improvement patch:  02-14-2025, JAZ
                 // Prof. Huggins and I observed that the accumulated scores were lower when using a 45 key sized
                 // keyboard, or when there were less than 9 active keys. The accumulated score for the second stim
-                // code had a hard time reaching and staying above the presetScoreThreshold. Since stim codes 1 and 2
+                // code had a hard time reaching and staying above the predictScoreThreshold. Since stim codes 1 and 2
                 // have a common intersect point and are both in the top 4 accumulated scores, we let stim code 1
                 // help to pull up stim code 2 by averaging them together. Chose this method over lowering the
-                // value of presetScoreThreshold. This needs to be examined further when there is more time.
+                // value of predictScoreThreshold. This needs to be examined further when there is more time.
                 //
-                if (((intersectPoint.stimCodeScore1 + intersectPoint.stimCodeScore2)/2.0) > presetScoreThreshold)
+                if (((intersectPoint.stimCodeScore1 + intersectPoint.stimCodeScore2)/2.0) > predictScoreThreshold)
                 {
                     // The signal strength is considered sufficiently high enough to contain the evoked repsonse.
                     // Update predicted win counts for candidateKeyID keyID.
@@ -342,7 +343,7 @@ namespace CoreServices.Prediction
         /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
         public PredictionResult KeyIdPredictionAlgorithm(TopScoreEntry[] topAccumulatedScores,
-                                                        double presetScoreThreshold)
+                                                        double predictScoreThreshold)
         {
             // OVERVIEW:
             //
@@ -381,7 +382,7 @@ namespace CoreServices.Prediction
 
             // The original BCI prediction method did not have a confidence threshold test or kept track of win counts.
             // To disable this test, simply assign a preset value of 0.0 to this threshold so it always passes test.
-            if (candidateScore > presetScoreThreshold)
+            if (candidateScore > predictScoreThreshold)
             {
                 // Update predicted win counts for candidateKeyID.
                 predictedtWinCount[candidateKeyID] += 1;
