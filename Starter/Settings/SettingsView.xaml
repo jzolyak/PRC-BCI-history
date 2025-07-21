@@ -47,7 +47,7 @@
             <RowDefinition Height="80"></RowDefinition>
            
         </Grid.RowDefinitions>
-        <Label Grid.Row="0" Style="{StaticResource HeaderLabelStyle}" HorizontalContentAlignment="Center" HorizontalAlignment="Center" Content="Settings"></Label>
+        <Label Grid.Row="0" Style="{StaticResource HeaderLabelStyle}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Center" Content="Settings"></Label>
         <!--<WrapPanel Grid.Row="1">
         <Button HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="ConnectivitySettings" Content="Connectivity" Style="{StaticResource buttonstyle1}" FontSize="20"></Button>
         <Button Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="CalibrationSettings"  Content="Calibration" Style="{StaticResource buttonstyle1}" FontSize="20"></Button>

@@ -27,21 +27,12 @@ namespace Starter.Calibration
 
         private void CalibrationWindow_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            
+
         }
         protected override void OnLostFocus(RoutedEventArgs e)
         {
             base.OnLostFocus(e);
             this.Focus();
-        }
-        private void FabButton_Click(object sender, RoutedEventArgs e)
-        {
-            PopupPanel.Visibility = Visibility.Visible;
-        }
-
-        private void ClosePopup_Click(object sender, RoutedEventArgs e)
-        {
-            PopupPanel.Visibility = Visibility.Collapsed;
         }
     }
 }

@@ -101,7 +101,6 @@ namespace ViewModels.Calibration
             Opacity = 1;
             MoveUpCmd = new RelayCommand(MoveFileMetadataIndexUp);
             MoveDownCmd = new RelayCommand(MoveFileMetadataIndexDown);
-            ExitCommand = new RelayCommand(OnExit);
             _flashStimulusViewModel = new FlashStimulusViewModel("calibration",exitAction);
         }
 

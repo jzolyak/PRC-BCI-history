@@ -97,6 +97,7 @@ namespace ViewModels.Connectivity
 
         private void Disconnect(object obj)
         {
+            EnableStart = true;
             _headSetConnectivityService.Exit();
             base.OnExit(obj);
         }

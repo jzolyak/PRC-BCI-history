@@ -9,7 +9,6 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Input;
 using ViewModels.Calibration;
 using ViewModels.Help;
 
@@ -29,8 +28,6 @@ namespace ViewModels.FlashStimulus
         private UIInstruction _uiInstruction;
         private object? _popupContentViewModel;
         private bool _showPopup;
-        //private bool _showFloatingPopup;
-        private bool _showFloatingPopup = false;
         private WindowTopMost _topMost;
         private CalibrationStopQueryViewModel _stopQueryViewModel;
         private CalibrationBeginQueryViewModel _beginQueryViewModel;
@@ -48,11 +45,9 @@ namespace ViewModels.FlashStimulus
         public WindowSizeProperties WindowSizeProp { get => _windowSizeProp; set { _windowSizeProp = value; OnPropertyChanged(nameof(WindowSizeProp)); } }
         public ObservableCollection<ButtonElement> ButtonCollection { get { return _buttonCollection; } set { _buttonCollection = value; OnPropertyChanged(nameof(ButtonCollection)); } }
         public bool ShowPopup { get => _showPopup; set { _showPopup = value; OnPropertyChanged(nameof(ShowPopup)); } }
-        public bool ShowFloatingPopup { get => _showFloatingPopup; set { _showFloatingPopup = value; OnPropertyChanged(nameof(ShowFloatingPopup)); } }
         public object? PopupContentViewModel { get => _popupContentViewModel; set { _popupContentViewModel = value; OnPropertyChanged(nameof(PopupContentViewModel)); } }
         public WindowTopMost Topmost { get => _topMost; set { _topMost = value; OnPropertyChanged(nameof(Topmost)); } }
-        
-        public ICommand ExitCommand { get; set; }
+       
         public FlashStimulusViewModel(string mode,Action exitAction)
         {
             _topMost = new WindowTopMost(); 
@@ -70,7 +65,6 @@ namespace ViewModels.FlashStimulus
             _repeatQueryViewModel = new CalibrationRepeatQueryViewModel(NotificationFromUI);
             _countDownViewModel = new CountDownViewModel(ClosePopup, NotificationFromUI);
             _coeffFileGenerationProgressViewModel = new CoeffFileGenerationProgressViewModel();
-            ExitCommand = new RelayCommand(ExitToMainMenu);
             WindowSizeProp = null;
             _mode = mode;
             _exitAction = exitAction;
@@ -127,8 +121,6 @@ namespace ViewModels.FlashStimulus
             {
                 return;
             }
-            ShowFloatingPopup =true;
-            //ShowFloatingPopup = true; 
             Topmost = new WindowTopMost();
             ButtonCollection = null;
             if (e == null || e.Value == null) return;
@@ -157,7 +149,7 @@ namespace ViewModels.FlashStimulus
             return buttonelement;
         }
 
-        private void ExitToMainMenu(object name)
+        private void ExitToMainMenu(string name)
         {
             if (!string.IsNullOrEmpty(_mode))
             {
