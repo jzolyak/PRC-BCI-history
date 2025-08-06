@@ -17,6 +17,7 @@ using System.Threading.Tasks.Dataflow;
 using System.Diagnostics;
 
 using CoreServices.Headset;
+using CoreServices.Presets;
 using static System.Formats.Asn1.AsnWriter;
 
 namespace CoreServices.Prediction
@@ -157,7 +158,7 @@ namespace CoreServices.Prediction
             // Temporarily use the constructor to assign default value for each preset until
             // we can fetch the real preset configuration values from a stored file.
 
-            PredictionPresets predictionConfiguration = new PredictionPresets();
+            PredictionPresets predictionConfiguration = new Presets.PredictionPresets();
 
             //string currentDirectory = Directory.GetCurrentDirectory();
             //string coefficientFilename = "WeightCoefficients.coef";

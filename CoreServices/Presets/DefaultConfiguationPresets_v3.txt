@@ -1,0 +1,33 @@
+<version date string>;<version number string>
+//
+//  Preset string format:
+//    <SubmenuGrouping>;<GroupCategory>;<UI_Level>;<ParamName> = <ParamValue>  // Comment on value choices
+//
+
+Calibration;ModeControl;user;scriptFilename = CalibrationCommands.txt	// Script controls which target keys are used in Calibration mode
+Calibration;ModeControl;user;numFlashSeqPerTarget = 15			// Default=15, Range={4, 15}, Number flash sequences to collect raw data
+
+Calibration;TargetAppearance;user;borderColor = red			// Default=red, Range={list of valid color choices}
+Calibration;TargetAppearance;user;borderWidth = 3			// Default=3, Range={3, 7}, Size in pixels
+
+FlashStimulus;FlashAppearance;user;borderColor = yellow			// Default=yellow, Range={list of valid color choices}
+FlashStimulus;FlashAppearance;user;borderWidth = 3			// Default=3, Range={3, 7}, Size in pixels
+FlashStimulus;FlashAppearance;user;flashType = monoColor		// Default=monoColor, Range={monoColor, colorPattern, picturePattern}
+FlashStimulus;FlashAppearance;user;monoFlashColor = brown		// Default=brown, Range={list of valid color choices}
+FlashStimulus;FlashAppearance;user;patternFilename = PictureList.txt	// Default=PictureList.txt, Range={any text string for filename containing pictures}
+
+FlashStimulus;FlashTiming;user;timeToFindTarget = 2			// Default=2, Range={2, 5}, Time delay in sec to locate next target
+FlashStimulus;FlashTiming;user;timeBetweenTargets = 4			// Default=4, Range={2, 5}, Time delay in sec before start of next selection
+
+Prediction;PredictionCriteria;user;highestTopScores = 4			// Default=4, Range={2, 4}, num of highest scores to search for row/col intersection
+Prediction;PredictionCriteria;user;winCountThreshold = 3		// Default=3, Range={1, maxNumFlashSeq}, num times keyID meets criteria before make prediction
+Prediction;PredictionCriteria;user;predictScoreThreold = 5000		// Default=5000, Range={3000, 8000}, accum weighted score criteria before make prediction
+
+Prediction;DecisionLogic;user;scoringMethod = 1				// Default=1, Range={KeyID = 0, StimulusCode = 1} 
+Prediction;DecisionLogic;user;stoppingMethod = 1			// Default=1, Range={FixedNumberOfSequences = 0, DynamicStopping = 1} 
+Prediction;DecisionLogic;user;finalDecisionType = 1			// Default=1, Range={Forced = 0, Abstention = 1}, what to do if win total not met 
+Prediction;DecisionLogic;user;maxNumFlashSequences = 15			// Default=15, Range={1, 15}, max flash sequences before final decision is made
+Prediction;DecisionLogic;user;scoringWindowLength = 6			// Default=6, Range={1, 15}, num flash seq used in sliding window to computing accum score 
+
+Prediction;Abstention;user;abstentionMessageEnabled = 0			// Default=0, Range={0, 1}, Enable popup message (=1) to appear if no prediction is detected
+Prediction;Abstention;user;autoPauseAbstentionCount = 5			// Default=5, Range={5, 15},Number of consecutive abstentions before switch to AutoPause mode

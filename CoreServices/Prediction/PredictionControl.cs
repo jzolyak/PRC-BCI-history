@@ -8,6 +8,7 @@ using System.Threading.Tasks.Dataflow;
 
 using CoreServices.Stimulus;
 using CoreServices.SensorData;
+using CoreServices.Presets;
 using static CoreServices.Prediction.PredictionAlgorithm;
 using System.Security.Cryptography.X509Certificates;
 
@@ -112,16 +113,17 @@ namespace CoreServices.Prediction
 
 
             /* **************** */
- 
+
             // Configuration predition algorithm execution based on preset parameter values. 
-            PredictionMethod predictionMethod = predictionConfiguration.predictionMethod;
+            DecisionLogicPresets.ScoringMethod scoringMethod = predictionConfiguration.DecisionLogicPresets.scoringMethod;
+            DecisionLogicPresets.StoppingMethod stoppingMethod = predictionConfiguration.DecisionLogicPresets.stoppingMethod;
+            int maxNumFlashSequences = predictionConfiguration.DecisionLogicPresets.maxNumFlashSequences;
+            int scoringWindowLength = predictionConfiguration.DecisionLogicPresets.scoringWindowLength;
 
-            StoppingMethod stoppingMethod = predictionConfiguration.stoppingMethod;
 
-            int winCountForSelection = predictionConfiguration.winCountForSelection;
-            int fixedSequenceLimit = predictionConfiguration.fixedSequenceLimit;
-
-            double predictionScoreThreshold = (double) predictionConfiguration.predictScoreThreshold;
+            int highestTopScores = predictionConfiguration.PredictionCriteriaPresets.highestTopScores;
+            int winCountForSelection = predictionConfiguration.PredictionCriteriaPresets.winCountForSelection;
+            double predictionScoreThreshold = (double) predictionConfiguration.PredictionCriteriaPresets.predictScoreThreshold;
 
             /* **************** */
 
@@ -280,7 +282,7 @@ namespace CoreServices.Prediction
 
                             numStimulusGroups = sensorData.packetHeaderTable[eventStartHeaderIndex].numStimulusGroups;
 
-                            predictionScoring.AllocateScoringTables(numSensorChannels, numStimulusGroups, fixedSequenceLimit);
+                            predictionScoring.AllocateScoringTables(numSensorChannels, numStimulusGroups, maxNumFlashSequences);
 
                             sensorData.CreateStimulusGroupingTable(numStimulusGroups);
                         }
@@ -403,9 +405,9 @@ namespace CoreServices.Prediction
 
                      
                     // Execute prediction algorithm based on preset configuration parameter...
-                    if (predictionMethod == PredictionMethod.StimulusCode)
+                    if (scoringMethod == DecisionLogicPresets.ScoringMethod.StimulusCode)
                     {
-                        // Use StimulusCode Prediction Method to identify the attended target.
+                        // Use StimulusCode Scoring Method to identify the attended target.
 
                         // Don't include problematic data in scoring tables once error checking is working.
                         predictionScoring.StoreCombinedWeigtedStimScores(combinedWeightedScores, 
@@ -423,14 +425,14 @@ namespace CoreServices.Prediction
 
                         predictionResult = 
                             predictionAlgorithm.StimCodePredictionAlgorithm(sensorData.stimulusGroupingTable, 
-                            topAccumulatedScores, predictionScoreThreshold);
+                            topAccumulatedScores, predictionScoreThreshold, highestTopScores);
 
                         // Fill in remaining fields of predictionResults? flashSequenceCount? ...
                         predictionResult.flashSequenceCount = flashSequenceCount;
                     }
                     else
                     {
-                        // Use KeyID Prediction Method to identify the attended target.
+                        // Use KeyID Scoring Method to identify the attended target.
 
                         // Combine weighted scores from multiple sensors into single score value per keyID
                         combinedWeightedKeyIdScores =
@@ -493,11 +495,11 @@ namespace CoreServices.Prediction
 
                     predictionResult.attendedKeyID = 0;     // Need to fix this later for prediction accuracy reporting...
 
-                    if (stoppingMethod == StoppingMethod.FixedNumberOfSequences)
+                    if (stoppingMethod == DecisionLogicPresets.StoppingMethod.FixedNumberOfSequences)
                     {
                         // Once the preset number of flash sequence data has been collected, whichever non-zero value
                         // keyID is specified as the selectedKeyID, it is the keyID clicked in the state engine.
-                        if (flashSequenceCount == fixedSequenceLimit)
+                        if (flashSequenceCount == maxNumFlashSequences)
                         {
                             if (highestWinCount.winCount >= winCountForSelection)
                             {
@@ -532,7 +534,7 @@ namespace CoreServices.Prediction
                             predictionResult.selectedKeyID = highestWinCount.keyID;
                             statusMessageID = END_OF_PREDICTION;
                         }
-                        else if (flashSequenceCount == fixedSequenceLimit)
+                        else if (flashSequenceCount == maxNumFlashSequences)
                         {
                             // If reached the fixed limit, and NOT MADE A SELECTION, then stop current prediction
                             predictionResult.selectedKeyID = 0;
