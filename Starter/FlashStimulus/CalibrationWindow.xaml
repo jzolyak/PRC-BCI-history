@@ -7,7 +7,9 @@
         xmlns:UIHelpers="clr-namespace:Starter.UIHelpers"
          mc:Ignorable="d"
         Title="CalibrationWindow" AllowsTransparency="True" WindowStyle="None" WindowStartupLocation="CenterScreen" UIHelpers:AttachedPropertyService.WindowSize="{Binding WindowSizeProp}" Height="300" Width="700" UIHelpers:AttachedPropertyService.WindowTopMost="{Binding Topmost,UpdateSourceTrigger=PropertyChanged}">
-
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </Window.Resources>
     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent">
         <ItemsControl ItemsSource="{Binding ButtonCollection}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <ItemsControl.ItemsPanel>
@@ -23,7 +25,11 @@
             </ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Button Width="{Binding Width,Mode=TwoWay}" Height="{Binding Height,Mode=TwoWay}" Canvas.Top="{Binding Top,Mode=TwoWay}" Canvas.Left="{Binding Left,Mode=TwoWay}"  BorderThickness="8" Background="{Binding BackgroundBrushClr,Converter={StaticResource colortoBrushConverter}}" BorderBrush="{Binding BorderBrushClr,Converter={StaticResource colortoBrushConverter}}" Command="{Binding ClickCmd}" Content="{Binding Name}" Opacity="{Binding Opacity}" FontStyle="Normal" FontWeight='Bold' FontSize="20"/>
+                    <Button Width="{Binding Width,Mode=TwoWay}" Height="{Binding Height,Mode=TwoWay}" Canvas.Top="{Binding Top,Mode=TwoWay}" Canvas.Left="{Binding Left,Mode=TwoWay}"  BorderThickness="8" Background="{Binding BackgroundBrushClr,Converter={StaticResource colortoBrushConverter}}" BorderBrush="{Binding BorderBrushClr,Converter={StaticResource colortoBrushConverter}}" Command="{Binding ClickCmd}" Opacity="{Binding Opacity}" FontStyle="Normal" FontWeight='Bold' FontSize="20">
+                        <Button.Content>
+                            <Image Source="{Binding ImagePath}" Stretch="UniformToFill" Visibility="{Binding IsPicVisible, Converter={StaticResource BoolToVis}}"/>
+                        </Button.Content>
+                    </Button>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>

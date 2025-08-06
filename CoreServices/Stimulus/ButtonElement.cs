@@ -16,6 +16,8 @@ namespace CoreServices.Stimulus
         private CustomBrushes _backgroundBrush;
         private string _content;
         private double _opacity;
+        private string fileName;
+        private bool   isPicVisible;
         public double Height
         {
             get { return _height; }
@@ -44,6 +46,7 @@ namespace CoreServices.Stimulus
             set { _backgroundBrush = value; OnPropertyChanged(nameof(BackgroundBrush)); OnPropertyChanged(nameof(BackgroundBrushClr)); }
         }
         public Color BackgroundBrushClr { get { return GetColor(BackgroundBrush); } }
+        public string ImagePath => System.IO.Path.Combine("..","Images", FileName);
 
         public ICommand ClickCmd { get; set; }
         public bool IsEnabled { get; set; }
@@ -51,6 +54,16 @@ namespace CoreServices.Stimulus
 
         public Action<string> ClickAction { get; set; }
         public string Name { get; set; }
+        public string FileName
+        {
+            get { return fileName; }
+            set { fileName = value; OnPropertyChanged(nameof(FileName)); OnPropertyChanged(nameof(ImagePath)); }
+        }
+        public bool IsPicVisible
+        {
+            get { return isPicVisible; }
+            set { isPicVisible = value; OnPropertyChanged(nameof(IsPicVisible)); }
+        }
         public void OnPropertyChanged(string propertyName)
         {
             if (string.IsNullOrEmpty(propertyName)) return;
