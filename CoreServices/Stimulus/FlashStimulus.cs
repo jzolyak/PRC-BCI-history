@@ -2,6 +2,7 @@
 using CoreServices.Presets;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,10 +23,18 @@ namespace CoreServices.Stimulus
         public const int LEFT_OFFSET = 0;
         public const int TOP_OFFSET = 0;
         private FlashStimulusPresets flashStimulusPresets;
+        private bool isflashModeIsImage = true;
+        private static readonly Dictionary<int, string> _imageNameMap = new();
+        private string _buttonsImageFileNam;
+        
 
         public FlashStimulus()
         {
             flashStimulusPresets = FlashStimulusPresets.Instance;
+            _buttonsImageFileNam = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\Settings\\buttonImagesNmae.txt";
+            LoadButtonIamgesFile(_buttonsImageFileNam);
+
+
         }
         List<ButtonElement> buttonList = new List<ButtonElement>();
         int[] crossReferenceTable = null;
@@ -39,7 +48,7 @@ namespace CoreServices.Stimulus
         {
             int numElements = elementList.Count;
 
-            
+
 
             buttonList = new List<ButtonElement>();
             var screenOverlay = new ScreenOverlay();
@@ -66,9 +75,11 @@ namespace CoreServices.Stimulus
             //       children focus their attention longer, thus leading to a better evoked response.
             //   3.  Can flash all buttons simultaneously rather than sending individual commands to
             //       each original GUI element via MUIA to Flash ON and Flash OFF.
+            //load pictures from file
 
             for (int i = 0; i < numElements; i++)
             {
+                string imageName = GetImageNameByNumber(i);
                 var button = new ButtonElement()
                 {
 
@@ -76,7 +87,9 @@ namespace CoreServices.Stimulus
                     Height = SCALING_FACTOR * (elementList[i].bottom - elementList[i].top),
 
                     Top = (SCALING_FACTOR * (elementList[i].top - topOffset)),
-                    Left = (SCALING_FACTOR * (elementList[i].left - leftOffset))
+                    Left = (SCALING_FACTOR * (elementList[i].left - leftOffset)),
+                    FileName = imageName
+
                 };
                 buttonList.Add(button);
 
@@ -150,7 +163,7 @@ namespace CoreServices.Stimulus
             }
         }
 
-        
+
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
@@ -190,7 +203,17 @@ namespace CoreServices.Stimulus
                 {
                     buttonIndex = crossReferenceTable[keyID];
 
-                    buttonList[buttonIndex].BackgroundBrush = CustomBrushes.Brown;
+                    if (isflashModeIsImage)
+                    {
+                        //buttonList[buttonIndex].FileName = GetImageNameByNumber(buttonIndex) ?? "default.png";
+                        buttonList[buttonIndex].IsPicVisible = true;
+                    }
+                    else
+                    {
+                        buttonList[buttonIndex].BackgroundBrush = CustomBrushes.Brown;
+                    }
+
+                    
 
                     if (keyID == targetKeyID)
                     {   // Keep the target key highlighted
@@ -226,7 +249,17 @@ namespace CoreServices.Stimulus
                 {
                     buttonIndex = crossReferenceTable[keyID];
 
-                    buttonList[buttonIndex].BackgroundBrush = CustomBrushes.Transparent;
+                    
+                    if (isflashModeIsImage)
+                    {
+                        //buttonList[buttonIndex].FileName = GetImageNameByNumber(buttonIndex) ?? "default.png";
+                        buttonList[buttonIndex].IsPicVisible = false;
+                        //hide the image
+                    }
+                    else
+                    {
+                        buttonList[buttonIndex].BackgroundBrush = CustomBrushes.Transparent;
+                    }
 
                     if (keyID == targetKeyID)
                     {   // Keep the target key highlighted
@@ -247,6 +280,44 @@ namespace CoreServices.Stimulus
         }
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+        private static string GetImageNameByNumber(int number)
+        {
+            return _imageNameMap.TryGetValue(number, out var name) ? name : "default.png";
+        }
+
+        private void LoadButtonIamgesFile(string filename)
+        {
+            try
+            {
+                if (!File.Exists(filename))
+                {
+                    Logger.Info(this, "buttonImagesName File does not exist");
+                    return;
+                }
+                
+                    foreach (var line in File.ReadAllLines(filename))
+                    {
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+
+                        int splitIndex = line.IndexOf(' ');
+                        if (splitIndex <= 0) continue;
+
+                        string numberPart = line.Substring(0, splitIndex).Trim();
+                        string namePart = line.Substring(splitIndex + 1).Trim();
+
+                        if (int.TryParse(numberPart, out int key) && !string.IsNullOrEmpty(namePart))
+                        {
+                            _imageNameMap[key] = namePart;
+                        }
+                    }
+                
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(this, ex.Message);
+            }
+        }
 
     }
 

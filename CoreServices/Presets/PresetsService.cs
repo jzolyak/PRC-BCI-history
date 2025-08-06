@@ -29,6 +29,7 @@ namespace CoreServices.Presets
             _settingsFileName = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\Settings\\UserSettings.txt";
             LoadSettings(_settingsFileName);
             LoadDomains();
+           
         }
 
         private void LoadSettings(string filename)
