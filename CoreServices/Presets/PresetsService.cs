@@ -16,6 +16,7 @@ namespace CoreServices.Presets
         private string _defaultSettingsFileName;
         private string _settingsFilePath;
         private static PresetsService instance;
+        public Dictionary<string, List<string>> GetAllDomains() => _domains;
 
         public static PresetsService Instance
         { get { if (instance == null) { instance = new PresetsService(); } return instance; } }
@@ -27,6 +28,8 @@ namespace CoreServices.Presets
             LoadSettings(_defaultSettingsFileName);
             _settingsFileName = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\Settings\\UserSettings.txt";
             LoadSettings(_settingsFileName);
+            LoadDomains();
+           
         }
 
         private void LoadSettings(string filename)
@@ -55,41 +58,16 @@ namespace CoreServices.Presets
             }
         }
 
-        private void ProcessSettings(string s)
+        private void ProcessSettings(string line)
         {
-            if (string.IsNullOrEmpty(s))
-            {
-                return;
-            }
-            var keyValuePair = s.Split(";");
-            if (keyValuePair.Length > 3)
-            {
-                string grouping = keyValuePair[0];
-                string category = keyValuePair[1];
-                string type = keyValuePair[2];  
-                string keyValue= keyValuePair[3];
-                string[] actualKeyValue = keyValue.Split("=");
-                if (!_presets.ContainsKey(grouping))
-                    _presets[grouping] = new ConcurrentDictionary<string, ConcurrentDictionary<string, string>>();
-                if (!_presets[grouping].ContainsKey(category))
-                    _presets[grouping][category] = new ConcurrentDictionary<string, string>();
-                _presets[grouping][category][type + ";" + actualKeyValue[0]]= actualKeyValue[1];
+            if (string.IsNullOrWhiteSpace(line)) return;
 
-            }
-        }
+            var parts = line.Split(';');
+            if (parts.Length < 4) return;
 
-        public void SaveUserSettings(string grouping, string category, string type, string key, string value)
-        {
-            //if (!_presets.ContainsKey(grouping))
-            //    _presets[grouping] = new ConcurrentDictionary<string, ConcurrentDictionary<string, string>>();
-
-            //if (!_presets[grouping].ContainsKey(category))
-            //    _presets[grouping][category] = new ConcurrentDictionary<string, string>();
-
-            //_presets[grouping][category].TryAdd(type+";"+key, value);
-
-            //var line = $"{grouping};{category};{type};{key}={value}";
-            //File.AppendAllLines(_settingsFileName, new[] { line });
+            var grouping = parts[0];
+            var category = parts[1];
+            var type = parts[2];
 
             if (!_presets.ContainsKey(grouping))
                 _presets[grouping] = new ConcurrentDictionary<string, ConcurrentDictionary<string, string>>();
@@ -97,34 +75,77 @@ namespace CoreServices.Presets
             if (!_presets[grouping].ContainsKey(category))
                 _presets[grouping][category] = new ConcurrentDictionary<string, string>();
 
-            _presets[grouping][category][type + ";" + key] = value;
+            // Combine the rest of the parts (after first 3) and rejoin them using semicolon
+            // Example: "highlightoption=border color;domain=hloption"
+            var settingStr = string.Join(';', parts.Skip(3));
 
-            var newLineKey = $"{grouping};{category};{type};{key}";
-            var newLine = $"{newLineKey}={value}";
+            // Now split this combined string by = only on the first =
+            var eqIndex = settingStr.IndexOf('=');
+            if (eqIndex > 0)
+            {
+                var key = settingStr.Substring(0, eqIndex).Trim();
+                var value = settingStr.Substring(eqIndex + 1).Trim();
+                _presets[grouping][category][$"{type};{key}"] = value;
+            }
+        }
 
-            var lines = File.Exists(_settingsFileName)
+
+
+        public void SaveUserSettings(string grouping, string category, string type, Dictionary<string, string> newSettings)
+        {
+            if (!_presets.ContainsKey(grouping))
+                _presets[grouping] = new ConcurrentDictionary<string, ConcurrentDictionary<string, string>>();
+
+            if (!_presets[grouping].ContainsKey(category))
+                _presets[grouping][category] = new ConcurrentDictionary<string, string>();
+
+            foreach (var kvp in newSettings)
+                _presets[grouping][category][$"{type};{kvp.Key}"] = kvp.Value;
+
+            var allLines = File.Exists(_settingsFileName)
                 ? File.ReadAllLines(_settingsFileName).ToList()
                 : new List<string>();
 
-            bool updated = false;
-
-            for (int i = 0; i < lines.Count; i++)
+            // Remove existing entries for this group/category/type
+            allLines.RemoveAll(line =>
             {
-                if (lines[i].StartsWith(newLineKey + "=", StringComparison.OrdinalIgnoreCase))
+                var parts = line.Split(';');
+                return parts.Length >= 4 &&
+                       parts[0] == grouping &&
+                       parts[1] == category &&
+                       parts[2] == type;
+            });
+
+            // Re-add as one line per key=value or key=value;key2=value2
+            foreach (var kvp in newSettings)
+            {
+                var key = kvp.Key;
+                var value = kvp.Value;
+
+                // Split value by semicolons if multiple key=val pairs are embedded
+                var subPairs = value.Split(';')
+                                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                                    .ToArray();
+
+                bool hasEmbeddedPairs = subPairs.All(p => p.Contains('='));
+
+                if (hasEmbeddedPairs)
                 {
-                    lines[i] = newLine;
-                    updated = true;
-                    break;
+                    foreach (var pair in subPairs)
+                    {
+                        allLines.Add($"{grouping};{category};{type};{key}={pair}");
+                    }
+                }
+                else
+                {
+                    allLines.Add($"{grouping};{category};{type};{key}={value}");
                 }
             }
 
-            if (!updated)
-            {
-                lines.Add(newLine);
-            }
-
-            File.WriteAllLines(_settingsFileName, lines);
+            File.WriteAllLines(_settingsFileName, allLines);
         }
+
+
 
         public string GetSettingsValue(string grouping, string category, string type, string key)
         {
@@ -161,5 +182,40 @@ namespace CoreServices.Presets
             Logger.Error(this, $"Settings not found for Grouping: {grouping}");
             return null;
         }
+
+        private Dictionary<string, List<string>> _domains;
+
+        public void LoadDomains(string domainFile = null)
+        {
+            _domains = new Dictionary<string, List<string>>();
+            domainFile ??= Path.Combine(Path.GetDirectoryName(_settingsFileName), "domain.txt");
+
+            if (!File.Exists(domainFile)) return;
+
+            foreach (var line in File.ReadAllLines(domainFile))
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                var parts = line.Split('=', 2);
+                if (parts.Length == 2)
+                {
+                    var domainKey = parts[0].Trim();
+                    var domainValues = parts[1].Split(';', StringSplitOptions.RemoveEmptyEntries)
+                                               .Select(v => v.Trim()).ToList();
+
+                    if (domainValues.Count > 0)
+                        _domains[domainKey] = domainValues;
+                }
+            }
+        }
+
+        public List<string>? GetDomainForKey(string domainKey)
+        {
+            var allDomains = GetAllDomains();
+            if (allDomains.TryGetValue(domainKey, out var values))
+                return values;
+            return null;
+        }
+
     }
 }

@@ -47,7 +47,7 @@
             <RowDefinition Height="80"></RowDefinition>
            
         </Grid.RowDefinitions>
-        <Label Grid.Row="0" Style="{StaticResource HeaderLabelStyle}" HorizontalContentAlignment="Center" HorizontalAlignment="Center" Content="Settings"></Label>
+        <Label Grid.Row="0" Style="{StaticResource HeaderLabelStyle}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Center" Content="Settings"></Label>
         <!--<WrapPanel Grid.Row="1">
         <Button HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="ConnectivitySettings" Content="Connectivity" Style="{StaticResource buttonstyle1}" FontSize="20"></Button>
         <Button Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="CalibrationSettings"  Content="Calibration" Style="{StaticResource buttonstyle1}" FontSize="20"></Button>
@@ -55,7 +55,7 @@
         <Button Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="PredictionSettings" Content="Prediction" Style="{StaticResource buttonstyle1}" FontSize="20"></Button>
         <Button Grid.Row="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="300" Margin="8" Command="{Binding OpenCmd}" CommandParameter="MiscSettings" Content="Misc" Style="{StaticResource buttonstyle1}" FontSize="20"></Button>
         </WrapPanel>-->
-        <ItemsControl  Grid.Row="1" ItemsSource="{Binding GroupingsCollection}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <ItemsControl  Grid.Row="1" ItemsSource="{Binding GroupingsCollection}" HorizontalAlignment="Center" VerticalAlignment="Stretch">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <WrapPanel HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent"/>

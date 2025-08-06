@@ -1,21 +1,39 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.ComponentModel;
 using ViewModels.Help;
 
 namespace ViewModels.Settings
 {
-    public class SettingsLineItemViewModel:ViewModelBase
+    public class SettingsLineItemViewModel : ViewModelBase
     {
         private string header;
-        public string Header { get { return header; } set { header = value;OnPropertyChanged(nameof(header)); } }
+        public string Header
+        {
+            get => header;
+            set { header = value; OnPropertyChanged(nameof(Header)); }
+        }
 
         private string content;
-        public string Content { get { return content; } set { content = value;OnPropertyChanged(nameof(content)); } }
-        private List<Rule> rules;
-        public List<Rule> Rules { get { return rules; } set { rules = value; OnPropertyChanged(nameof(Rules)); } }
- 
+        public string Content
+        {
+            get => content;
+            set { content = value; OnPropertyChanged(nameof(Content)); }
+        }
+
+        private List<string> _domainValues;
+        public List<string> DomainValues
+        {
+            get => _domainValues;
+            set
+            {
+                _domainValues = value;
+                OnPropertyChanged(nameof(DomainValues));
+                OnPropertyChanged(nameof(HasDomain)); // Ensure UI updates!
+            }
+        }
+
+        public bool HasDomain => DomainValues != null && DomainValues.Count > 0;
+
+        public string? SelectedDomainKey { get; set; }
     }
 }

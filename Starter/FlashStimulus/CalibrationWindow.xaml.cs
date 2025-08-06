@@ -27,7 +27,7 @@ namespace Starter.Calibration
 
         private void CalibrationWindow_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            
+
         }
         protected override void OnLostFocus(RoutedEventArgs e)
         {

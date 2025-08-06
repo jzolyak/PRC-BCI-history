@@ -47,6 +47,7 @@ namespace ViewModels.FlashStimulus
         public bool ShowPopup { get => _showPopup; set { _showPopup = value; OnPropertyChanged(nameof(ShowPopup)); } }
         public object? PopupContentViewModel { get => _popupContentViewModel; set { _popupContentViewModel = value; OnPropertyChanged(nameof(PopupContentViewModel)); } }
         public WindowTopMost Topmost { get => _topMost; set { _topMost = value; OnPropertyChanged(nameof(Topmost)); } }
+       
         public FlashStimulusViewModel(string mode,Action exitAction)
         {
             _topMost = new WindowTopMost(); 
@@ -64,7 +65,6 @@ namespace ViewModels.FlashStimulus
             _repeatQueryViewModel = new CalibrationRepeatQueryViewModel(NotificationFromUI);
             _countDownViewModel = new CountDownViewModel(ClosePopup, NotificationFromUI);
             _coeffFileGenerationProgressViewModel = new CoeffFileGenerationProgressViewModel();
-
             WindowSizeProp = null;
             _mode = mode;
             _exitAction = exitAction;
@@ -148,6 +148,7 @@ namespace ViewModels.FlashStimulus
             buttonelement.BorderBrush = CustomBrushes.Red;
             return buttonelement;
         }
+
         private void ExitToMainMenu(string name)
         {
             if (!string.IsNullOrEmpty(_mode))
