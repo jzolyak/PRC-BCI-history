@@ -75,75 +75,59 @@ namespace CoreServices.Presets
             if (!_presets[grouping].ContainsKey(category))
                 _presets[grouping][category] = new ConcurrentDictionary<string, string>();
 
-            // Combine the rest of the parts (after first 3) and rejoin them using semicolon
-            // Example: "highlightoption=border color;domain=hloption"
+            // Combine the rest of the parts (after first 3)
             var settingStr = string.Join(';', parts.Skip(3));
 
-            // Now split this combined string by = only on the first =
+            // Split into key=value (only on first '=')
             var eqIndex = settingStr.IndexOf('=');
             if (eqIndex > 0)
             {
                 var key = settingStr.Substring(0, eqIndex).Trim();
                 var value = settingStr.Substring(eqIndex + 1).Trim();
-                _presets[grouping][category][$"{type};{key}"] = value;
+                var dictKey = $"{type};{key}";
+
+                _presets[grouping][category].AddOrUpdate(
+                    dictKey,
+                    value,                                      // if new
+                    (k, oldVal) => oldVal + "|" + value         // if exists, append
+                );
             }
         }
+
 
 
 
         public void SaveUserSettings(string grouping, string category, string type, Dictionary<string, string> newSettings)
         {
-            if (!_presets.ContainsKey(grouping))
-                _presets[grouping] = new ConcurrentDictionary<string, ConcurrentDictionary<string, string>>();
-
-            if (!_presets[grouping].ContainsKey(category))
-                _presets[grouping][category] = new ConcurrentDictionary<string, string>();
-
-            foreach (var kvp in newSettings)
-                _presets[grouping][category][$"{type};{kvp.Key}"] = kvp.Value;
-
             var allLines = File.Exists(_settingsFileName)
                 ? File.ReadAllLines(_settingsFileName).ToList()
                 : new List<string>();
 
-            // Remove existing entries for this group/category/type
-            allLines.RemoveAll(line =>
-            {
-                var parts = line.Split(';');
-                return parts.Length >= 4 &&
-                       parts[0] == grouping &&
-                       parts[1] == category &&
-                       parts[2] == type;
-            });
-
-            // Re-add as one line per key=value or key=value;key2=value2
             foreach (var kvp in newSettings)
             {
-                var key = kvp.Key;
-                var value = kvp.Value;
+                string key = kvp.Key;
+                string value = kvp.Value;
 
-                // Split value by semicolons if multiple key=val pairs are embedded
-                var subPairs = value.Split(';')
-                                    .Where(s => !string.IsNullOrWhiteSpace(s))
-                                    .ToArray();
+                string prefix = $"{grouping};{category};{type};{key}=";
 
-                bool hasEmbeddedPairs = subPairs.All(p => p.Contains('='));
+                // find existing line index
+                int index = allLines.FindIndex(line => line.StartsWith(prefix));
 
-                if (hasEmbeddedPairs)
+                if (index >= 0)
                 {
-                    foreach (var pair in subPairs)
-                    {
-                        allLines.Add($"{grouping};{category};{type};{key}={pair}");
-                    }
+                    // update line
+                    allLines[index] = prefix + value;
                 }
                 else
                 {
-                    allLines.Add($"{grouping};{category};{type};{key}={value}");
+                    // add new line if not found
+                    allLines.Add(prefix + value);
                 }
             }
 
             File.WriteAllLines(_settingsFileName, allLines);
         }
+
 
 
 
@@ -200,8 +184,10 @@ namespace CoreServices.Presets
                 if (parts.Length == 2)
                 {
                     var domainKey = parts[0].Trim();
-                    var domainValues = parts[1].Split(';', StringSplitOptions.RemoveEmptyEntries)
-                                               .Select(v => v.Trim()).ToList();
+                    var domainValues = parts[1]
+                        .Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(v => v.Trim())
+                        .ToList();
 
                     if (domainValues.Count > 0)
                         _domains[domainKey] = domainValues;

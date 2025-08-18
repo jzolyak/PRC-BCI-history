@@ -53,35 +53,55 @@ namespace ViewModels.Settings
             {
                 if (!kvp.Key.StartsWith("user;")) continue;
 
-                var key = kvp.Key.Split(';')[1]; // "highlightoption"
+                var key = kvp.Key.Split(';')[1];
                 if (key == "domain") continue;
 
-                string value = kvp.Value;
-                string mainValue = value;
-                List<string>? domainValues = null;
-                string selectedDomainKey = null;
+                string rawValue = kvp.Value;
+                var allValues = rawValue.Split('|');
 
-                // Split by semicolon to look for domain info
-                var parts = value.Split(';');
-                var mainPart = parts.FirstOrDefault(p => !p.StartsWith("domain="));
-                var domainPart = parts.FirstOrDefault(p => p.StartsWith("domain="));
-                
+                string? selectedValue = null;
+                string? selectedDomainKey = null;
 
-                if (!string.IsNullOrWhiteSpace(mainPart))
-                    mainValue = mainPart;
-
-                if (!string.IsNullOrWhiteSpace(domainPart))
+                foreach (var v in allValues)
                 {
-                    var domainKey = domainPart.Split('=')[1].Trim();
-                    domainValues = presetsService.GetDomainForKey(domainKey);
+                    var parts = v.Split(';');
+                    var valuePart = parts.FirstOrDefault(p => !p.StartsWith("domain=", StringComparison.OrdinalIgnoreCase));
+                    var domainPart = parts.FirstOrDefault(p => p.StartsWith("domain=", StringComparison.OrdinalIgnoreCase));
 
-                    selectedDomainKey = domainKey;
+                    if (!string.IsNullOrWhiteSpace(valuePart))
+                    {
+                        if (valuePart.StartsWith(key + "=", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var eqSplit = valuePart.Split('=');
+                            if (eqSplit.Length == 2)
+                                selectedValue = eqSplit[1].Trim();
+                        }
+                        else
+                        {
+                            selectedValue = valuePart.Trim();
+                        }
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(domainPart))
+                    {
+                        var tokens = domainPart.Split('=');
+                        if (tokens.Length == 2)
+                            selectedDomainKey = tokens[1].Trim();
+                    }
+
+                    // ✅ Break once we found a domain + value pair
+                    if (selectedValue != null && selectedDomainKey != null)
+                        break;
                 }
+
+                List<string>? domainValues = null;
+                if (!string.IsNullOrEmpty(selectedDomainKey))
+                    domainValues = presetsService.GetDomainForKey(selectedDomainKey);
 
                 result.Add(new SettingsLineItemViewModel
                 {
                     Header = key,
-                    Content = mainValue,
+                    Content = selectedValue ?? string.Empty,
                     DomainValues = domainValues,
                     SelectedDomainKey = selectedDomainKey
                 });
@@ -89,7 +109,6 @@ namespace ViewModels.Settings
 
             SettingsList = result;
         }
-
 
 
         private void SaveSettings(object obj)
@@ -107,17 +126,22 @@ namespace ViewModels.Settings
 
                 foreach (var item in settingsList)
                 {
-                    if (string.IsNullOrWhiteSpace(item.Header)) continue;
-
-                    // Append domain if present
-                    string value = item.Content ?? string.Empty;
+                    if (string.IsNullOrWhiteSpace(item.Header))
+                        continue;
 
                     if (item.DomainValues != null && item.SelectedDomainKey != null)
                     {
-                        value += $";domain={item.SelectedDomainKey}";
+                        // ✅ Save only selected value + domain reference
+                        if (!string.IsNullOrWhiteSpace(item.Content))
+                        {
+                            dict[item.Header] = $"{item.Content};domain={item.SelectedDomainKey}";
+                        }
                     }
-
-                    dict[item.Header] = value;
+                    else
+                    {
+                        // No domain → normal key=value
+                        dict[item.Header] = item.Content ?? string.Empty;
+                    }
                 }
 
                 presetsService.SaveUserSettings(groupName, categoryName, "user", dict);

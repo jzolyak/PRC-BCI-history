@@ -72,8 +72,7 @@ namespace CoreServices.Presets
         }
     }
 
-    public class ModeControlPresets
-    {
+    public class ModeControlPresets    {
         public int numFlashSeqPerTarget { get; set; }
         public String scriptFilename { get; set; }
 
