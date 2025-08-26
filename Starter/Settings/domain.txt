@@ -1,0 +1,3 @@
+yesno=yes;no;na;
+hloption=picture;border color;
+hlcolor=Transparent;Red,Green,Blue,Brown,Yellow,CornflowerBlue

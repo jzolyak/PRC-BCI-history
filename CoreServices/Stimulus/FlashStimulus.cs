@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -34,7 +35,8 @@ namespace CoreServices.Stimulus
         {
             flashStimulusPresets = FlashStimulusPresets.Instance;
             calibrationPresets = CalibrationPresets.Instance;
-            _buttonsImageFileNam = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\Settings\\buttonImagesNmae.txt";
+            //_buttonsImageFileNam = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\Settings\\buttonImagesNmae.txt";
+            _buttonsImageFileNam = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\BCI\\Settings\\buttonImagesNmae.txt";
             LoadButtonIamgesFile(_buttonsImageFileNam);
 
 

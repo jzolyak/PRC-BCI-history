@@ -172,7 +172,8 @@ namespace CoreServices.Presets
         public void LoadDomains(string domainFile = null)
         {
             _domains = new Dictionary<string, List<string>>();
-            domainFile ??= Path.Combine(Path.GetDirectoryName(_settingsFileName), "domain.txt");
+            //domainFile ??= Path.Combine(Path.GetDirectoryName(_settingsFileName), "domain.txt");
+            domainFile ??= System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\domain.txt";
 
             if (!File.Exists(domainFile)) return;
 

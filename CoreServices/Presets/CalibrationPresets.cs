@@ -30,8 +30,8 @@ namespace CoreServices.Presets
             TargetAppearancePresets = new TargetAppearancePresets();
             ModeControlPresets = new ModeControlPresets();
 
-            TargetAppearancePresets.RetreiveSettings(presetsService.GetSettings(Constants.Flash, "TargetAppearance"));
-            //ModeControlPresets.RetreiveSettings(presetsService.GetSettings(Constants.Flash, "ModeControl"));
+            TargetAppearancePresets.RetreiveSettings(presetsService.GetSettings(Constants.Calibration, "TargetAppearance"));
+            ModeControlPresets.RetreiveSettings(presetsService.GetSettings(Constants.Calibration, "ModeControl"));
         }
     }
 
@@ -67,6 +67,17 @@ namespace CoreServices.Presets
                         HighLightON_BorderBrush = CustomBrushes.Red;
                     }
                 }
+                if(kvp.Key.ToLower() == "user;borderWidth")
+                {
+                    try
+                    {
+                        borderWidth = (int)Enum.Parse(typeof(int), kvp.Value);
+                    }
+                    catch(Exception ex)
+                    {
+                        borderWidth = 3;
+                    }
+                }
             }
             return false;
         }
@@ -82,11 +93,39 @@ namespace CoreServices.Presets
             scriptFilename = "CalibrationCommands.txt";     // Script controls which target keys are used in Calibration mode
         }
 
-        /*
+       
         public bool RetreiveSettings(Dictionary<string, string> settings)
         {
+            if(settings == null) return false;
+            foreach (KeyValuePair<string, string> kvp in settings)
+            {
+                if(string.IsNullOrEmpty(kvp.Key)) continue;
+                if(kvp.Key.ToLower() == "user;numflashseqpertarget")
+                {
+                    try
+                    {
+                        numFlashSeqPerTarget = Convert.ToInt32(kvp.Value);
+                    }
+                    catch (Exception ex)
+                    {
+                        numFlashSeqPerTarget = 15;
+                    }
+                }
+                if (kvp.Key.ToLower() == "user;scriptfilename")
+                {
+                    try
+                    {
+                        scriptFilename = Convert.ToString(kvp.Value);
+                    }
+                    catch (Exception ex)
+                    {
+                        scriptFilename = "CalibrationCommands.txt";
+                    }
+                }
+            }
+            return false;
         }
-        */
+        
     }
 
 }
