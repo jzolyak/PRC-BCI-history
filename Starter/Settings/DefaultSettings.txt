@@ -1,30 +1,29 @@
 ShowDemoVideo=false
 Version=Brain-Computer Interface - MVP.Beta.v1.0.1
-Calibration;Category3;user;key2=value2;
-Calibration;Category3;user;key3=value3;
-Calibration;Category3;system;key4=value4;
-Calibration;ModeControl;user;NumFlashSeqPerTarget=7;
-Calibration;ModeControl;user;ScriptFilename=CalibrationCommands.txt;
-Prediction;Category1;user;key1=value1;
-Prediction;Category1;user;key2=value2;
-Prediction;Category1;user;key3=value3;
-Prediction;Category1;user;key4=value4;
-Prediction;Category2;user;key1=value1;
-Prediction;Category2;user;key2=value2;
-Prediction;Category2;user;key3=value3;
-Prediction;Category2;user;key4=value4;
-Prediction;Category3;user;key1=value1;
-Prediction;Category3;user;key2=value2;
-Prediction;Category3;user;key3=value3;
-Prediction;Category3;system;key4=value4;
-Validation;ValidCat1;user;key1=value1;
-Validation;ValidCat1;user;key2=value2;
-Validation;ValidCat1;user;key3=value3;
-Validation;ValidCat1;user;key4=value4;
-Validation;ValidCat2;user;key1=value1;
-Validation;ValidCat2;user;key2=value2;
-Validation;ValidCat2;user;key3=value3;
-Validation;ValidCat2;user;key4=value4;
-Flash;FlashAppearance;user;flashColor=brown
-Flash;FlashAppearance;user;highlightcolor=red
-Flash;FlashTiming;user;TimeBetweenTargets=4
+Calibration;ModeControl;user;scriptFilename = CalibrationCommands.txt
+Calibration;ModeControl;user;numFlashSeqPerTarget = 15		
+
+Calibration;TargetAppearance;user;borderColor = red			
+Calibration;TargetAppearance;user;borderWidth = 3			
+
+FlashStimulus;FlashAppearance;user;borderColor = yellow		
+FlashStimulus;FlashAppearance;user;borderWidth = 3			
+FlashStimulus;FlashAppearance;user;flashType = monoColor	
+FlashStimulus;FlashAppearance;user;monoFlashColor = brown	
+FlashStimulus;FlashAppearance;user;patternFilename = PictureList.txt
+
+FlashStimulus;FlashTiming;user;timeToFindTarget = 2			
+FlashStimulus;FlashTiming;user;timeBetweenTargets = 4		
+
+Prediction;PredictionCriteria;user;highestTopScores = 4		
+Prediction;PredictionCriteria;user;winCountThreshold = 3
+Prediction;PredictionCriteria;user;predictScoreThreold = 5
+
+Prediction;DecisionLogic;user;scoringMethod = 1				
+Prediction;DecisionLogic;user;stoppingMethod = 1			 
+Prediction;DecisionLogic;user;finalDecisionType = 1			 
+Prediction;DecisionLogic;user;maxNumFlashSequences = 15		
+Prediction;DecisionLogic;user;scoringWindowLength = 6		
+
+Prediction;Abstention;user;abstentionMessageEnabled = 0		
+Prediction;Abstention;user;autoPauseAbstentionCount = 5		

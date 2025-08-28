@@ -34,9 +34,9 @@ namespace CoreServices.Presets
             DecisionLogicPresets = new DecisionLogicPresets();
             AbstentionPresets = new AbstentionPresets();
 
-            //PredictionCriteriaPresets.RetreiveSettings(presetsService.GetSettings(Constants.Flash, "PredictionCriteria"));
-            //DecisionLogicPresets.RetreiveSettings(presetsService.GetSettings(Constants.Flash, "DecisionLogic"));
-            //AbstentionPresets.RetreiveSettings(presetsService.GetSettings(Constants.Flash, "Abstention"));
+            PredictionCriteriaPresets.RetreiveSettings(presetsService.GetSettings(Constants.Prediction, "PredictionCriteria"));
+            DecisionLogicPresets.RetreiveSettings(presetsService.GetSettings(Constants.Prediction, "DecisionLogic"));
+            AbstentionPresets.RetreiveSettings(presetsService.GetSettings(Constants.Prediction, "Abstention"));
         }
     }
 
@@ -53,9 +53,49 @@ namespace CoreServices.Presets
             predictScoreThreshold = 5000;           // Default=5000, Range={3000, 8000}, accum weighted score criteria before make prediction
         }
 
-        //public bool RetreiveSettings(Dictionary<string,string> settings)
-        //{
-        //}
+        public bool RetreiveSettings(Dictionary<string, string> settings)
+        {
+            if (settings == null) return false;
+            foreach (KeyValuePair<string, string> kvp in settings)
+            {
+                if(string.IsNullOrEmpty(kvp.Key)) continue;
+
+                if(kvp.Key.ToLower() == "user;highesttopscores")
+                {
+                    try
+                    {
+                        highestTopScores = (int)Enum.Parse(typeof(int), kvp.Value);
+                    }
+                    catch(Exception ex)
+                    {
+                        highestTopScores = 4;
+                    }
+                }
+                if (kvp.Key.ToLower() == "user;wincountthreshold")
+                {
+                    try
+                    {
+                        winCountForSelection = (int)Enum.Parse(typeof(int), kvp.Value);
+                    }
+                    catch (Exception ex)
+                    {
+                        winCountForSelection = 3;
+                    }
+                }
+                if (kvp.Key.ToLower() == "user;predictscorethreold")
+                {
+                    try
+                    {
+                        predictScoreThreshold = (int)Enum.Parse(typeof(int), kvp.Value);
+                    }
+                    catch (Exception ex)
+                    {
+                        predictScoreThreshold = 5000;
+                    }
+                }
+            }
+            return false;
+        }
     }
 
     public class DecisionLogicPresets
@@ -80,27 +120,136 @@ namespace CoreServices.Presets
             scoringWindowLength = 6;                            // Default=6, Range={1, 15}, num flash seq used in sliding window to computing accum score 
         }
 
-        //public bool RetreiveSettings(Dictionary<string, string> settings)
-        //{
-        //}
+        public bool RetreiveSettings(Dictionary<string, string> settings)
+        {
+            if (settings == null) return false;
+
+            bool updated = false;
+
+            foreach (var kvp in settings)
+            {
+                if (string.IsNullOrWhiteSpace(kvp.Key)) continue;
+
+                switch (kvp.Key.ToLowerInvariant())
+                {
+                    case "user;scoringmethod":
+                        if (Enum.TryParse(kvp.Value, true, out ScoringMethod sm))
+                        {
+                            scoringMethod = sm;
+                            updated = true;
+                        }
+                        else
+                        {
+                            scoringMethod = ScoringMethod.StimulusCode; // default
+                        }
+                        break;
+
+                    case "user;stoppingmethod":
+                        if (Enum.TryParse(kvp.Value, true, out StoppingMethod stop))
+                        {
+                            stoppingMethod = stop;
+                            updated = true;
+                        }
+                        else
+                        {
+                            stoppingMethod = StoppingMethod.DynamicStopping; // default
+                        }
+                        break;
+
+                    case "user;finaldecisiontype":
+                        if (Enum.TryParse(kvp.Value, true, out DecisionMethod dm))
+                        {
+                            finalDecisionType = dm;
+                            updated = true;
+                        }
+                        else
+                        {
+                            finalDecisionType = DecisionMethod.Abstention; // default
+                        }
+                        break;
+
+                    case "user;maxnumflashsequences":
+                        if (int.TryParse(kvp.Value, out int maxSeq))
+                        {
+                            maxNumFlashSequences = maxSeq;
+                            updated = true;
+                        }
+                        else
+                        {
+                            maxNumFlashSequences = 15; // reset default if parsing fails
+                        }
+                        break;
+
+                    case "user;scoringwindowlength":
+                        if (int.TryParse(kvp.Value, out int winLen))
+                        {
+                            scoringWindowLength = winLen;
+                            updated = true;
+                        }
+                        else
+                        {
+                            scoringWindowLength = 6; // default
+                        }
+                        break;
+                }
+            }
+
+            return updated;
+        }
     }
 
     public class AbstentionPresets
     {
-        public int abstentionMessageEnabled { get; set; }
-        public int autoPauseAbstentionCount { get; set; }
+        public int AbstentionMessageEnabled { get; set; }
+        public int AutoPauseAbstentionCount { get; set; }
 
         public AbstentionPresets()
         {
-            abstentionMessageEnabled = 0;           // Default=0, Range={0, 1}, Enable popup message (=1) to appear when no prediction is detected
-            autoPauseAbstentionCount = 5;           // Default=5, Range={5, 15},Number of consecutive abstentions before switch to AutoPause mode
+            AbstentionMessageEnabled = 0;   // Default=0: disables popup message
+            AutoPauseAbstentionCount = 5;   // Default=5: consecutive abstentions before AutoPause
         }
 
-        /*
         public bool RetreiveSettings(Dictionary<string, string> settings)
         {
+            if (settings == null) return false;
+
+            bool updated = false;
+
+            foreach (var kvp in settings)
+            {
+                if (string.IsNullOrWhiteSpace(kvp.Key)) continue;
+
+                switch (kvp.Key.ToLowerInvariant())
+                {
+                    case "user;abstentionmessageenabled":
+                        if (int.TryParse(kvp.Value, out int messageEnabled))
+                        {
+                            AbstentionMessageEnabled = messageEnabled;
+                            updated = true;
+                        }
+                        else
+                        {
+                            AbstentionMessageEnabled = 0; // reset to default
+                        }
+                        break;
+
+                    case "user;autopauseabstentioncount":
+                        if (int.TryParse(kvp.Value, out int pauseCount))
+                        {
+                            AutoPauseAbstentionCount = pauseCount;
+                            updated = true;
+                        }
+                        else
+                        {
+                            AutoPauseAbstentionCount = 5; // reset to default
+                        }
+                        break;
+                }
+            }
+
+            return updated;
         }
-        */
     }
+
 
 }
