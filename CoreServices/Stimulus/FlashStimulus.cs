@@ -36,7 +36,7 @@ namespace CoreServices.Stimulus
             flashStimulusPresets = FlashStimulusPresets.Instance;
             calibrationPresets = CalibrationPresets.Instance;
             //_buttonsImageFileNam = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\Settings\\buttonImagesNmae.txt";
-            _buttonsImageFileNam = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\BCI\\Settings\\buttonImagesNmae.txt";
+            _buttonsImageFileNam = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\buttonImagesNmae.txt";
             LoadButtonIamgesFile(_buttonsImageFileNam);
 
 
