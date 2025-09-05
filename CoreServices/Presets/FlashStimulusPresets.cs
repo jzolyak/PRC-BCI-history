@@ -1,25 +1,20 @@
 ﻿using CoreServices.Common;
 using CoreServices.Models;
 using CoreServices.Stimulus;
-using CoreServices.Presets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CoreServices.Presets
 {
-    public class FlashStimulusPresets
+    public class FlashStimulusPresets : BasePresets
     {
-        private static FlashStimulusPresets flashStimulusPresets;
+        private static readonly Lazy<FlashStimulusPresets> instance =
+            new Lazy<FlashStimulusPresets>(() => new FlashStimulusPresets());
 
-        private PresetsService presetsService;
+        //private readonly PresetsService presetsService;
 
-        public static FlashStimulusPresets Instance
-        {
-            get { if (flashStimulusPresets == null) { flashStimulusPresets = new FlashStimulusPresets(); } return flashStimulusPresets; }
-        }
+        public static FlashStimulusPresets Instance => instance.Value;
 
         // Flash Stimulus preset categories
         public FlashAppearancePresets FlashAppearancePresets { get; private set; }
@@ -27,78 +22,117 @@ namespace CoreServices.Presets
 
         private FlashStimulusPresets()
         {
-            presetsService = PresetsService.Instance;
             FlashAppearancePresets = new FlashAppearancePresets();
             FlashTimingPresets = new FlashTimingPresets();
+            // Load initial presets
+            LoadPresets();
+        }
 
-            FlashAppearancePresets.RetreiveSettings(presetsService.GetSettings(Constants.Flash, "FlashAppearance"));
+        protected override void LoadPresets()
+        {
+            var appearanceSettings = presetsService.GetSettings(Constants.FlashStimulus, "FlashAppearance");
+            FlashAppearancePresets.RetreiveSettings(appearanceSettings);
 
-            // Sekhar???  Don't we need a RetrieveSettings() method for timing presets???
-            // FlashTimingPresets.RetreiveSettings(presetsService.GetSettings(Constants.Flash, "FlashTiming"));
+            var timingSettings = presetsService.GetSettings(Constants.FlashStimulus, "FlashTiming");
+            FlashTimingPresets.RetreiveSettings(timingSettings);
         }
     }
 
     public class FlashAppearancePresets
     {
-        public enum FlashType : int { MonoColored = 0, ColoredPattern = 1, PicturePattern = 2 };
-
-        //public CustomBrushes HighLightON_BorderBrush { get; set; }    // DELETE THIS HERE! THIS PRESET BELONGS TO CALIBRATION PRESETS!
+        public enum FlashType : int { MonoColored = 0, ColoredPattern = 1, PicturePattern = 2 }
 
         public CustomBrushes FlashON_BorderBrush { get; set; }
         public CustomBrushes FlashON_BackgroundBrush { get; set; }
-
-        public int borderWidth { get; set; }                    // Sekar: Can this be a preset or must it be a constant in XAML page?
+        public int borderWidth { get; set; }
         public FlashType flashType { get; set; }
-        public String patternFilename { get; set; }
+        public string patternFilename { get; set; }
 
         public FlashAppearancePresets()
         {
-            //HighLightON_BorderBrush = CustomBrushes.Red;      // DELETE THIS HERE! THIS PRESET BELONGS TO CALIBRATION PRESETS!
-
             FlashON_BackgroundBrush = CustomBrushes.Brown;
             FlashON_BorderBrush = CustomBrushes.Yellow;
-
-            borderWidth = 3;                                    // Default=3, Range={3, 7}, Size in pixels
-            flashType = FlashType.MonoColored;                  // Default=MonoColored, Range={monoColor, colorPattern, picturePattern}
-            patternFilename = "PictureList.txt";                // Default=PictureList.txt, Range={any text string for filename containing pictures}
+            borderWidth = 3;
+            flashType = FlashType.MonoColored;
+            patternFilename = "PictureList.txt";
         }
 
-        public bool RetreiveSettings(Dictionary<string,string> settings)
+        public bool RetreiveSettings(Dictionary<string, string> settings)
         {
-            if (settings == null) return false;
+            if (settings == null || settings.Count == 0)
+                return false;
 
-            foreach (KeyValuePair<string,string> kvp in settings)
+            bool updated = false;
+
+            foreach (var kvp in settings)
             {
-                if (string.IsNullOrEmpty(kvp.Key)) continue;
+                if (string.IsNullOrWhiteSpace(kvp.Key))
+                    continue;
 
-                if (kvp.Key.ToLower() == "user;flashcolor")
-                {
-                    try
-                    {
-                        FlashON_BackgroundBrush = (CustomBrushes)Enum.Parse(typeof(CustomBrushes), kvp.Value);
-                    }
-                    catch(Exception ex)
-                    {
-                        FlashON_BackgroundBrush = CustomBrushes.Brown;
-                    }
-                }
+                string key = kvp.Key.Trim().ToLower();
+                string rawValue = kvp.Value?.Trim() ?? string.Empty;
+                string cleanValue = rawValue.Split(';')[0]; // strip domain metadata if present
 
-                /*
-                if (kvp.Key.ToLower() == "user;highlightcolor")     // DELETE THIS HERE! THIS PRESET BELONGS TO CALIBRATION PRESETS!
+                switch (key)
                 {
-                    try
-                    {
-                        HighLightON_BorderBrush = (CustomBrushes)Enum.Parse(typeof(CustomBrushes), kvp.Value);
-                    }
-                    catch (Exception ex)
-                    {
-                        HighLightON_BorderBrush = CustomBrushes.Red;
-                    }
+                    case "user;monoflashcolor":
+                        if (Enum.TryParse(cleanValue, true, out CustomBrushes monoBrush))
+                        {
+                            FlashON_BackgroundBrush = monoBrush;
+                            updated = true;
+                        }
+                        else
+                        {
+                            FlashON_BackgroundBrush = CustomBrushes.Brown; // fallback
+                        }
+                        break;
+
+                    case "user;bordercolor":
+                        if (Enum.TryParse(cleanValue, true, out CustomBrushes borderBrush))
+                        {
+                            FlashON_BorderBrush = borderBrush;
+                            updated = true;
+                        }
+                        else
+                        {
+                            FlashON_BorderBrush = CustomBrushes.Yellow; // fallback
+                        }
+                        break;
+
+                    case "user;borderwidth":
+                        if (int.TryParse(cleanValue, out int width) && width > 0)
+                        {
+                            borderWidth = width;
+                            updated = true;
+                        }
+                        else
+                        {
+                            borderWidth = 3; // fallback
+                        }
+                        break;
+
+                    case "user;flashtype":
+                        if (Enum.TryParse(cleanValue, true, out FlashType fType))
+                        {
+                            flashType = fType;
+                            updated = true;
+                        }
+                        else
+                        {
+                            flashType = FlashType.MonoColored; // fallback
+                        }
+                        break;
+
+                    case "user;patternfilename":
+                        patternFilename = cleanValue;
+                        updated = true;
+                        break;
                 }
-                */
             }
-            return false;
+
+            return updated;
         }
+
     }
 
     public class FlashTimingPresets
@@ -108,23 +142,49 @@ namespace CoreServices.Presets
 
         public FlashTimingPresets()
         {
-            timeToFindTarget = 2;           // Default=2, Range={2, 5}, Time delay in sec to locate next target
-            timeBetweenTargets = 4;         // Default=4, Range={2, 5}, Time delay in sec before start of next selection
+            timeToFindTarget = 2;
+            timeBetweenTargets = 4;
         }
 
-        /*
-        public bool UpdateBackgroundBrush(String name)      // DOES THIS REALLY BELONG HERE AT ALL? If not, remove
-        {
-            return true;
-        }
-        */
-
-        /*
         public bool RetreiveSettings(Dictionary<string, string> settings)
         {
+            if (settings == null) return false;
+
+            bool updated = false;
+
+            foreach (var kvp in settings)
+            {
+                if (string.IsNullOrWhiteSpace(kvp.Key)) continue;
+
+                switch (kvp.Key.ToLower())
+                {
+                    case "user;timetofindtarget":
+                        try
+                        {
+                            timeToFindTarget = Convert.ToInt32(kvp.Value);
+                            updated = true;
+                        }
+                        catch
+                        {
+                            timeToFindTarget = 2;
+                        }
+                        break;
+
+                    case "user;timebetweentargets":
+                        try
+                        {
+                            timeBetweenTargets = Convert.ToInt32(kvp.Value);
+                            updated = true;
+                        }
+                        catch
+                        {
+                            timeBetweenTargets = 4;
+                        }
+                        break;
+                }
+            }
+
+            return updated;
         }
-        */
-
     }
-
 }

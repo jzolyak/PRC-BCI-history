@@ -3,22 +3,23 @@ using CoreServices.Models;
 using CoreServices.Stimulus;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-//using static CoreServices.Presets.PredictionPresets;
 
 namespace CoreServices.Presets
 {
-    public class PredictionPresets
+    public class PredictionPresets: BasePresets
     {
         private static PredictionPresets predictionPresets;
 
-        private PresetsService presetsService;
-
         public static PredictionPresets Instance
         {
-            get { if (predictionPresets == null) { predictionPresets = new PredictionPresets(); } return predictionPresets; }
+            get
+            {
+                if (predictionPresets == null)
+                {
+                    predictionPresets = new PredictionPresets();
+                }
+                return predictionPresets;
+            }
         }
 
         // Prediction preset categories
@@ -26,17 +27,24 @@ namespace CoreServices.Presets
         public DecisionLogicPresets DecisionLogicPresets { get; private set; }
         public AbstentionPresets AbstentionPresets { get; private set; }
 
-        public PredictionPresets()
+        private PredictionPresets()
         {
-            presetsService = PresetsService.Instance;
-
             PredictionCriteriaPresets = new PredictionCriteriaPresets();
             DecisionLogicPresets = new DecisionLogicPresets();
             AbstentionPresets = new AbstentionPresets();
 
-            PredictionCriteriaPresets.RetreiveSettings(presetsService.GetSettings(Constants.Prediction, "PredictionCriteria"));
-            DecisionLogicPresets.RetreiveSettings(presetsService.GetSettings(Constants.Prediction, "DecisionLogic"));
-            AbstentionPresets.RetreiveSettings(presetsService.GetSettings(Constants.Prediction, "Abstention"));
+            // Load initial settings
+            LoadPresets();
+        }
+
+        protected override void LoadPresets()
+        {
+            PredictionCriteriaPresets.RetreiveSettings(
+                presetsService.GetSettings(Constants.Prediction, "PredictionCriteria"));
+            DecisionLogicPresets.RetreiveSettings(
+                presetsService.GetSettings(Constants.Prediction, "DecisionLogic"));
+            AbstentionPresets.RetreiveSettings(
+                presetsService.GetSettings(Constants.Prediction, "Abstention"));
         }
     }
 
@@ -48,62 +56,61 @@ namespace CoreServices.Presets
 
         public PredictionCriteriaPresets()
         {
-            highestTopScores = 4;                   // Default=4, Range={2, 4}, num of highest scores to search for row/col intersection
-            winCountForSelection = 3;               // Default=3, Range={1, maxNumFlashSeq}, num times keyID meets criteria before make prediction
-            predictScoreThreshold = 5000;           // Default=5000, Range={3000, 8000}, accum weighted score criteria before make prediction
+            highestTopScores = 4;
+            winCountForSelection = 3;
+            predictScoreThreshold = 5000;
         }
 
         public bool RetreiveSettings(Dictionary<string, string> settings)
         {
             if (settings == null) return false;
-            foreach (KeyValuePair<string, string> kvp in settings)
-            {
-                if(string.IsNullOrEmpty(kvp.Key)) continue;
 
-                if(kvp.Key.ToLower() == "user;highesttopscores")
+            bool updated = false;
+
+            foreach (var kvp in settings)
+            {
+                if (string.IsNullOrWhiteSpace(kvp.Key)) continue;
+
+                switch (kvp.Key.ToLowerInvariant())
                 {
-                    try
-                    {
-                        highestTopScores = (int)Enum.Parse(typeof(int), kvp.Value);
-                    }
-                    catch(Exception ex)
-                    {
-                        highestTopScores = 4;
-                    }
-                }
-                if (kvp.Key.ToLower() == "user;wincountthreshold")
-                {
-                    try
-                    {
-                        winCountForSelection = (int)Enum.Parse(typeof(int), kvp.Value);
-                    }
-                    catch (Exception ex)
-                    {
-                        winCountForSelection = 3;
-                    }
-                }
-                if (kvp.Key.ToLower() == "user;predictscorethreold")
-                {
-                    try
-                    {
-                        predictScoreThreshold = (int)Enum.Parse(typeof(int), kvp.Value);
-                    }
-                    catch (Exception ex)
-                    {
-                        predictScoreThreshold = 5000;
-                    }
+                    case "user;highesttopscores":
+                        if (int.TryParse(kvp.Value, out int topScores))
+                        {
+                            highestTopScores = topScores;
+                            updated = true;
+                        }
+                        else highestTopScores = 4;
+                        break;
+
+                    case "user;wincountthreshold":
+                        if (int.TryParse(kvp.Value, out int winCount))
+                        {
+                            winCountForSelection = winCount;
+                            updated = true;
+                        }
+                        else winCountForSelection = 3;
+                        break;
+
+                    case "user;predictscorethreold":
+                        if (int.TryParse(kvp.Value, out int threshold))
+                        {
+                            predictScoreThreshold = threshold;
+                            updated = true;
+                        }
+                        else predictScoreThreshold = 5000;
+                        break;
                 }
             }
-            return false;
+
+            return updated;
         }
     }
 
     public class DecisionLogicPresets
     {
-        // Define enumerated types used in Prediction preset configuration.
-        public enum ScoringMethod : int { KeyID = 0, StimulusCode = 1 };
-        public enum StoppingMethod : int { FixedNumberOfSequences = 0, DynamicStopping = 1 };
-        public enum DecisionMethod : int { Forced = 0, Abstention = 1 };
+        public enum ScoringMethod : int { KeyID = 0, StimulusCode = 1 }
+        public enum StoppingMethod : int { FixedNumberOfSequences = 0, DynamicStopping = 1 }
+        public enum DecisionMethod : int { Forced = 0, Abstention = 1 }
 
         public ScoringMethod scoringMethod { get; set; }
         public StoppingMethod stoppingMethod { get; set; }
@@ -113,11 +120,11 @@ namespace CoreServices.Presets
 
         public DecisionLogicPresets()
         {
-            scoringMethod = ScoringMethod.StimulusCode;         // Default=1, Range={KeyID = 0, StimulusCode = 1} 
-            stoppingMethod = StoppingMethod.DynamicStopping;    // Default=1, Range={FixedNumberOfSequences = 0, DynamicStopping = 1} 
-            finalDecisionType = DecisionMethod.Abstention;      // Default=1, Range={Forced = 0, Abstention = 1}, what to do if win total not met
-            maxNumFlashSequences = 15;                          // Default=15, Range={1, 15}, max flash sequences before final decision is made
-            scoringWindowLength = 6;                            // Default=6, Range={1, 15}, num flash seq used in sliding window to computing accum score 
+            scoringMethod = ScoringMethod.StimulusCode;
+            stoppingMethod = StoppingMethod.DynamicStopping;
+            finalDecisionType = DecisionMethod.Abstention;
+            maxNumFlashSequences = 15;
+            scoringWindowLength = 6;
         }
 
         public bool RetreiveSettings(Dictionary<string, string> settings)
@@ -135,61 +142,41 @@ namespace CoreServices.Presets
                     case "user;scoringmethod":
                         if (Enum.TryParse(kvp.Value, true, out ScoringMethod sm))
                         {
-                            scoringMethod = sm;
-                            updated = true;
+                            scoringMethod = sm; updated = true;
                         }
-                        else
-                        {
-                            scoringMethod = ScoringMethod.StimulusCode; // default
-                        }
+                        else scoringMethod = ScoringMethod.StimulusCode;
                         break;
 
                     case "user;stoppingmethod":
                         if (Enum.TryParse(kvp.Value, true, out StoppingMethod stop))
                         {
-                            stoppingMethod = stop;
-                            updated = true;
+                            stoppingMethod = stop; updated = true;
                         }
-                        else
-                        {
-                            stoppingMethod = StoppingMethod.DynamicStopping; // default
-                        }
+                        else stoppingMethod = StoppingMethod.DynamicStopping;
                         break;
 
                     case "user;finaldecisiontype":
                         if (Enum.TryParse(kvp.Value, true, out DecisionMethod dm))
                         {
-                            finalDecisionType = dm;
-                            updated = true;
+                            finalDecisionType = dm; updated = true;
                         }
-                        else
-                        {
-                            finalDecisionType = DecisionMethod.Abstention; // default
-                        }
+                        else finalDecisionType = DecisionMethod.Abstention;
                         break;
 
                     case "user;maxnumflashsequences":
                         if (int.TryParse(kvp.Value, out int maxSeq))
                         {
-                            maxNumFlashSequences = maxSeq;
-                            updated = true;
+                            maxNumFlashSequences = maxSeq; updated = true;
                         }
-                        else
-                        {
-                            maxNumFlashSequences = 15; // reset default if parsing fails
-                        }
+                        else maxNumFlashSequences = 15;
                         break;
 
                     case "user;scoringwindowlength":
                         if (int.TryParse(kvp.Value, out int winLen))
                         {
-                            scoringWindowLength = winLen;
-                            updated = true;
+                            scoringWindowLength = winLen; updated = true;
                         }
-                        else
-                        {
-                            scoringWindowLength = 6; // default
-                        }
+                        else scoringWindowLength = 6;
                         break;
                 }
             }
@@ -205,8 +192,8 @@ namespace CoreServices.Presets
 
         public AbstentionPresets()
         {
-            AbstentionMessageEnabled = 0;   // Default=0: disables popup message
-            AutoPauseAbstentionCount = 5;   // Default=5: consecutive abstentions before AutoPause
+            AbstentionMessageEnabled = 0;
+            AutoPauseAbstentionCount = 5;
         }
 
         public bool RetreiveSettings(Dictionary<string, string> settings)
@@ -224,25 +211,17 @@ namespace CoreServices.Presets
                     case "user;abstentionmessageenabled":
                         if (int.TryParse(kvp.Value, out int messageEnabled))
                         {
-                            AbstentionMessageEnabled = messageEnabled;
-                            updated = true;
+                            AbstentionMessageEnabled = messageEnabled; updated = true;
                         }
-                        else
-                        {
-                            AbstentionMessageEnabled = 0; // reset to default
-                        }
+                        else AbstentionMessageEnabled = 0;
                         break;
 
                     case "user;autopauseabstentioncount":
                         if (int.TryParse(kvp.Value, out int pauseCount))
                         {
-                            AutoPauseAbstentionCount = pauseCount;
-                            updated = true;
+                            AutoPauseAbstentionCount = pauseCount; updated = true;
                         }
-                        else
-                        {
-                            AutoPauseAbstentionCount = 5; // reset to default
-                        }
+                        else AutoPauseAbstentionCount = 5;
                         break;
                 }
             }
@@ -250,6 +229,4 @@ namespace CoreServices.Presets
             return updated;
         }
     }
-
-
 }

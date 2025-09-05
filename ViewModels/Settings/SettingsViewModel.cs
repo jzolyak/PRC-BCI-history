@@ -31,7 +31,7 @@ namespace ViewModels.Settings
             _groupingsCollection.Add( new SettingGroupViewModel(openCommandAction,"Calibration", Constants.CalibrationSettings));
             _groupingsCollection.Add(new SettingGroupViewModel(openCommandAction, "Prediction", Constants.PredictionSettings));
             _groupingsCollection.Add(new SettingGroupViewModel(openCommandAction, "Validation", Constants.ValidationSettings));
-            _groupingsCollection.Add(new SettingGroupViewModel(openCommandAction, "Flash Stimulus", Constants.FlashSettings));
+            _groupingsCollection.Add(new SettingGroupViewModel(openCommandAction, "FlashStimulus", Constants.FlashSettings));
             _groupingsCollection.Add(new SettingGroupViewModel(openCommandAction, "Connectivity", Constants.ConnectivitySettings));
             _groupingsCollection.Add(new SettingGroupViewModel(openCommandAction, "Miscellaneous", Constants.MiscSettings));
             _groupingsCollection.Add(new SettingGroupViewModel(openCommandAction, "System", Constants.SystemSettings));

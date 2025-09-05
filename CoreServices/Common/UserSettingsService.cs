@@ -1,4 +1,5 @@
 ﻿using CoreServices.Files;
+using CoreServices.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -17,6 +18,7 @@ namespace CoreServices.Common
         private string _settingsFilePath;
         private static UserSettingsService instance;
 
+        public event EventHandler<EventArgs> UserSettingsChanged;
         public static UserSettingsService Instance
         { get { if (instance == null) { instance = new UserSettingsService(); } return instance; } }
         public UserSettingsService()
@@ -90,6 +92,8 @@ namespace CoreServices.Common
                 _userSettings.TryAdd(key, value);
                 File.AppendAllLines(_settingsFileName, new string[] { (key + "=" + value) });
             }
+            UserSettingsChanged?.Invoke(this, EventArgs.Empty);
+            //UserSettingsChanged(this,EventArgs.Empty);
         }
 
         public string GetSettingsValue(string key)

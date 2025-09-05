@@ -33,6 +33,8 @@ namespace CoreServices.Models
         public static readonly string LoggingSettings = "LoggingSettings";
         public static readonly string Help = "Help";
         public static readonly string Settings = "Settings";
+        public static readonly string FlashStimulus = "FlashStimulus";
+        
 
         public const string Connected = "Connected";
         public const string NotConnected = "NotConnected";

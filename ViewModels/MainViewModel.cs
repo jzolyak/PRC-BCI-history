@@ -165,7 +165,7 @@ namespace ViewModels
             else if (mode == Constants.PredictionSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Prediction); CurrentViewModel = _settingsDetailViewModel; }
             else if (mode == Constants.ValidationSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Validation); CurrentViewModel = _settingsDetailViewModel; }
             else if (mode == Constants.MiscSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Misc); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.FlashSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Flash); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.FlashSettings) { _settingsDetailViewModel.UpdateGroup(Constants.FlashStimulus); CurrentViewModel = _settingsDetailViewModel; }
             else if (mode == Constants.LoggingSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Logging); CurrentViewModel = _settingsDetailViewModel; }
             else if (mode == Constants.SystemSettings) { _settingsDetailViewModel.UpdateGroup(Constants.System); CurrentViewModel = _settingsDetailViewModel; }
 

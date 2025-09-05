@@ -17,7 +17,7 @@ namespace CoreServices.Presets
         private string _settingsFilePath;
         private static PresetsService instance;
         public Dictionary<string, List<string>> GetAllDomains() => _domains;
-
+        public event EventHandler<EventArgs> PresetsSettingsChanged;
         public static PresetsService Instance
         { get { if (instance == null) { instance = new PresetsService(); } return instance; } }
         public PresetsService()
@@ -89,7 +89,7 @@ namespace CoreServices.Presets
                 _presets[grouping][category].AddOrUpdate(
                     dictKey,
                     value,                                      // if new
-                    (k, oldVal) => oldVal + "|" + value         // if exists, append
+                    (k, oldVal) => value         // if exists, append
                 );
             }
         }
@@ -126,6 +126,7 @@ namespace CoreServices.Presets
             }
 
             File.WriteAllLines(_settingsFileName, allLines);
+            PresetsSettingsChanged?.Invoke(this, EventArgs.Empty);
         }
 
 

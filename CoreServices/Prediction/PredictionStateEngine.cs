@@ -158,8 +158,10 @@ namespace CoreServices.Prediction
             // Temporarily use the constructor to assign default value for each preset until
             // we can fetch the real preset configuration values from a stored file.
 
-            PredictionPresets predictionConfiguration = new Presets.PredictionPresets();
+            //PredictionPresets predictionConfiguration = new Presets.PredictionPresets();
+            var predictionPresets = PredictionPresets.Instance;  
 
+            PredictionPresets predictionConfiguration = predictionPresets;
             //string currentDirectory = Directory.GetCurrentDirectory();
             //string coefficientFilename = "WeightCoefficients.coef";
 

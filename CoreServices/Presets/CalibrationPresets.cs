@@ -9,11 +9,10 @@ using System.Threading.Tasks;
 
 namespace CoreServices.Presets
 {
-    public class CalibrationPresets
+    public class CalibrationPresets:BasePresets
     {
         private static CalibrationPresets calibrationPresets;
 
-        private PresetsService presetsService;
 
         public static CalibrationPresets Instance
         {
@@ -26,13 +25,21 @@ namespace CoreServices.Presets
 
         private CalibrationPresets()
         {
-            presetsService = PresetsService.Instance;
             TargetAppearancePresets = new TargetAppearancePresets();
             ModeControlPresets = new ModeControlPresets();
-
-            TargetAppearancePresets.RetreiveSettings(presetsService.GetSettings(Constants.Calibration, "TargetAppearance"));
-            ModeControlPresets.RetreiveSettings(presetsService.GetSettings(Constants.Calibration, "ModeControl"));
+            // Load initial settings
+            LoadPresets();
         }
+        
+        protected override void LoadPresets()
+        {
+            var targetAppearanceSettings = presetsService.GetSettings(Constants.Calibration, "TargetAppearance");
+            var modeControlSettings = presetsService.GetSettings(Constants.Calibration, "ModeControl");
+
+            TargetAppearancePresets.RetreiveSettings(targetAppearanceSettings);
+            ModeControlPresets.RetreiveSettings(modeControlSettings);
+        }
+
     }
 
     public class TargetAppearancePresets
@@ -48,39 +55,55 @@ namespace CoreServices.Presets
             borderWidth = 3;                                // Default=3, Range={3, 7}, Size in pixels
         }
 
-        public bool RetreiveSettings(Dictionary<string,string> settings)
+        public bool RetreiveSettings(Dictionary<string, string> settings)
         {
-            if (settings == null) return false;
+            if (settings == null || settings.Count == 0)
+                return false;
 
-            foreach (KeyValuePair<string,string> kvp in settings)
+            bool updated = false;
+
+            foreach (var kvp in settings)
             {
-                if (string.IsNullOrEmpty(kvp.Key)) continue;
-                
-                if (kvp.Key.ToLower() == "user;highlightcolor")
+                if (string.IsNullOrWhiteSpace(kvp.Key))
+                    continue;
+
+                // Normalize key for comparison
+                string key = kvp.Key.Trim();
+
+                // Clean the value → take only the part before ';'
+                string rawValue = kvp.Value?.Trim() ?? string.Empty;
+                string cleanValue = rawValue.Split(';')[0];
+
+                if (key.Equals("user;highlightcolor", StringComparison.OrdinalIgnoreCase))
                 {
-                    try
+                    if (Enum.TryParse(cleanValue, true, out CustomBrushes brush))
                     {
-                        HighLightON_BorderBrush = (CustomBrushes)Enum.Parse(typeof(CustomBrushes), kvp.Value);
+                        HighLightON_BorderBrush = brush;
+                        updated = true;
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        HighLightON_BorderBrush = CustomBrushes.Red;
+                        HighLightON_BorderBrush = CustomBrushes.Red; // fallback
                     }
                 }
-                if(kvp.Key.ToLower() == "user;borderWidth")
+                else if (key.Equals("user;borderwidth", StringComparison.OrdinalIgnoreCase))
                 {
-                    try
+                    if (int.TryParse(cleanValue, out int width) && width > 0)
                     {
-                        borderWidth = (int)Enum.Parse(typeof(int), kvp.Value);
+                        borderWidth = width;
+                        updated = true;
                     }
-                    catch(Exception ex)
+                    else
                     {
-                        borderWidth = 3;
+                        borderWidth = 3; // fallback
                     }
                 }
             }
-            return false;
+
+            return updated;
         }
+
+
     }
 
     public class ModeControlPresets    {
