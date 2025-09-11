@@ -18,7 +18,7 @@
 18 Kidman.png
 19 Hemsworth.png
 20 Parks.png
-21 Einstein Einstein.png
+21 Einstein.png
 22 Kidman.png
 23 Hemsworth.png
 24 Parks.png

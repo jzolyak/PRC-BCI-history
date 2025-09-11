@@ -17,7 +17,7 @@ FlashStimulus;FlashTiming;user;timeBetweenTargets = 4
 
 Prediction;PredictionCriteria;user;highestTopScores = 4		
 Prediction;PredictionCriteria;user;winCountThreshold = 3
-Prediction;PredictionCriteria;user;predictScoreThreold = 5
+Prediction;PredictionCriteria;user;predictScoreThreshold = 5000
 
 Prediction;DecisionLogic;user;scoringMethod = 1				
 Prediction;DecisionLogic;user;stoppingMethod = 1			 

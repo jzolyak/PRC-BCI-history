@@ -123,9 +123,16 @@ namespace CoreServices.Presets
                     // add new line if not found
                     allLines.Add(prefix + value);
                 }
+                if (_presets.TryGetValue(grouping, out var categories) &&
+              categories.TryGetValue(category, out var settings) &&
+              settings.TryGetValue(type + ";" + key, out var value1))
+                {
+                    settings.TryUpdate(type + ";" + key, value, value1);
+                }
             }
 
             File.WriteAllLines(_settingsFileName, allLines);
+
             PresetsSettingsChanged?.Invoke(this, EventArgs.Empty);
         }
 
