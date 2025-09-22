@@ -13,6 +13,7 @@
 
 	<ItemGroup>
 		<None Remove="Images\Anderson.png" />
+		<None Remove="Images\Azure.png" />
 		<None Remove="Images\Berry.png" />
 		<None Remove="Images\Boseman.png" />
 		<None Remove="Images\Einstein.png" />
@@ -36,6 +37,9 @@
 
 	<ItemGroup>
 		<Content Include="Images\Anderson.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Images\Azure.png">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 		<Content Include="Images\Berry.png">

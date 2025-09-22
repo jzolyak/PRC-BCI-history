@@ -96,7 +96,18 @@ namespace ViewModels.Settings
 
                 List<string>? domainValues = null;
                 if (!string.IsNullOrEmpty(selectedDomainKey))
+                {
                     domainValues = presetsService.GetDomainForKey(selectedDomainKey);
+
+                    // ✅ Fix 2: ensure case-insensitive match with domain values
+                    if (domainValues != null && selectedValue != null)
+                    {
+                        var match = domainValues
+                            .FirstOrDefault(v => v.Equals(selectedValue, StringComparison.OrdinalIgnoreCase));
+                        if (match != null)
+                            selectedValue = match; // use exact domain value so ComboBox selects correctly
+                    }
+                }
 
                 result.Add(new SettingsLineItemViewModel
                 {

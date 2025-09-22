@@ -86,11 +86,12 @@ namespace CoreServices.Presets
                 var value = settingStr.Substring(eqIndex + 1).Trim();
                 var dictKey = $"{type};{key}";
 
-                _presets[grouping][category].AddOrUpdate(
-                    dictKey,
-                    value,                                      // if new
-                    (k, oldVal) => value         // if exists, append
-                );
+                //_presets[grouping][category].AddOrUpdate(
+                //    dictKey,
+                //    value,                                      // if new
+                //    (k, oldVal) => value         // if exists, append
+                //);
+                _presets[grouping][category].TryAdd(dictKey, value);
             }
         }
 
@@ -99,42 +100,60 @@ namespace CoreServices.Presets
 
         public void SaveUserSettings(string grouping, string category, string type, Dictionary<string, string> newSettings)
         {
-            var allLines = File.Exists(_settingsFileName)
-                ? File.ReadAllLines(_settingsFileName).ToList()
-                : new List<string>();
+            // 1️⃣ Load default and user files into dictionaries
+            var defaultDict = File.Exists(_defaultSettingsFileName)
+                ? File.ReadAllLines(_defaultSettingsFileName)
+                      .Where(l => !string.IsNullOrWhiteSpace(l))
+                      .ToDictionary(
+                          l => l.Split('=')[0].Trim(),
+                          l => l.Substring(l.IndexOf('=') + 1).Trim())
+                : new Dictionary<string, string>();
 
+            var userDict = File.Exists(_settingsFileName)
+                ? File.ReadAllLines(_settingsFileName)
+                      .Where(l => !string.IsNullOrWhiteSpace(l))
+                      .ToDictionary(
+                          l => l.Split('=')[0].Trim(),
+                          l => l.Substring(l.IndexOf('=') + 1).Trim())
+                : new Dictionary<string, string>();
+
+            // 2️⃣ Update dictionaries
             foreach (var kvp in newSettings)
             {
-                string key = kvp.Key;
+                string key = $"{grouping};{category};{type};{kvp.Key}";
                 string value = kvp.Value;
 
-                string prefix = $"{grouping};{category};{type};{key}=";
-
-                // find existing line index
-                int index = allLines.FindIndex(line => line.StartsWith(prefix));
-
-                if (index >= 0)
+                if (defaultDict.ContainsKey(key))
                 {
-                    // update line
-                    allLines[index] = prefix + value;
+                    defaultDict[key] = value; // Update default
+                }
+                else if (userDict.ContainsKey(key))
+                {
+                    userDict[key] = value; // Update user
                 }
                 else
                 {
-                    // add new line if not found
-                    allLines.Add(prefix + value);
+                    userDict[key] = value; // Add to user if not found
                 }
+
+                // Update in-memory presets dictionary
                 if (_presets.TryGetValue(grouping, out var categories) &&
-              categories.TryGetValue(category, out var settings) &&
-              settings.TryGetValue(type + ";" + key, out var value1))
+                    categories.TryGetValue(category, out var settings))
                 {
-                    settings.TryUpdate(type + ";" + key, value, value1);
+                    settings.AddOrUpdate(key, value, (k, oldVal) => value);
                 }
             }
 
-            File.WriteAllLines(_settingsFileName, allLines);
+            // 3️⃣ Write back to files (all at once)
+            File.WriteAllLines(_defaultSettingsFileName,
+                defaultDict.Select(kvp => $"{kvp.Key}={kvp.Value}"));
+            File.WriteAllLines(_settingsFileName,
+                userDict.Select(kvp => $"{kvp.Key}={kvp.Value}"));
 
+            // 4️⃣ Notify
             PresetsSettingsChanged?.Invoke(this, EventArgs.Empty);
         }
+
 
 
 

@@ -1,9 +1,9 @@
 ShowDemoVideo=false
 Version=Brain-Computer Interface - MVP.Beta.v1.0.1
-Calibration;ModeControl;user;scriptFilename = CalibrationCommands.txt
+Calibration;ModeControl;user;scriptFilename = CalibrationCommands.txt;domain=scriptfiles
 Calibration;ModeControl;user;numFlashSeqPerTarget = 15		
 
-Calibration;TargetAppearance;user;borderColor = red			
+Calibration;TargetAppearance;user;borderColor = red;domain=hlcolor			
 Calibration;TargetAppearance;user;borderWidth = 3			
 
 FlashStimulus;FlashAppearance;user;borderColor = yellow		

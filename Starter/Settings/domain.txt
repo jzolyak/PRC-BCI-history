@@ -1,3 +1,4 @@
 yesno=yes;no;na;
 hloption=picture;border color;
-hlcolor=Transparent;Red,Green,Blue,Brown,Yellow,CornflowerBlue
+hlcolor=Transparent;Red,Green,Blue,Brown,Yellow,CornflowerBlue;
+scriptfiles=CalibrationCommands.txt;CalibrationNewCommands.txt
