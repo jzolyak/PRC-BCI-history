@@ -370,49 +370,53 @@ namespace CoreServices.SensorData
                             lastSampleIndex = sensorData.packetHeaderTable[readIndex].crossRefIndex;
                             readIndex = (++readIndex) & (PacketizedSensorData.HEADER_CIRC_BUF_LEN - 1);
 
-                            // Take a look at the stim code event at the front of the queue.
-                            queuedEvent = eventQueue.Peek();
-
-                            // Get the index into the sampleValues[] array associated with the packet
-                            // header for the event.
-                            startIndex = queuedEvent.eventStartHeaderIndex;
-                            firstSampleIndex = sensorData.packetHeaderTable[startIndex].crossRefIndex;
-
-                            // Determine the number of buffered sample values between now and start of event
-                            if (lastSampleIndex > firstSampleIndex)
+                            // Check if any events are still in the queue.
+                            if (eventQueue.Count != 0)
                             {
-                                numBufferedSamples = lastSampleIndex - firstSampleIndex;
-                            }
-                            else
-                            {   // Latest numBufferedSamplespacket data wrapped around to start of SampleValues[] array.
-                                numBufferedSamples = (PacketizedSensorData.SAMPLE_CIRC_BUF_LEN - firstSampleIndex) + lastSampleIndex;
-                            }
+                                // Take a look at the stim code event at the front of the queue.
+                                queuedEvent = eventQueue.Peek();
 
-                            // Decide what to do next based on the number of buffered samples.
-                            if (numBufferedSamples >= PRESET_WINDOW_LENGTH)
-                            {
-                                // Still need to compute scores for queued flash intervals
-                                if (eventQueue.Count() > 1)
+                                // Get the index into the sampleValues[] array associated with the packet
+                                // header for the event.
+                                startIndex = queuedEvent.eventStartHeaderIndex;
+                                firstSampleIndex = sensorData.packetHeaderTable[startIndex].crossRefIndex;
+
+                                // Determine the number of buffered sample values between now and start of event
+                                if (lastSampleIndex > firstSampleIndex)
                                 {
-                                    // Save location where we stopped search
-                                    eventFound = true;
-                                    sensorData.headerTableReadIndex = readIndex;
-
-                                    // Return queued event indicating it's time to compute next score 
-                                    eventAction = eventQueue.Dequeue(); // Read from front of queue
-
-                                    // Set window length equal to length of weight coefficients
-                                    eventAction.windowLength = PRESET_WINDOW_LENGTH;
+                                    numBufferedSamples = lastSampleIndex - firstSampleIndex;
                                 }
-                            }
-                            else
-                            {
-                                // Fill eventAction record fields to indicate no action.
-                                eventAction.eventType = EventType.StimCodeChange;
-                                eventAction.actionType = ActionType.NoAction;
-                                eventAction.eventStartHeaderIndex = readIndex;
-                                eventAction.windowLength = 0;       // Not ready to compute score yet
-                            }
+                                else
+                                {   // Latest numBufferedSamplespacket data wrapped around to start of SampleValues[] array.
+                                    numBufferedSamples = (PacketizedSensorData.SAMPLE_CIRC_BUF_LEN - firstSampleIndex) + lastSampleIndex;
+                                }
+
+                                // Decide what to do next based on the number of buffered samples.
+                                if (numBufferedSamples >= PRESET_WINDOW_LENGTH)
+                                {
+                                    // Still need to compute scores for queued flash intervals
+                                    if (eventQueue.Count() > 1)
+                                    {
+                                        // Save location where we stopped search
+                                        eventFound = true;
+                                        sensorData.headerTableReadIndex = readIndex;
+
+                                        // Return queued event indicating it's time to compute next score 
+                                        eventAction = eventQueue.Dequeue(); // Read from front of queue
+
+                                        // Set window length equal to length of weight coefficients
+                                        eventAction.windowLength = PRESET_WINDOW_LENGTH;
+                                    }
+                                }
+                                else
+                                {
+                                    // Fill eventAction record fields to indicate no action.
+                                    eventAction.eventType = EventType.StimCodeChange;
+                                    eventAction.actionType = ActionType.NoAction;
+                                    eventAction.eventStartHeaderIndex = readIndex;
+                                    eventAction.windowLength = 0;       // Not ready to compute score yet
+                                }
+                            } // if (eventQueue.Count != 0)
                         }
 
                         else if (nextState == StimPhase.NoStim)
@@ -443,7 +447,7 @@ namespace CoreServices.SensorData
                         {  // No change in state. Examine next packet header
                             readIndex = (++readIndex) & (PacketizedSensorData.HEADER_CIRC_BUF_LEN - 1);
                         }
-                        else if (nextState == StimPhase.NoStim)
+                        else if ((nextState == StimPhase.NoStim) | (nextState == StimPhase.PostStim))
                         {  // Next valid state found
                             currentState = nextState;
                             eventFound = true;

@@ -60,8 +60,12 @@ namespace CoreServices.Prediction
     public class PredictionControl
     {
 
+        //public enum PredictMsgID : int { MARK_STATE_CHANGE = 18, MARK_STIM_CHANGE = 20, PREDICT_STATUS = 21, 
+        //                                 ABSTENTION_PREDICT = 92, FORCED_PREDICT = 94, END_OF_PREDICTION = 99 }
+
         // Temporay variables until I find proper location to retrieve them from.
         public int numSensorChannels = SensorConstants.NUM_CHANNELS;
+
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
@@ -117,9 +121,10 @@ namespace CoreServices.Prediction
             // Configuration predition algorithm execution based on preset parameter values. 
             DecisionLogicPresets.ScoringMethod scoringMethod = predictionConfiguration.DecisionLogicPresets.scoringMethod;
             DecisionLogicPresets.StoppingMethod stoppingMethod = predictionConfiguration.DecisionLogicPresets.stoppingMethod;
+            DecisionLogicPresets.DecisionMethod finalDecisionType = predictionConfiguration.DecisionLogicPresets.finalDecisionType;
+
             int maxNumFlashSequences = predictionConfiguration.DecisionLogicPresets.maxNumFlashSequences;
             int scoringWindowLength = predictionConfiguration.DecisionLogicPresets.scoringWindowLength;
-
 
             int highestTopScores = predictionConfiguration.PredictionCriteriaPresets.highestTopScores;
             int winCountForSelection = predictionConfiguration.PredictionCriteriaPresets.winCountForSelection;
@@ -139,11 +144,17 @@ namespace CoreServices.Prediction
 
             const int MAX_MSG_LENGTH = 8;           // Max message length sent back to main thread
 
-            // Message ID numbers
-            const int END_OF_PREDICTION = 99;       // Report when reach max number of flash sequences or select Key
+            // Prediction Control Message ID numbers
             const int MARK_STATE_CHANGE = 18;       // Report when stimulus changes state (for debug only)
             const int MARK_STIM_CHANGE = 20;        // Report when stimulus changes stim code (for debug only)
+
+            const int STIM_STATE_ERROR = 30;        // Report when unexpected value appeared in packet data
+            const int STIM_CODE_ERROR = 32;         // Report when unexpected value appeared in packet data
+
             const int PREDICT_STATUS = 21;          // Detailed predict status at end of each flash sequence
+            const int ABSTENTION_PREDICT = 92;      // Report when reach max number of flash sequences, but no key selected
+            const int FORCED_PREDICT = 94;          // Report when reach max number of flash seq, force select with highest win count
+            const int END_OF_PREDICTION = 99;       // Report keyID when reach max number of flash sequences or reach dynamic stopping
 
             int statusMessageID = 0;
             int messageLength = 0;
@@ -360,13 +371,25 @@ namespace CoreServices.Prediction
 
                     case EventType.ErrorEvent:
 
+                        eventStartHeaderIndex = eventAction.eventStartHeaderIndex;
+
                         if (eventAction.actionType == ActionType.ReportStateError)
                         {
-                            // Prepare stimulus state tracking error message to be logged...
+                            // Prepare stimulus state tracking error message to be logged.
+                            statusMessageID = STIM_STATE_ERROR;
+                            messageLength = 5;
+                            phaseInSeq = sensorData.packetHeaderTable[eventStartHeaderIndex].phaseInSeq;
+                            stimulusCode = sensorData.packetHeaderTable[eventStartHeaderIndex].stimulusCode;
+                            reportedAction = (int)eventAction.actionType;
                         }
                         else if (eventAction.actionType == ActionType.ReportStimError)
                         {
-                            // Prepare stimulus code tracking error message to be logged...
+                            // Prepare stimulus code tracking error message to be logged.
+                            statusMessageID = STIM_CODE_ERROR;
+                            messageLength = 5;
+                            phaseInSeq = sensorData.packetHeaderTable[eventStartHeaderIndex].phaseInSeq;
+                            stimulusCode = sensorData.packetHeaderTable[eventStartHeaderIndex].stimulusCode;
+                            reportedAction = (int)eventAction.actionType;
                         }
                         reportErrorStatus = true;
                         break;
@@ -415,7 +438,7 @@ namespace CoreServices.Prediction
 
                         // For now assume all sensor data is good and continue with prediction algorithm steps.
                         accumulatedStimScores = 
-                            predictionScoring.ComputeAccumulatedWeightedStimScores(numStimulusGroups, flashSequenceCount);
+                            predictionScoring.ComputeAccumulatedWeightedStimScores(numStimulusGroups, flashSequenceCount, scoringWindowLength);
 
                         // Create short list of highest weighted sensor scores so that we can track
                         // how they change over time for each flash sequence.
@@ -508,8 +531,18 @@ namespace CoreServices.Prediction
                             }
                             else
                             {
-                                predictionResult.selectedKeyID = 0;     // Report Abstention (keyID = 0)
-                                statusMessageID = END_OF_PREDICTION;
+                                // Check preset to determine if should report abstention (no selection)
+                                // or force a selection of the keyID with the current highest score.
+                                if (finalDecisionType == DecisionLogicPresets.DecisionMethod.Abstention)
+                                {
+                                    predictionResult.selectedKeyID = 0;     // Report Abstention (keyID = 0)
+                                    statusMessageID = ABSTENTION_PREDICT;
+                                }
+                                else
+                                {
+                                    predictionResult.selectedKeyID = highestWinCount.keyID; // Force select of this key!
+                                    statusMessageID = FORCED_PREDICT;
+                                }
                             }
                         }
                         else
@@ -536,9 +569,19 @@ namespace CoreServices.Prediction
                         }
                         else if (flashSequenceCount == maxNumFlashSequences)
                         {
-                            // If reached the fixed limit, and NOT MADE A SELECTION, then stop current prediction
-                            predictionResult.selectedKeyID = 0;
-                            statusMessageID = END_OF_PREDICTION;
+                            // If reached the fixed limit, and NOT MADE A SELECTION, then stop current prediction.
+                            // Check preset to determine if should report abstention (no selection)
+                            // or force a selection of the current highest score.
+                            if (finalDecisionType == DecisionLogicPresets.DecisionMethod.Abstention)
+                            {
+                                predictionResult.selectedKeyID = 0;     // Report Abstention (keyID = 0)
+                                statusMessageID = ABSTENTION_PREDICT;
+                            }
+                            else
+                            {
+                                predictionResult.selectedKeyID = highestWinCount.keyID; // Force select of this key!
+                                statusMessageID = FORCED_PREDICT;
+                            }
                         }
                         else
                         {
@@ -595,6 +638,7 @@ namespace CoreServices.Prediction
                         statusMessage.content[3] = stimulusCode;
                         statusMessage.content[4] = reportedAction;
                     }
+
                     else if (statusMessageID == MARK_STIM_CHANGE)
                     {
                         statusMessage.content[0] = MARK_STIM_CHANGE;      // Message ID
@@ -603,9 +647,11 @@ namespace CoreServices.Prediction
                         statusMessage.content[3] = stimulusCode;
                         statusMessage.content[4] = reportedAction;
                     }
-                    else if (statusMessageID == PREDICT_STATUS)
+
+                    else
                     {
-                        statusMessage.content[0] = PREDICT_STATUS;         // Message ID
+                        // Send back prediction status 
+                        statusMessage.content[0] = statusMessageID;        // Message ID
                         statusMessage.content[1] = 16;                     // Message length
                         statusMessage.content[2] = predictionResult.flashSequenceCount;
                         statusMessage.content[3] = topAccumulatedScores[0].indexValue;
@@ -628,6 +674,8 @@ namespace CoreServices.Prediction
                         statusMessage.content[16] = predictionResult.predictWinCount;
                         statusMessage.content[17] = predictionResult.selectedKeyID;
                     }
+
+                    /*
                     else if (statusMessageID == END_OF_PREDICTION)
                     {
                         statusMessage.content[0] = END_OF_PREDICTION;      // Message ID
@@ -652,6 +700,7 @@ namespace CoreServices.Prediction
                         statusMessage.content[16] = predictionResult.predictWinCount;
                         statusMessage.content[17] = predictionResult.selectedKeyID;
                     }
+                    */
 
                     // Send prediction status message back to main thread
                     statusMsgBufferBlock.Post(statusMessage);
@@ -659,7 +708,14 @@ namespace CoreServices.Prediction
 
                 if (reportErrorStatus == true)
                 {
-                    // Send error message back to prediction state engine...
+                    reportErrorStatus = false;
+
+                    // Send error message back to prediction state engine.
+                    statusMessage.content[0] = statusMessageID;       // Message ID
+                    statusMessage.content[1] = messageLength;         // Message length
+                    statusMessage.content[2] = phaseInSeq;
+                    statusMessage.content[3] = stimulusCode;
+                    statusMessage.content[4] = reportedAction;
                 }
 
                 if (logTestData == true)

@@ -142,8 +142,8 @@ namespace CoreServices.Presets
 
         public FlashTimingPresets()
         {
-            timeToFindTarget = 2;
-            timeBetweenTargets = 4;
+            timeToFindTarget = 2;           // Default=2, Range={2, 5}, Time delay in sec to locate next target
+            timeBetweenTargets = 4;         // Default=4, Range={2, 5}, Time delay in sec before start of next selection
         }
 
         public bool RetreiveSettings(Dictionary<string, string> settings)
