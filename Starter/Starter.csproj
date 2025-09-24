@@ -16,22 +16,29 @@
 		<None Remove="Images\Azure.png" />
 		<None Remove="Images\Berry.png" />
 		<None Remove="Images\Boseman.png" />
+		<None Remove="Images\default.png" />
 		<None Remove="Images\Einstein.png" />
+		<None Remove="Images\Electric.png" />
 		<None Remove="Images\Hathaway.png" />
 		<None Remove="Images\headset.PNG" />
 		<None Remove="Images\Hemsworth.png" />
 		<None Remove="Images\Johnson.png" />
 		<None Remove="Images\Kidman.png" />
+		<None Remove="Images\Lavender.png" />
+		<None Remove="Images\Maya.png" />
 		<None Remove="Images\Parks.png" />
+		<None Remove="Images\Pear.png" />
 		<None Remove="Images\Redford.png" />
 		<None Remove="Images\RM.png" />
 		<None Remove="Images\Rogers.png" />
+		<None Remove="Images\Safflower.png" />
 		<None Remove="Images\Shum.png" />
 		<None Remove="Images\spinner.png" />
 		<None Remove="Images\Tan.png" />
 		<None Remove="Images\VR300.png" />
 		<None Remove="Images\VR300_400.png" />
 		<None Remove="Images\Weaver.png" />
+		<None Remove="Images\Yellow.png" />
 		<None Remove="Images\Yousafzai.png" />
 	</ItemGroup>
 
@@ -48,9 +55,11 @@
 		<Content Include="Images\Boseman.png">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
+		<Content Include="Images\default.png" />
 		<Content Include="Images\Einstein.png">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
+		<Content Include="Images\Electric.png" />
 		<Content Include="Images\Hathaway.png">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
@@ -69,9 +78,12 @@
 		<Content Include="Images\Kidman.png">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
+		<Content Include="Images\Lavender.png" />
+		<Content Include="Images\Maya.png" />
 		<Content Include="Images\Parks.png">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
+		<Content Include="Images\Pear.png" />
 		<Content Include="Images\Redford.png">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
@@ -81,6 +93,7 @@
 		<Content Include="Images\Rogers.png">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
+		<Content Include="Images\Safflower.png" />
 		<Content Include="Images\Shum.png">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
@@ -99,6 +112,7 @@
 		<Content Include="Images\Weaver.png">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
+		<Content Include="Images\Yellow.png" />
 		<Content Include="Images\Yousafzai.png">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
