@@ -1,6 +1,10 @@
-﻿using System;
+using CoreServices.Common;
+using CoreServices.Presets;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -20,6 +24,27 @@ namespace CoreServices.Stimulus
         public const int LEFT_OFFSET = 0;
         public const int TOP_OFFSET = 0;
 
+        private FlashStimulusPresets flashStimulusPresets;
+        private CalibrationPresets calibrationPresets;
+        private bool isflashModeIsImage = true;
+        private static readonly Dictionary<int, string> _imageNameMap = new();
+        private string _buttonsImageFileNam;
+        
+
+        public FlashStimulus()
+        {
+            flashStimulusPresets = FlashStimulusPresets.Instance;
+            calibrationPresets = CalibrationPresets.Instance;
+            //_buttonsImageFileNam = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\Settings\\buttonImagesNmae.txt";
+            _buttonsImageFileNam = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\buttonImagesNmae.txt";
+            LoadButtonIamgesFile(_buttonsImageFileNam);
+
+            // if (flashStimulusPresets.FlashAppearancePresets.flashType == FlashAppearancePresets.FlashType.MonoColored)
+            // {
+            //    // Use single paint brush color to create flash stimulus instead of PNG image files.
+            //    isflashModeIsImage = false;
+            // }
+        }
 
         List<ButtonElement> buttonList = new List<ButtonElement>();
         int[] crossReferenceTable = null;
@@ -33,7 +58,7 @@ namespace CoreServices.Stimulus
         {
             int numElements = elementList.Count;
 
-            
+
 
             buttonList = new List<ButtonElement>();
             var screenOverlay = new ScreenOverlay();
@@ -61,6 +86,11 @@ namespace CoreServices.Stimulus
             //   3.  Can flash all buttons simultaneously rather than sending individual commands to
             //       each original GUI element via MUIA to Flash ON and Flash OFF.
 
+
+            // Create a 150 x 150 pixel black color square to serve as default.png image.
+            // If see this actually on the screen, then no imaged assigned to keyID.
+            string imageName = "default.png";
+
             for (int i = 0; i < numElements; i++)
             {
                 var button = new ButtonElement()
@@ -70,7 +100,9 @@ namespace CoreServices.Stimulus
                     Height = SCALING_FACTOR * (elementList[i].bottom - elementList[i].top),
 
                     Top = (SCALING_FACTOR * (elementList[i].top - topOffset)),
-                    Left = (SCALING_FACTOR * (elementList[i].left - leftOffset))
+                    Left = (SCALING_FACTOR * (elementList[i].left - leftOffset)),
+                    FileName = imageName
+
                 };
                 buttonList.Add(button);
 
@@ -103,6 +135,33 @@ namespace CoreServices.Stimulus
             {
                 keyIDvalue = flashableKeys[i].keyID;
                 crossReferenceTable[keyIDvalue] = flashableKeys[i].buttonIndex;
+            }
+        }
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+        public void AssignFlashImagesToButtons(List<KeyMapping> flashableKeys, ref ScreenOverlay screenOverlay)
+        {
+            int keyIDvalue;
+            int numEntries = flashableKeys.Count;
+
+            for (int i = 0; i < numEntries; i++)
+            {
+                // NOTE: flashableKeys[] is a master list that ties the indexes of the MUIA element list, 
+                //       button list, and keyID mapping together in one storage location. The number of
+                //       nonblank (i.e. flashable) buttons is between 1 and the maximum keyID value.
+                keyIDvalue = flashableKeys[i].keyID;
+
+                // The user first creates a 4 x 4 matrix template of images that they want to use as a flash
+                // stimulus pattern. Currently we don't have a software tool that takes the template and maps
+                // the images to the keyID values assigned to the keyboard. Instead, the user creates a one
+                // to one mapping between every keyID on the maximum size keyboard with the name of the PNG
+                // picture file that is associated with each key.
+                string imageName = GetImageNameByNumber(keyIDvalue);
+
+                buttonList[i].FileName = imageName;
+
+                screenOverlay.ButtonElementList[i].FileName = imageName;
             }
         }
 
@@ -144,7 +203,7 @@ namespace CoreServices.Stimulus
             }
         }
 
-        
+
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
@@ -153,8 +212,9 @@ namespace CoreServices.Stimulus
             int buttonIndex;
 
             buttonIndex = crossReferenceTable[keyID];
-            buttonList[buttonIndex].BackgroundBrush = CustomBrushes.CornflowerBlue;
-            buttonList[buttonIndex].BorderBrush = CustomBrushes.Red;
+            //buttonList[buttonIndex].BackgroundBrush = CustomBrushes.CornflowerBlue;
+            //buttonList[buttonIndex].Opacity = 0.7;
+            buttonList[buttonIndex].BorderBrush = calibrationPresets.TargetAppearancePresets.HighLightON_BorderBrush;
         }
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
@@ -164,7 +224,7 @@ namespace CoreServices.Stimulus
             int buttonIndex;
 
             buttonIndex = crossReferenceTable[keyID];
-            buttonList[buttonIndex].BackgroundBrush = CustomBrushes.Transparent;
+            //buttonList[buttonIndex].BackgroundBrush = CustomBrushes.Transparent;
             buttonList[buttonIndex].BorderBrush = CustomBrushes.Transparent;
         }
 
@@ -183,13 +243,24 @@ namespace CoreServices.Stimulus
                 {
                     buttonIndex = crossReferenceTable[keyID];
 
-                    buttonList[buttonIndex].BackgroundBrush = CustomBrushes.Brown;
+                    if (isflashModeIsImage)
+                    {
+                        //buttonList[buttonIndex].FileName = GetImageNameByNumber(buttonIndex) ?? "default.png";
+                        buttonList[buttonIndex].IsPicVisible = true;
+                    }
+                    else
+                    {
+                        buttonList[buttonIndex].BackgroundBrush = CustomBrushes.Brown;
+                    }
+
+                    
 
                     if (keyID == targetKeyID)
                     {   // Keep the target key highlighted
-                        buttonList[buttonIndex].BorderBrush = CustomBrushes.Red;
-                        buttonList[buttonIndex].Opacity = 0.6;
-                        buttonList[buttonIndex].BackgroundBrush = CustomBrushes.CornflowerBlue;
+                        buttonList[buttonIndex].BorderBrush = CustomBrushes.Yellow;
+                        //buttonList[buttonIndex].BorderBrush = CustomBrushes.Red;
+                        //buttonList[buttonIndex].Opacity = 1.0;
+                        //buttonList[buttonIndex].BackgroundBrush = CustomBrushes.CornflowerBlue;
                     }
                     else
                     {
@@ -218,13 +289,23 @@ namespace CoreServices.Stimulus
                 {
                     buttonIndex = crossReferenceTable[keyID];
 
-                    buttonList[buttonIndex].BackgroundBrush = CustomBrushes.Transparent;
+                    
+                    if (isflashModeIsImage)
+                    {
+                        //buttonList[buttonIndex].FileName = GetImageNameByNumber(buttonIndex) ?? "default.png";
+                        buttonList[buttonIndex].IsPicVisible = false;
+                        //hide the image
+                    }
+                    else
+                    {
+                        buttonList[buttonIndex].BackgroundBrush = CustomBrushes.Transparent;
+                    }
 
                     if (keyID == targetKeyID)
                     {   // Keep the target key highlighted
-                        buttonList[buttonIndex].BorderBrush = CustomBrushes.Red;
-                        buttonList[buttonIndex].Opacity = 0.6;
-                        buttonList[buttonIndex].BackgroundBrush = CustomBrushes.CornflowerBlue;
+                        buttonList[buttonIndex].BorderBrush = calibrationPresets.TargetAppearancePresets.HighLightON_BorderBrush;
+                        //buttonList[buttonIndex].Opacity = 0.7;
+                        //buttonList[buttonIndex].BackgroundBrush = CustomBrushes.CornflowerBlue;
                     }
                     else
                     {
@@ -240,16 +321,44 @@ namespace CoreServices.Stimulus
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
+        private static string GetImageNameByNumber(int number)
+        {
+            return _imageNameMap.TryGetValue(number, out var name) ? name : "default.png";
+        }
+
+        private void LoadButtonIamgesFile(string filename)
+        {
+            try
+            {
+                if (!File.Exists(filename))
+                {
+                    Logger.Info(this, "buttonImagesName File does not exist");
+                    return;
+                }
+                
+                    foreach (var line in File.ReadAllLines(filename))
+                    {
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+
+                        int splitIndex = line.IndexOf(' ');
+                        if (splitIndex <= 0) continue;
+
+                        string numberPart = line.Substring(0, splitIndex).Trim();
+                        string namePart = line.Substring(splitIndex + 1).Trim();
+
+                        if (int.TryParse(numberPart, out int key) && !string.IsNullOrEmpty(namePart))
+                        {
+                            _imageNameMap[key] = namePart;
+                        }
+                    }
+                
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(this, ex.Message);
+            }
+        }
+
     }
 
-    public enum CustomBrushes
-    {
-        Transparent,
-        Red,
-        Green,
-        Blue,
-        Brown,
-        Yellow,
-        CornflowerBlue
-    }
 }

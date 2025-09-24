@@ -51,7 +51,7 @@ namespace ViewModels
             // in the C:\Program Files\PRC-Saltillo\BCI folder. If we're just running some random debug build from some other
             // location, then we could be running any old code, really, so we'll show the old "MVP.Beta.v1.0" test so we don't
             // mislead anyone.
-            var localVersion = "Brain-Computer Interface - MVP.Beta v1.0.1 2024-11-15";   // Backup, just in case Version.xml isn't found/loaded
+            var localVersion = "Brain-Computer Interface - MVP.Beta v1.1.0.1 2025-02-20";   // Backup, just in case Version.xml isn't found/loaded
             var versionFilePath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "Version.xml");
 
             XmlDocument xmlDocument = new XmlDocument();
@@ -160,11 +160,15 @@ namespace ViewModels
             else if (mode == Constants.Validation) { CurrentViewModel = _validationViewModel; }
             else if (mode == Constants.Prediction) { _predictionViewModel.Refresh(); CurrentViewModel = _predictionViewModel; }
             else if (mode == Constants.Settings) { CurrentViewModel = _settingsViewModel; }
-            else if (mode == Constants.ConnectivitySettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.Connectivity); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.CalibrationSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.Calibration); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.PredictionSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.Prediction); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.ValidationSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.Validation); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.MiscSettings) { _settingsDetailViewModel.UpdateSettingsList(Constants.Misc); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.ConnectivitySettings) { _settingsDetailViewModel.UpdateGroup(Constants.Connectivity); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.CalibrationSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Calibration); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.PredictionSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Prediction); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.ValidationSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Validation); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.MiscSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Misc); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.FlashSettings) { _settingsDetailViewModel.UpdateGroup(Constants.FlashStimulus); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.LoggingSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Logging); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.SystemSettings) { _settingsDetailViewModel.UpdateGroup(Constants.System); CurrentViewModel = _settingsDetailViewModel; }
+
         }
         private void Close()
         {

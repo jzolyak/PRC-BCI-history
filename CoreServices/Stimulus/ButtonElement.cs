@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CoreServices.Common;
+using System;
 using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Input;
@@ -15,6 +16,8 @@ namespace CoreServices.Stimulus
         private CustomBrushes _backgroundBrush;
         private string _content;
         private double _opacity;
+        private string fileName;
+        private bool   isPicVisible;
         public double Height
         {
             get { return _height; }
@@ -43,6 +46,7 @@ namespace CoreServices.Stimulus
             set { _backgroundBrush = value; OnPropertyChanged(nameof(BackgroundBrush)); OnPropertyChanged(nameof(BackgroundBrushClr)); }
         }
         public Color BackgroundBrushClr { get { return GetColor(BackgroundBrush); } }
+        public string ImagePath => System.IO.Path.Combine("..","Images", FileName);
 
         public ICommand ClickCmd { get; set; }
         public bool IsEnabled { get; set; }
@@ -50,6 +54,16 @@ namespace CoreServices.Stimulus
 
         public Action<string> ClickAction { get; set; }
         public string Name { get; set; }
+        public string FileName
+        {
+            get { return fileName; }
+            set { fileName = value; OnPropertyChanged(nameof(FileName)); OnPropertyChanged(nameof(ImagePath)); }
+        }
+        public bool IsPicVisible
+        {
+            get { return isPicVisible; }
+            set { isPicVisible = value; OnPropertyChanged(nameof(IsPicVisible)); }
+        }
         public void OnPropertyChanged(string propertyName)
         {
             if (string.IsNullOrEmpty(propertyName)) return;
@@ -64,6 +78,7 @@ namespace CoreServices.Stimulus
                 case CustomBrushes.Green: return Color.Green;
                 case CustomBrushes.CornflowerBlue: return Color.CornflowerBlue;
                 case CustomBrushes.Red: return Color.Red;
+                case CustomBrushes.Blue: return Color.Blue;
                 case CustomBrushes.Brown: return Color.Brown;
                 case CustomBrushes.Yellow: return Color.Yellow;
 

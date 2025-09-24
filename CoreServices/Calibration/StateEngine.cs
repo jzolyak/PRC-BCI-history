@@ -19,6 +19,7 @@ using System.Reflection;
 using System.Diagnostics;
 
 using CoreServices.Headset;
+using CoreServices.Presets;
 
 namespace CoreServices.Calibration
 {
@@ -75,7 +76,6 @@ namespace CoreServices.Calibration
             //   int flash_ON_time_msec
             //   int flash_OFF_time_msec
             //   int delayBetweenTargets_msec
-            //
 
             GroupingParam inputParam;
             inputParam.method = Method.NewMethod;
@@ -84,6 +84,9 @@ namespace CoreServices.Calibration
             inputParam.arrangement = Arrangement.Magic;
             inputParam.indexMapping = IndexMapping.GridSize;
             bool calibrationCompleted = false;
+
+            // PRC_mode eventually needs to be a controllable preset value to support different key grids.
+            bool PRC_mode = true;
 
             int startSetNum = 1;
             int totalSetNum = 0;
@@ -101,7 +104,6 @@ namespace CoreServices.Calibration
             int elementIndex = 0;
 
             int UI_delay_msec = 200;
-            int programmable_delay_msec = 1000;
 
             string targetKeyName;
             string[] commandLines = null;
@@ -132,6 +134,11 @@ namespace CoreServices.Calibration
             int elapsedTime;
             int sourceTimer;
 
+            bool randomMapping = true;
+            int randomValue = 0;
+
+            Random randomGen = new Random();
+
             modeState = CalibrationStates.Read_Command;
 
 
@@ -152,14 +159,32 @@ namespace CoreServices.Calibration
 
             List<FlashTableEntry> flashSequenceTable = new List<FlashTableEntry>();
 
+            // Fetch preset configuration values for flash stimulus from stored settings file.
+            FlashStimulusPresets flashConfiguration = FlashStimulusPresets.Instance;
+
+            // Convert preset values in seconds into milliseconds by multiplying by 1000.
+            int timeToFindTarget = flashConfiguration.FlashTimingPresets.timeToFindTarget * 1000;
+            int timeBetweenTargets = flashConfiguration.FlashTimingPresets.timeBetweenTargets * 1000;
+
+            // Fetch preset configuration values for calibration from stored settings file.
+            CalibrationPresets calibrationConfiguration = CalibrationPresets.Instance;
+
+            // This preset controls the amount of raw sensor data being recorded for weight coefficient generation.
+            int numFlashSeqPerTarget = calibrationConfiguration.ModeControlPresets.numFlashSeqPerTarget;
+
+            string currentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+
+            //string scriptFilename = calibrationConfiguration.ModeControlPresets.scriptFilename;
+            string scriptFilename = "CalibrationCommands.txt";
+
+            string filePath = System.IO.Path.Combine(currentDirectory, scriptFilename);
+
+
             /*   *****************************
             **   ***   Configure Headset   ***   
             **   *****************************
             */
-            
-            string currentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-            string scriptFilename = "CalibrationCommands.txt";
-            string filePath = System.IO.Path.Combine(currentDirectory, scriptFilename);
+
 
             // NOTE:  JAZ, 04-30-2024
             //
@@ -547,7 +572,6 @@ namespace CoreServices.Calibration
                                     // Advance index to next command in the script
                                     currentLine++;
 
-                                    //modeState = CalibrationStates.Get_Remote_Elements;
                                     modeState = CalibrationStates.Create_Grouping;
                                 }
 
@@ -591,7 +615,6 @@ namespace CoreServices.Calibration
 
                                     // After selecting a key on the display, restart the processing of fetching new set of
                                     // elements and creating a new overlay because key locations may have changed.
-                                    // modeState = CalibrationStates.Read_Command;
                                     modeState = CalibrationStates.Remote_Display;
                                 }
 
@@ -614,7 +637,6 @@ namespace CoreServices.Calibration
                             // Do what is necessary so that current displayed BCI app page is a transparent window
                             // in order to view displayed screen of other application (e.g. Empower).
 
-                            // modeState = CalibrationStates.Read_Command;
                             modeState = CalibrationStates.Get_Remote_Elements;
                             break;
 
@@ -670,8 +692,7 @@ namespace CoreServices.Calibration
                                 //newWindow.Owner = this;
                                 //newWindow.Show();
 
-                                // Ready to fetch next target from calibration commands
-                                // modeState = CalibrationStates.Click_Key;     // <== This is second time I've fixed same error. JAZ 12/2/22
+                                // Ready to map and assign keys from AAC display onto virtual keyboard overlay
                                 modeState = CalibrationStates.Assign_Key_Mapping;
                             }
                             break;
@@ -703,10 +724,13 @@ namespace CoreServices.Calibration
 
                             List<List<int>> listOfRows = keyboardGrid.CreateListOfRows(elementList);
                             List<List<int>> listOfColumns = keyboardGrid.CreateListOfColumns(elementList);
-                            gridData.maxKeyRows = listOfRows.Count;
-                            gridData.maxKeyCols = listOfColumns.Count;
 
-                            bool PRC_mode = true;
+                            // If not in PRC_mode, use size of scanned list of elements for max number of rows and columns in grid.
+                            if (PRC_mode == false)
+                            {
+                                gridData.maxKeyRows = listOfRows.Count;
+                                gridData.maxKeyCols = listOfColumns.Count;
+                            }
 
                             // Create a KeyID map of all the keys based on the mapping method and grid size
                             keyIDMap = keyboardGrid.CreateKeyIDMap(gridData, PRC_mode);
@@ -716,7 +740,14 @@ namespace CoreServices.Calibration
                             // Create cross reference lookup table between the keyID value and buttonIndex value used in flashing keys.
                             flashStimulus.CreateCrossReferenceTable(flashableKeys);
 
-                            // modeState = CalibrationStates.Create_Grouping;
+                            // Now that we know keyID mapping, can now preload stimulus images to specific overlay template
+                            flashStimulus.AssignFlashImagesToButtons(flashableKeys, ref stimulusOverlay);
+
+                            if (notifyScreenOverLayChange != null)
+                            {
+                                notifyScreenOverLayChange(stimulusOverlay);
+                            }
+
                             modeState = CalibrationStates.Read_Command;
                             break;
 
@@ -724,7 +755,27 @@ namespace CoreServices.Calibration
                             // Run algorithms to randomize the assignment of flashable keys into two hidden matrices.
                             FlashGrouping flashGroups = new FlashGrouping();
 
-                            groupingMatrix = flashGroups.GenerateGroupingMaxtrix(inputParam, keyIDMap, flashableKeys, gridData, out matrixSize1, out matrixSize2);
+                            // Most of the time the grouping matrix is generated using a Magic Square based algorithm
+                            // to randomize the keys into flash stimulus groups. However, when the number of active 
+                            // keys (or menu choices) is less than 9, then an alternative method is used to create 
+                            // a flashing stimulus where only one key (or choice) is flashed at a time in a group.
+
+                            if (flashableKeys.Count <= FlashGrouping.ACTIVE_KEYS_LOWER_LIMIT)
+                            {
+                                groupingMatrix = flashGroups.GenerateAlternateGroupingMaxtrix(flashableKeys, out matrixSize1, out matrixSize2);
+                            }
+                            else
+                            {
+                                if (randomMapping == true)
+                                {
+                                    randomValue = randomGen.Next(5);
+                                }
+                                else
+                                {
+                                    randomValue = 0;
+                                }
+                                groupingMatrix = flashGroups.GenerateGroupingMaxtrix(inputParam, keyIDMap, flashableKeys, gridData, randomValue, out matrixSize1, out matrixSize2);
+                            }
 
                             modeState = CalibrationStates.Create_Sequence;
                             break;
@@ -778,7 +829,7 @@ namespace CoreServices.Calibration
                                 else
                                 {
                                     // Give user time to locate highlighted target when not using count down timer.
-                                    await Task.Delay(programmable_delay_msec);
+                                    await Task.Delay(timeToFindTarget);
 
                                     // Proceed on to normal flash stimulus
                                     modeState = CalibrationStates.Core_Loop;
@@ -856,8 +907,8 @@ namespace CoreServices.Calibration
 
                             // Task t0 = Task.Run(() => headsetControl.ReadHeadsetDataAsync(headset, headsetTokenSource.Token, headsetDataBufferBlock, headsetMsgBufferBlock));
 
-                            Task t1 = Task.Run(() => flashTiming.FlashDataAsync(headset, pipelineTokenSource.Token, flashSequenceTable, 
-                                                                                headsetDataBufferBlock, flashDataBufferBlock, flashMsgBufferBlock));
+                            Task t1 = Task.Run(() => flashTiming.FlashDataAsync(headset, pipelineTokenSource.Token, targetkeyIDvalue, numFlashSeqPerTarget,
+                                                                                flashSequenceTable, headsetDataBufferBlock, flashDataBufferBlock, flashMsgBufferBlock));
 
                             Task t2 = Task.Run(() => sensorFiltering.FilterDataAsync(pipelineTokenSource.Token, flashDataBufferBlock, filterDataBufferBlock));
 
@@ -1024,10 +1075,11 @@ namespace CoreServices.Calibration
                             // Wait for programmable delay so Empower can complete its click repsonse.
                             // Need to wait for Empower to generate speech, display key name in text box,
                             // and possibly update keyboard display with new set of keys.
-                            await Task.Delay(programmable_delay_msec);
+                            await Task.Delay(timeBetweenTargets);
 
-                            // Fetch next target in calibration set
-                            modeState = CalibrationStates.Read_Command;
+                            // After selecting a key on the display, restart the processing of fetching new set of
+                            // elements and creating a new overlay because key locations may have changed.
+                            modeState = CalibrationStates.Remote_Display;
                             break;
 
                         case CalibrationStates.Clear_Textbox:

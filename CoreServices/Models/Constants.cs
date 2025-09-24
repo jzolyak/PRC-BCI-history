@@ -19,14 +19,22 @@ namespace CoreServices.Models
         public static readonly string Calibration = "Calibration";
         public static readonly string Validation = "Validation";
         public static readonly string Prediction = "Prediction";
+        public static readonly string Flash = "Flash";
+        public static readonly string Misc = "Misc";
+        public static readonly string System = "System";
+        public static readonly string Logging = "Logging";
         public static readonly string ConnectivitySettings = "ConnectivitySettings";
         public static readonly string CalibrationSettings = "CalibrationSettings";
         public static readonly string ValidationSettings = "ValidationSettings";
+        public static readonly string FlashSettings = "FlashSettings";
         public static readonly string PredictionSettings = "PredictionSettings";
         public static readonly string MiscSettings = "MiscSettings";
-        public static readonly string Misc = "Misc";
+        public static readonly string SystemSettings = "SystemSettings";
+        public static readonly string LoggingSettings = "LoggingSettings";
         public static readonly string Help = "Help";
         public static readonly string Settings = "Settings";
+        public static readonly string FlashStimulus = "FlashStimulus";
+        
 
         public const string Connected = "Connected";
         public const string NotConnected = "NotConnected";

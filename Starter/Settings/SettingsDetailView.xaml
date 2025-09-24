@@ -4,31 +4,122 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Starter.Settings"
+             xmlns:uihelpers="clr-namespace:Starter.UIHelpers"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DesignHeight="600" d:DesignWidth="1000">
+
+    <UserControl.Resources>
+        <!-- Larger Tab Header Template -->
+        <DataTemplate x:Key="TabHeaderTemplate">
+            <StackPanel Orientation="Vertical"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                       
+                        Width="190"
+                        Height="100">
+                <Image Source="{Binding Icon}" Width="36" Height="36" Margin="0,5"/>
+                <TextBlock Text="{Binding CategoryName}"
+                           Foreground="White"
+                           FontWeight="SemiBold"
+                           FontSize="18"
+                           HorizontalAlignment="Center"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"/>
+            </StackPanel>
+        </DataTemplate>
+        <uihelpers:ListCountToVisibilityConverter x:Key="ListCountToVisibilityConverter" />
+    </UserControl.Resources>
+
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"></RowDefinition>
-            <RowDefinition Height="100"></RowDefinition>
-            <RowDefinition Height="50"></RowDefinition>
-        </Grid.RowDefinitions>
-        <ItemsControl Name="settings" ItemsSource="{Binding SettingsList}" Grid.Row="0" ScrollViewer.VerticalScrollBarVisibility="Auto" VerticalAlignment="Top" HorizontalAlignment="Center">
-            <ItemsControl.ItemTemplate>
+        <TabControl ItemsSource="{Binding SettingsCategoryList}"
+                    SelectedIndex="0"
+                    TabStripPlacement="Left"
+                    Background="#F4F7F9"
+                    BorderThickness="0"
+                    Padding="0"
+                    ItemTemplate="{StaticResource TabHeaderTemplate}">
+
+            <!-- Wider & taller Tab Item container -->
+            <TabControl.ItemContainerStyle>
+                <Style TargetType="TabItem">
+                    <Setter Property="Background" Value="#3A4A59"/>
+                    <Setter Property="Width" Value="250"/>
+                    <Setter Property="Height" Value="180"/>
+                    <Setter Property="FontSize" Value="20"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="BorderThickness" Value="2"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TabItem">
+                                <Grid Width="230" Margin="0,4" ClipToBounds="False">
+                                    <!-- Tab Background -->
+                                    <Border x:Name="Bd"
+                                            Width="200"
+                                            Height="180"
+                                            Background="{TemplateBinding Background}"
+                                            Padding="10"
+                                            Cursor="Hand"
+                                            CornerRadius="6"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Center">
+                                       <ContentPresenter ContentSource="Header"
+                                                         HorizontalAlignment="Center"
+                                                         VerticalAlignment="Center"/>
+                                    </Border>
+
+                                    <!-- Triangle Arrow (Right Side) -->
+                                    <Path x:Name="Arrow"
+                                          Fill="#00BFFF"
+                                          Width="30"
+                                          Height="60"
+                                          Stretch="None"
+                                          Data="M0,0 L30,30 L0,60 Z"
+                                          HorizontalAlignment="Left"
+                                          VerticalAlignment="Center"
+                                          Margin="200,0,0,0"
+                                          Visibility="Collapsed"/>
+                                </Grid>
+
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#00BFFF"/>
+                                        <Setter TargetName="Arrow" Property="Visibility" Value="Visible"/>
+                                    </Trigger>
+                                    <!--<Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#4A5B6C"/>
+                                    </Trigger>-->
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+
+
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </TabControl.ItemContainerStyle>
+
+
+            <!-- Full-size content inside TabControl -->
+            <TabControl.ContentTemplate>
                 <DataTemplate>
-                    <Grid Margin="5" HorizontalAlignment="Center" VerticalAlignment="Top">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="200" />
-                            <ColumnDefinition Width="200" />
-                        </Grid.ColumnDefinitions>
-                        <Label Grid.Column="0" Content="{Binding Header}" Style="{StaticResource MediumLabelStyle}"/>
-                        <TextBox Grid.Column="1" Text="{Binding Content}" Style="{StaticResource TextBoxInError}" Height="20" />
-                    </Grid>
+                    <!--<Grid>-->
+                    <local:SettingsCategoryView DataContext="{Binding}" />
+                    <!--</Grid>-->
                 </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
-            <Button HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="300" Margin="8" Style="{StaticResource ButtonStyle}" FontSize="20" Content="Save" Command="{Binding SaveCmd}"></Button>
-            <Button HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="300" Margin="8" Style="{StaticResource ButtonStyle}" FontSize="20" Content="Return" Command="{Binding ReturnCmd}"></Button>
-        </StackPanel>
+            </TabControl.ContentTemplate>
+        </TabControl>
+        <!--<StackPanel Grid.Row="2" HorizontalAlignment="Right" VerticalAlignment="Stretch" Orientation="Horizontal" Margin="10">-->
+
+        <!--</StackPanel>-->
+        <Button Content="Return"
+        Command="{Binding ReturnCmd}"
+        FontSize="20"
+        Width="150"
+        Height="50"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Bottom"
+        Margin="15"
+        Style="{StaticResource ButtonStyle}"
+        Visibility="{Binding SettingsCategoryList, Converter={StaticResource ListCountToVisibilityConverter}}" />
     </Grid>
 </UserControl>

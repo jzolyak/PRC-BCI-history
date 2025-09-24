@@ -6,26 +6,115 @@
 		<Nullable>enable</Nullable>
 		<UseWPF>true</UseWPF>
 		<ApplicationIcon>Images\Eo_circle_red_letter-b.svg.ico</ApplicationIcon>
+		<AssemblyVersion>1.0.1</AssemblyVersion>
+		<FileVersion>1.0.1</FileVersion>
+		<Version>1.0.1</Version>
 	</PropertyGroup>
 
 	<ItemGroup>
+		<None Remove="Images\Anderson.png" />
+		<None Remove="Images\Azure.png" />
+		<None Remove="Images\Berry.png" />
+		<None Remove="Images\Boseman.png" />
+		<None Remove="Images\default.png" />
+		<None Remove="Images\Einstein.png" />
+		<None Remove="Images\Electric.png" />
+		<None Remove="Images\Hathaway.png" />
 		<None Remove="Images\headset.PNG" />
+		<None Remove="Images\Hemsworth.png" />
+		<None Remove="Images\Johnson.png" />
+		<None Remove="Images\Kidman.png" />
+		<None Remove="Images\Lavender.png" />
+		<None Remove="Images\Maya.png" />
+		<None Remove="Images\Parks.png" />
+		<None Remove="Images\Pear.png" />
+		<None Remove="Images\Redford.png" />
+		<None Remove="Images\RM.png" />
+		<None Remove="Images\Rogers.png" />
+		<None Remove="Images\Safflower.png" />
+		<None Remove="Images\Shum.png" />
 		<None Remove="Images\spinner.png" />
+		<None Remove="Images\Tan.png" />
 		<None Remove="Images\VR300.png" />
+		<None Remove="Images\VR300_400.png" />
+		<None Remove="Images\Weaver.png" />
+		<None Remove="Images\Yellow.png" />
+		<None Remove="Images\Yousafzai.png" />
 	</ItemGroup>
 
 	<ItemGroup>
+		<Content Include="Images\Anderson.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Images\Azure.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Images\Berry.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Images\Boseman.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Images\default.png" />
+		<Content Include="Images\Einstein.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Images\Electric.png" />
+		<Content Include="Images\Hathaway.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
 		<Content Include="Images\headset.PNG">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 		<Content Include="Images\Eo_circle_red_letter-b.svg.ico">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
+		<Content Include="Images\Hemsworth.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Images\Johnson.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Images\Kidman.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Images\Lavender.png" />
+		<Content Include="Images\Maya.png" />
+		<Content Include="Images\Parks.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Images\Pear.png" />
+		<Content Include="Images\Redford.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Images\RM.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Images\Rogers.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Images\Safflower.png" />
+		<Content Include="Images\Shum.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
 		<Content Include="Images\spinner.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Images\Tan.png">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 		<Content Include="Images\VR300.png">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Images\VR300_400.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Images\Weaver.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Images\Yellow.png" />
+		<Content Include="Images\Yousafzai.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 	</ItemGroup>
 
@@ -41,6 +130,24 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<None Update="Settings\buttonImagesNmae.txt">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="CalibrationCmd_45key_SelectKeyboard.txt">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="CalibrationCmd_84key_SelectKeyboard.txt">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="CalibrationCommands.txt">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Settings\DefaultSettings.txt">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Settings\domain.txt">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 		<None Update="HeaderTemplate.txt">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
@@ -55,6 +162,9 @@
 		</None>
 		<None Update="script.bat">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Version.xml">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>
 

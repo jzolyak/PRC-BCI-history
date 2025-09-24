@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 
+using CoreServices.FlashControl;
 
 namespace CoreServices.Stimulus
 {
@@ -26,6 +27,7 @@ namespace CoreServices.Stimulus
             indexMapping = i;
         }
     }
+
     public enum Method { RowColumn = 0, NewMethod = 1 };
     public enum KeyOrder { KeyID = 0, Switchback = 1, Diagonal = 2, DiagonalSwitchback = 3, AlternateColumns = 4, Manhattan = 5 };
     public enum BoardDivision { FirstSecond = 0, OddEven = 1, Checkerboard = 2 };
@@ -34,13 +36,18 @@ namespace CoreServices.Stimulus
 
     public class FlashGrouping
     {
-        // public static MagicSquare magic = new MagicSquare();
+        public const int ACTIVE_KEYS_LOWER_LIMIT = 8;
 
-        // public static ToeplitzMatrix toeplitz = new ToeplitzMatrix();
+        //int[] randomList1 = new int[ACTIVE_KEYS_LOWER_LIMIT] { 5, 2, 0, 3, 7, 1, 4, 6 };
+        //int[] randomList2 = new int[ACTIVE_KEYS_LOWER_LIMIT] { 4, 2, 7, 0, 5, 3, 6, 1 };
 
-        // Input parameters choices for algorithm selection (by researchers/developers)
-       
-       
+        // Two 4x4 hidden matrices have 8 diagonal elements
+        //int[] random8KeyList1 = new int[] { 5, 2, 0, 3, 7, 1, 4, 6 };
+        //int[] random8KeyList2 = new int[] { 4, 2, 7, 0, 5, 3, 6, 1 };
+
+        // Two 3x3 hidden matrices have 6 diagonal elements
+        //int[] random6KeyList1 = new int[] { 4, 0, 3, 1, 5, 2 };
+        //int[] random6KeyList2 = new int[] { 3, 5, 2, 0, 4, 1 };       
 
         public struct InputGrid
         {
@@ -54,8 +61,85 @@ namespace CoreServices.Stimulus
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
+        public int[,,] GenerateAlternateGroupingMaxtrix(List<KeyMapping> flashableKeys,
+                                                out int hiddenSize1, out int hiddenSize2)
+        {
+
+            int i, keyID;
+            int index1, index2;
+            int numDiagonalKeys;
+
+            // Determine number of active keys on keyboard. It should be <= ACTIVE_KEYS_LOWER_LIMIT.
+            int numKeys = flashableKeys.Count;
+
+            if (numKeys <= (ACTIVE_KEYS_LOWER_LIMIT - 2))
+            {
+                // Six or fewer keys fit into the diagonals of two 3x3 matrices
+                hiddenSize1 = 3;
+                hiddenSize2 = 3;
+                numDiagonalKeys = 6;
+            }
+            else
+            {
+                // 7 or 8 keys fit into the diagonals of two 4x4 matrices
+                hiddenSize1 = 4;
+                hiddenSize2 = 4;
+                numDiagonalKeys = 8;
+            }
+
+            int[,,] hiddenMatrix = new int[hiddenSize1, hiddenSize2, 2];
+
+            FlashOrder flashOrder = new FlashOrder();
+
+            // Allocate an array of integers having a non duplicate range of values
+            // between 0 and num-1, and randomize the array contents. For example, if
+            // num = 8, then a possible output for randomList1 = { 5, 2, 0, 3, 7, 1, 4, 6 }
+            int[] randomList1 = flashOrder.CreateRandomizedArray(numDiagonalKeys);
+            int[] randomList2 = flashOrder.CreateRandomizedArray(numDiagonalKeys);
+
+            // Reserve capacity for storing the maximum number of active keys handled by this algorithm.
+            // It essentially creates a zero padded array when there are fewer active keys.
+            int[] activeKeys = new int[numDiagonalKeys];
+
+            // Extract keyIndex values from list into separate array.
+            for (i = 0; i < numKeys; i++)
+            {
+                activeKeys[i] = flashableKeys[i].keyID;
+            }
+
+            //flashOrder.RandomizeIndexes(ref randomList1);
+            //flashOrder.RandomizeIndexes(ref randomList2);
+
+            for (i = 0; i < numDiagonalKeys; i++)
+            {
+                index1 = randomList1[i];
+                index2 = randomList2[i];
+
+                // Use the first random list to select a keyID from the list of active keys
+                keyID = activeKeys[index1];
+
+                // Use the the second random list to select location on diagonal of hidden matrix
+                if (index2 < hiddenSize1)
+                {
+                    // Store the keyID on the diagonal of first hidden matrix
+                    hiddenMatrix[index2, index2, 0] = keyID;
+                }
+                else
+                {
+                    // Store the keyID on the diagonal of second hidden matrix
+                    index2 = index2 - hiddenSize1;
+                    hiddenMatrix[index2, index2, 1] = keyID;
+                }
+            }
+
+            return hiddenMatrix;
+        }
+
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
         public int[,,] GenerateGroupingMaxtrix(GroupingParam inputParam, int[,] keyIDMap, List<KeyMapping> flashableKeys,
-                                                GridLayout gridData, out int hiddenSize1, out int hiddenSize2)
+                                                GridLayout gridData, int randomValue, out int hiddenSize1, out int hiddenSize2)
         {
             // Identifier mapping applied to keyboard to indicate which key is selected
             int[,] keyOrder;
@@ -93,7 +177,7 @@ namespace CoreServices.Stimulus
             gridSize.numCols = gridData.maxKeyCols;
 
             // Determine the order of position in which to place keys in the hidden matrices
-            CreatePlaceOrder(inputParam.arrangement, numKeys, out int[,] placeOrder1, out int[,] placeOrder2);
+            CreatePlaceOrder(inputParam.arrangement, numKeys, randomValue, out int[,] placeOrder1, out int[,] placeOrder2);
 
             keyOrder = CreateKeyOrder(gridSize, inputParam.keyOrder);
 
@@ -245,7 +329,7 @@ namespace CoreServices.Stimulus
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-        void CreatePlaceOrder(Arrangement arrangement, int numKeys, out int[,] placeOrder1List, out int[,] placeOrder2List)
+        void CreatePlaceOrder(Arrangement arrangement, int numKeys, int randomValue, out int[,] placeOrder1List, out int[,] placeOrder2List)
         {
             int halfKeys;
             int hiddenSize1;
@@ -300,11 +384,17 @@ namespace CoreServices.Stimulus
 
                 placeOrder1List = new int[hiddenCapacity1, 2];
 
-                offset = 1;
+                offset = randomValue + 1;
 
                 for (int i = 0; i < hiddenCapacity1; i++)
                 {
                     orderValue = i + offset;
+
+                    if (orderValue > hiddenCapacity1)
+                    {
+                        orderValue = orderValue - hiddenCapacity1;
+                    }
+
                     row = 0;
                     col = 0;
                     found = false;
@@ -330,9 +420,17 @@ namespace CoreServices.Stimulus
 
                 placeOrder2List = new int[hiddenCapacity2, 2];
 
+                offset = randomValue + 4;
+
                 for (int i = 0; i < hiddenCapacity2; i++)
                 {
                     orderValue = i + offset;
+
+                    if (orderValue > hiddenCapacity2)
+                    {
+                        orderValue = orderValue - hiddenCapacity2;
+                    }
+
                     row = 0;
                     col = 0;
                     found = false;

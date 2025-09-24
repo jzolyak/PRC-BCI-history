@@ -1,8 +1,9 @@
 ﻿using CoreServices.Calibration;
 using CoreServices.Connectivity;
-using CoreServices.Common;
+using CoreServices.Presets;
 using CoreServices.Prediction;
 using CoreServices.Headset;
+using CoreServices.Common;
 
 namespace ViewModels
 {
@@ -49,6 +50,18 @@ namespace ViewModels
                 if (_userSettingsService == null)
                     _userSettingsService = new UserSettingsService();
                 return _userSettingsService;
+            }
+        }
+
+
+        private static PresetsService? _presetsService;
+        public static PresetsService PresetsService
+        {
+            get
+            {
+                if (_presetsService == null)
+                    _presetsService =PresetsService.Instance;
+                return _presetsService;
             }
         }
 

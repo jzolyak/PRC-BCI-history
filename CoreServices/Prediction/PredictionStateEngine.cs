@@ -17,6 +17,7 @@ using System.Threading.Tasks.Dataflow;
 using System.Diagnostics;
 
 using CoreServices.Headset;
+using CoreServices.Presets;
 using static System.Formats.Asn1.AsnWriter;
 
 namespace CoreServices.Prediction
@@ -60,6 +61,7 @@ namespace CoreServices.Prediction
             this.exitAction = exitAction;
             this.completeAction = completeAction;
             this.pauseAction = pauseAction;
+
         }
 
         public async Task PredictionMode()
@@ -71,6 +73,9 @@ namespace CoreServices.Prediction
             inputParam.boardDivision = BoardDivision.Checkerboard;
             inputParam.arrangement = Arrangement.Magic;
             inputParam.indexMapping = IndexMapping.GridSize;
+
+            // PRC_mode eventually needs to be a controllable preset value to support different key grids.
+            bool PRC_mode = true;
 
             //bool calibrationCompleted = false;
 
@@ -92,7 +97,6 @@ namespace CoreServices.Prediction
             int elementIndex = 0;
 
             int UI_delay_msec = 200;
-            int programmable_delay_msec = 1000;
 
             //string targetKeyName;
             //string[] commandLines = null;
@@ -103,12 +107,26 @@ namespace CoreServices.Prediction
             const int MAX_FLASH_MSG_LENGTH = 8;
             const int MAX_PREDICT_MSG_LENGTH = 20;
 
+            // Flash Control Message ID numbers
             const int FLASH_ON = 1;
             const int FLASH_OFF = 2;
             const int END_SEQUENCE = 3;
 
+            // Headset Control Message ID numbers
             const int ENABLE_PIPELINE_SENSOR_DATA = 1;
             const int DISABLE_PIPELINE_SENSOR_DATA = 2;
+
+            // Prediction Control Message ID numbers
+            const int MARK_STATE_CHANGE = 18;       // Report when stimulus changes state (for debug only)
+            const int MARK_STIM_CHANGE = 20;        // Report when stimulus changes stim code (for debug only)
+
+            const int STIM_STATE_ERROR = 30;        // Report when unexpected value appeared in packet data
+            const int STIM_CODE_ERROR = 32;         // Report when unexpected value appeared in packet data
+
+            const int PREDICT_STATUS = 21;          // Detailed predict status at end of each flash sequence
+            const int ABSTENTION_PREDICT = 92;      // Report when reach max number of flash sequences, but no key selected
+            const int FORCED_PREDICT = 94;          // Report when reach max number of flash seq, force select with highest win count
+            const int END_OF_PREDICTION = 99;       // Report keyID when reach max number of flash sequences or reach dynamic stopping
 
             const int samplesPerBatch = 9;              // 9 samples = 30 msec @ Fs=300 Hz
             const double bufferAheadSec = 0.100;        // 100 msec
@@ -126,7 +144,12 @@ namespace CoreServices.Prediction
 
             WeightCoefficients testWeightCoef = new WeightCoefficients();
 
-            
+            bool randomMapping = true;
+            int randomValue = 0;
+
+            Random randomGen = new Random();
+
+
             modeState = PredictionStates.Open_Files;
 
 
@@ -150,21 +173,21 @@ namespace CoreServices.Prediction
 
             List<FlashTableEntry> flashSequenceTable = new List<FlashTableEntry>();
 
-            // Temporarily use the constructor to assign default value for each preset until
-            // we can fetch the real preset configuration values from a stored file.
+            // Fetch preset configuration values for flash stimulus from stored settings file.
+            FlashStimulusPresets flashConfiguration = FlashStimulusPresets.Instance;
 
-            PredictionPresets predictionConfiguration = new PredictionPresets();
+            // Convert preset values in seconds into milliseconds by multiplying by 1000.
+            int timeBetweenTargets = flashConfiguration.FlashTimingPresets.timeBetweenTargets * 1000;
 
-            //string currentDirectory = Directory.GetCurrentDirectory();
-            //string coefficientFilename = "WeightCoefficients.coef";
+            // Fetch preset configuration values for predicition from stored settings file.
+            PredictionPresets predictionConfiguration = PredictionPresets.Instance;
+
+            // This preset controls the number of flash sequence to make a prediction or declare abstention.
+            int maxNumFlashSequences = predictionConfiguration.DecisionLogicPresets.maxNumFlashSequences;
 
             string currentDirectory = predictionFileMetadata.FilePath;
             string coefficientFilename =predictionFileMetadata.Name+"_current.COEF";
             string filePath = System.IO.Path.Combine(currentDirectory, coefficientFilename);
-
-            // string currentDirectory = Directory.GetCurrentDirectory();
-            //string scriptFilename = "CalibrationCommands.txt";
-            //string filePath = System.IO.Path.Combine(currentDirectory, scriptFilename);
 
 
             /*   *****************************
@@ -187,9 +210,12 @@ namespace CoreServices.Prediction
 
             while (!done)
             {
-                headset.ConnectPort(port);
+                if(headset.ConnectPort(port))
+                {
+                    Logger.Info(this,"Headset connected using port"+port);
+                }
                 await Task.Delay(100);
-
+                Logger.Info(this,"After the delay");
                 passedTest = headset.IsConnected();
 
                 if (passedTest == false)
@@ -205,7 +231,7 @@ namespace CoreServices.Prediction
                         // Retry making the connection
                         headset.Disconnect();
                         await Task.Delay(100);
-                    }
+                    }      
                 }
                 else
                 {   // Connected properly
@@ -521,6 +547,10 @@ namespace CoreServices.Prediction
 
                                 modeState = PredictionStates.Assign_Key_Mapping;
                             }
+                            if (_forceExit)
+                            {
+                                modeState = PredictionStates.Clean_Up;
+                            }
                             break;
 
                         case PredictionStates.Local_Display:
@@ -530,6 +560,10 @@ namespace CoreServices.Prediction
                             // TO BE DONE: This functionality will be added after MVP
 
                             modeState = PredictionStates.Get_Local_Elements;
+                            if (_forceExit)
+                            {
+                                modeState = PredictionStates.Clean_Up;
+                            }
                             break;
 
                         case PredictionStates.Get_Local_Elements:
@@ -538,6 +572,10 @@ namespace CoreServices.Prediction
 
                             // Ready to fetch next target from calibration commands
                             modeState = PredictionStates.Assign_Key_Mapping;
+                            if (_forceExit)
+                            {
+                                modeState = PredictionStates.Clean_Up;
+                            }
                             break;
 
                         case PredictionStates.Assign_Key_Mapping:
@@ -550,10 +588,13 @@ namespace CoreServices.Prediction
 
                             List<List<int>> listOfRows = keyboardGrid.CreateListOfRows(elementList);
                             List<List<int>> listOfColumns = keyboardGrid.CreateListOfColumns(elementList);
-                            gridData.maxKeyRows = listOfRows.Count;
-                            gridData.maxKeyCols = listOfColumns.Count;
 
-                            bool PRC_mode = true;
+                            // If not in PRC_mode, use size of scanned list of elements for max number of rows and columns in grid.
+                            if (PRC_mode == false)
+                            {
+                                gridData.maxKeyRows = listOfRows.Count;
+                                gridData.maxKeyCols = listOfColumns.Count;
+                            }
 
                             // Create a KeyID map of all the keys based on the mapping method and grid size
                             keyIDMap = keyboardGrid.CreateKeyIDMap(gridData, PRC_mode);
@@ -563,16 +604,52 @@ namespace CoreServices.Prediction
                             // Create cross reference lookup table between the keyID value and buttonIndex value used in flashing keys.
                             flashStimulus.CreateCrossReferenceTable(flashableKeys);
 
+                            // Now that we know keyID mapping, can now preload stimulus images to specific overlay template
+                            flashStimulus.AssignFlashImagesToButtons(flashableKeys, ref stimulusOverlay);
+
+                            if (notifyScreenOverLayChange != null)
+                            {
+                                notifyScreenOverLayChange(stimulusOverlay);
+                            }
+
                             modeState = PredictionStates.Create_Grouping;
+                            if (_forceExit)
+                            {
+                                modeState = PredictionStates.Clean_Up;
+                            }
                             break;
 
                         case PredictionStates.Create_Grouping:
                             // Run algorithms to randomize the assignment of flashable keys into two hidden matrices.
                             FlashGrouping flashGroups = new FlashGrouping();
 
-                            groupingMatrix = flashGroups.GenerateGroupingMaxtrix(inputParam, keyIDMap, flashableKeys, gridData, out matrixSize1, out matrixSize2);
+                            // Most of the time the grouping matrix is generated using a Magic Square based algorithm
+                            // to randomize the keys into flash stimulus groups. However, when the number of active 
+                            // keys (or menu choices) is less than 9, then an alternative method is used to create 
+                            // a flashing stimulus where only one key (or choice) is flashed at a time in a group.
+
+                            if (flashableKeys.Count <= FlashGrouping.ACTIVE_KEYS_LOWER_LIMIT)
+                            {
+                                groupingMatrix = flashGroups.GenerateAlternateGroupingMaxtrix(flashableKeys, out matrixSize1, out matrixSize2);
+                            }
+                            else
+                            {
+                                if (randomMapping == true)
+                                {
+                                    randomValue = randomGen.Next(5);
+                                }
+                                else
+                                {
+                                    randomValue = 0;
+                                }
+                                groupingMatrix = flashGroups.GenerateGroupingMaxtrix(inputParam, keyIDMap, flashableKeys, gridData, randomValue, out matrixSize1, out matrixSize2);
+                            }
 
                             modeState = PredictionStates.Create_Sequence;
+                            if (_forceExit)
+                            {
+                                modeState = PredictionStates.Clean_Up;
+                            }
                             break;
 
                         case PredictionStates.Create_Sequence:
@@ -582,7 +659,27 @@ namespace CoreServices.Prediction
 
                             flashSequenceTable = flashSequence.GenerateFlashSequenceTable(groupingMatrix, matrixSize1, matrixSize2, targetkeyIDvalue);
 
+                            string weightCoefFilename = "\n\nWeight Coef Filename:  " + predictionFileMetadata.Name + "\n";
+                            Logger.Info(weightCoefFilename);
+
+                            int count = flashSequenceTable.Count;
+                            string seperator = ", ";
+
+                            for (int i = 0; i < count; i++)
+                            {
+                                string mapGroup = String.Format("stim code {0} = ", (i + 1));
+                                string textKeyIDs = String.Join(seperator, flashSequenceTable[i].keyIDgrouping);
+                                string outputString = mapGroup + textKeyIDs;
+                                Logger.Info(outputString);
+                            }
+
+                            Logger.Info("\n\n");
+
                             modeState = PredictionStates.Core_Loop;
+                            if (_forceExit)
+                            {
+                                modeState = PredictionStates.Clean_Up;
+                            }
                             break;
 
                         /*
@@ -669,8 +766,8 @@ namespace CoreServices.Prediction
 
                             // Task t0 = Task.Run(() => headsetControl.ReadHeadsetDataAsync(headset, headsetTokenSource.Token, headsetDataBufferBlock, headsetMsgBufferBlock));
 
-                            Task t1 = Task.Run(() => flashTiming.FlashDataAsync(headset, pipelineTokenSource.Token, flashSequenceTable,
-                                                        headsetDataBufferBlock, flashDataBufferBlock, flashMsgBufferBlock));
+                            Task t1 = Task.Run(() => flashTiming.FlashDataAsync(headset, pipelineTokenSource.Token, targetkeyIDvalue, maxNumFlashSequences,
+                                                        flashSequenceTable, headsetDataBufferBlock, flashDataBufferBlock, flashMsgBufferBlock));
 
                             Task t2 = Task.Run(() => sensorFiltering.FilterDataAsync(pipelineTokenSource.Token, flashDataBufferBlock, filterDataBufferBlock));
 
@@ -695,7 +792,6 @@ namespace CoreServices.Prediction
 
                                 if (_forceExit)
                                 {
-                                    _forceExit = false;
                                     exitFlag = true;
                                 }
                                 string flashTime = DateTime.Now.ToString("HH:mm:ss:ffff");
@@ -743,9 +839,8 @@ namespace CoreServices.Prediction
 
                                     messageType = predictStatusMessage.content[0];
 
-                                    if (messageType == 18)
+                                    if (messageType == MARK_STATE_CHANGE)
                                     {
-                                        // MARK_STATE_CHANGE
                                         messageLen = predictStatusMessage.content[1];
                                         phaseInSequence = predictStatusMessage.content[2];
                                         stimCode = predictStatusMessage.content[3];
@@ -760,9 +855,8 @@ namespace CoreServices.Prediction
                                         }
                                     }
 
-                                    else if (messageType == 20)
+                                    else if (messageType == MARK_STIM_CHANGE)
                                     {
-                                        // MARK_STIM_CHANGE
                                         messageLen = predictStatusMessage.content[1];
                                         phaseInSequence = predictStatusMessage.content[2];
                                         stimCode = predictStatusMessage.content[3];
@@ -772,50 +866,10 @@ namespace CoreServices.Prediction
                                         //Debug.WriteLine("{0}  MARK_STIM,  phase = {1}, seq num = {2}, action = {3} \n", flashTime, phaseInSequence, stimCode, reportedAction);
                                     }
                                     
-                                    else if (messageType == 21)
+                                    else 
                                     {
-                                        // PREDICT_STATUS
-                                        messageLen = predictStatusMessage.content[1];
-                                        fseq  = predictStatusMessage.content[2];
-                                        code1 = predictStatusMessage.content[3];
-                                        code2 = predictStatusMessage.content[4];
-                                        code3 = predictStatusMessage.content[5];
-                                        code4 = predictStatusMessage.content[6];
-                                        code5 = predictStatusMessage.content[7];
-
-                                        iPoint1 = predictStatusMessage.content[8];
-                                        iPoint2 = predictStatusMessage.content[9];
-
-                                        score1 = predictStatusMessage.content[10];
-                                        score2 = predictStatusMessage.content[11];
-                                        score3 = predictStatusMessage.content[12];
-                                        score4 = predictStatusMessage.content[13];
-                                        score5 = predictStatusMessage.content[14];
-
-                                        predKey = predictStatusMessage.content[15];
-                                        winCnt = predictStatusMessage.content[16];
-                                        selKey = predictStatusMessage.content[17];
-
-                                        //Logger.Info(this, "fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + " code3 = " + code3 + " code4 = " + code4);
-                                        //Logger.Info(this, " code5 = " + code5 + " predKey = " + predKey + " winct = " + winct + " selKey = " + selKey + "\n");
-                                        //Debug.WriteLine("{0}  STATUS,  fseq = {1}, code1 = {2}, code2 = {3}, code3 = {4}, code4 = {5}, code5 = {6} \n", flashTime, fseq, code1, code2, code3, code4, code5);
-
-                                        //Debug.WriteLine("{0}  STATUS,  fseq = {1}, code1 = {2}, code2 = {3}, code3 = {4}, code4 = {5}, code5 = {6}, \n", flashTime, fseq, code1, code2, code3, code4, code5);
-                                        //Debug.WriteLine("              score1 = {0}, score2 = {1}, score3 = {2}, score4 = {3}, score5 = {4}, predKey = {5}, winCnt = {6}, selKey = {7}  \n", score1, score2, score3, score4, score5, predKey, winCnt, selKey);
-
-                                        //Logger.Info("STATUS,  fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + " code3 = " + code3 + " code4 = " + code4 + " code5 = " + code5 + " iPoint1 = " + iPoint1 + " iPoint2 = " + iPoint2 + "\n");
-                                        //Logger.Info("         score1 = " + score1 + " score2 = " + score2 + " score3 = " + score3 + " score4 = " + score4 + " score5 = " + score5 + " predKey = " + predKey + " winCnt = " + winCnt + " selKey = " + selKey + "\n");
-
-                                        Logger.Info("STATUS,  fseq = " + fseq + "  code1 = " + code1 + "   code2 = " + code2 + "      code3 = " + code3 + "       code4 = " + code4 + "       code5 = " + code5 + "      iPoint1 = " + iPoint1 + "  iPoint2 = " + iPoint2);
-                                        Logger.Info("                score1 = " + score1 + "  score2 = " + score2 + "   score3 = " + score3 + "   score4 = " + score4 + "  score5 = " + score5 + "   predKey = " + predKey + "  winCnt = " + winCnt + "  selKey = " + selKey + "\n");
-
-                                    }
-
-                                    else if (messageType == 99)
-                                    {
-                                        // END_OF_PREDICTION
-                                        exitFlag = true;
-
+                                        // All other Prediction status message types.
+                                        // Fetch and parse message contents.
                                         messageLen = predictStatusMessage.content[1];
                                         fseq = predictStatusMessage.content[2];
                                         code1 = predictStatusMessage.content[3];
@@ -842,20 +896,52 @@ namespace CoreServices.Prediction
                                         // i.e. the sensor signals did not reach the preset config values set for detection criteria.
                                         selectedKeyIDvalue = selKey;
 
-                                        //Logger.Info(this, "fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + "code3 = " + code3 + " code4 = " + code4);
-                                        //Logger.Info(this, " code5 = " + code5 + "  predKey " + predKey + " winCnt = " + winCnt + "selKey = " + selKey + "\n");
+                                        // Next customize log information based on type of status information
+                                        if (messageType == PREDICT_STATUS)
+                                        {
+                                            Logger.Info("STATUS,  fseq = " + fseq + "  code1 = " + code1 + "   code2 = " + code2 + "      code3 = " + code3 + "       code4 = " + code4 + "       code5 = " + code5 + "      iPoint1 = " + iPoint1 + "  iPoint2 = " + iPoint2);
+                                            Logger.Info("                score1 = " + score1 + "  score2 = " + score2 + "   score3 = " + score3 + "   score4 = " + score4 + "  score5 = " + score5 + "   predKey = " + predKey + "  winCnt = " + winCnt + "  selKey = " + selKey + "\n");
+                                        }
 
-                                        //Debug.WriteLine("{0}  STATUS,  fseq = {1}, code1 = {2}, code2 = {3}, code3 = {4}, code4 = {5}, code5 = {6}, \n", flashTime, fseq, code1, code2, code3, code4, code5);
-                                        //Debug.WriteLine("              score1 = {0}, score2 = {1}, score3 = {2}, score4 = {3}, score5 = {4}, predKey = {5}, winCnt = {6}, selKey = {7}  \n", score1, score2, score3, score4, score5, predKey, winCnt, selKey);
+                                        else if (messageType == END_OF_PREDICTION)
+                                        {
+                                            // Reached final decision. Time to report prediction selection.
+                                            exitFlag = true;
 
-                                        //Logger.Info("STATUS,  fseq = " + fseq + " code1 = " + code1 + " code2 = " + code2 + " code3 = " + code3 + " code4 = " + code4 + " code5 = " + code5 + " iPoint1 = " + iPoint1 + " iPoint2 = " + iPoint2 + "\n");
-                                        //Logger.Info("         score1 = " + score1 + " score2 = " + score2 + " score3 = " + score3 + " score4 = " + score4 + " score5 = " + score5 + " predKey = " + predKey + " winCnt = " + winCnt + " selKey = " + selKey + "\n");
+                                            Logger.Info("SELECT,  fseq = " + fseq + "  code1 = " + code1 + "   code2 = " + code2 + "      code3 = " + code3 + "       code4 = " + code4 + "       code5 = " + code5 + "      iPoint1 = " + iPoint1 + "  iPoint2 = " + iPoint2);
+                                            Logger.Info("                score1 = " + score1 + "  score2 = " + score2 + "   score3 = " + score3 + "   score4 = " + score4 + "  score5 = " + score5 + "   predKey = " + predKey + "  winCnt = " + winCnt + "  selKey = " + selKey + "\n");
+                                            Logger.Info("End Logic = END_OF_PREDICTION,  Selected keyID = selKey,  Target keyID = attended key,   Decision = Eval result");
+                                            Logger.Info("\n\n\n ************************ \n\n");
+                                        }
 
-                                        Logger.Info("SELECT,  fseq = " + fseq + "  code1 = " + code1 + "   code2 = " + code2 + "      code3 = " + code3 + "       code4 = " + code4 + "       code5 = " + code5 + "      iPoint1 = " + iPoint1 + "  iPoint2 = " + iPoint2);
-                                        Logger.Info("                score1 = " + score1 + "  score2 = " + score2 + "   score3 = " + score3 + "   score4 = " + score4 + "  score5 = " + score5 + "   predKey = " + predKey + "  winCnt = " + winCnt + "  selKey = " + selKey + "\n");
-                                        Logger.Info("\n\n\n ************************ \n\n");
+                                        else if (messageType == FORCED_PREDICT)
+                                        {
+                                            exitFlag = true;
 
-                                    }
+                                            Logger.Info("SELECT,  fseq = " + fseq + "  code1 = " + code1 + "   code2 = " + code2 + "      code3 = " + code3 + "       code4 = " + code4 + "       code5 = " + code5 + "      iPoint1 = " + iPoint1 + "  iPoint2 = " + iPoint2);
+                                            Logger.Info("                score1 = " + score1 + "  score2 = " + score2 + "   score3 = " + score3 + "   score4 = " + score4 + "  score5 = " + score5 + "   predKey = " + predKey + "  winCnt = " + winCnt + "  selKey = " + selKey + "\n");
+                                            Logger.Info("End Logic = FORCED_PREDICT,  Selected keyID = selKey,  Target keyID = attended key,   Decision = Eval result");
+                                            Logger.Info("\n\n\n ************************ \n\n");
+                                        }
+
+                                        else if (messageType == ABSTENTION_PREDICT)
+                                        {
+                                            exitFlag = true;
+
+                                            Logger.Info("SELECT,  fseq = " + fseq + "  code1 = " + code1 + "   code2 = " + code2 + "      code3 = " + code3 + "       code4 = " + code4 + "       code5 = " + code5 + "      iPoint1 = " + iPoint1 + "  iPoint2 = " + iPoint2);
+                                            Logger.Info("                score1 = " + score1 + "  score2 = " + score2 + "   score3 = " + score3 + "   score4 = " + score4 + "  score5 = " + score5 + "   predKey = " + predKey + "  winCnt = " + winCnt + "  selKey = " + selKey + "\n");
+                                            Logger.Info("End Logic = ABSTENTION,  Selected keyID = selKey,  Target keyID = attended key,   Decision = Eval result");
+                                            Logger.Info("\n\n\n ************************ \n\n");
+
+                                            // Check if user is informed of abstention choice on the display screen.
+
+                                            // Update consecutive abstention counter value.
+                                            // If reeach a preset limit of abstentions in a row, then switch over to Auto Pause mode
+                                            // because user is not engaued with the flashing  stimulus
+
+                                        }
+
+                                    }  // if (messageType)
 
                                 }  // if (predictStatusReceived == true)
 
@@ -892,7 +978,11 @@ namespace CoreServices.Prediction
                             //Logger.Info(this, "Status of Task t1: " + t1.Status);
                             //Logger.Info(this, "Status of Task t2: " + t2.Status);
                             //Logger.Info(this, "Status of task t4: " + t4.Status);
-
+                            if (_forceExit)
+                            {
+                                modeState = PredictionStates.Clean_Up;
+                                break;
+                            }
                             modeState = PredictionStates.Click_Key;      // Don't click key until Prediction is working
                             // modeState = PredictionStates.Programmed_Delay;
                             break;
@@ -900,7 +990,7 @@ namespace CoreServices.Prediction
                         /* ********************************* */
                         /*  End Core Loop                    */
                         /* ********************************* */
-
+                           
 
                         case PredictionStates.Click_Key:
                             // Clicking target key generates speech (in REMOTE) and displays key name.
@@ -947,7 +1037,11 @@ namespace CoreServices.Prediction
                                     remoteDisplay.SelectElement(elementIndex);
                                 }
                             }
-
+                            if (_forceExit)
+                            {
+                                modeState = PredictionStates.Clean_Up;
+                                break;
+                            }
                             modeState = PredictionStates.Programmed_Delay;
                             break;
 
@@ -955,10 +1049,15 @@ namespace CoreServices.Prediction
                             // Wait for programmable delay so Empower can complete its click repsonse.
                             // Need to wait for Empower to generate speech, display key name in text box,
                             // and possibly update keyboard display with new set of keys.
-                            await Task.Delay(programmable_delay_msec);
+                            await Task.Delay(timeBetweenTargets);
 
                             // Fetch next target in calibration set
                             modeState = PredictionStates.Monitor_Prediction_Interfaces;
+                            if (_forceExit)
+                            {
+                                modeState = PredictionStates.Clean_Up;
+                                break;
+                            }
                             break;
 
                         case PredictionStates.Monitor_Prediction_Interfaces:
@@ -972,6 +1071,7 @@ namespace CoreServices.Prediction
                             //    modeState = PredictionStates.Get_Remote_Elements;
 
                             // modeState = PredictionStates.Clean_Up;               // <-- Use this to run once, then stop
+
                             modeState = PredictionStates.Get_Remote_Elements;       // <-- Use this to run forever...
                             break;
 
@@ -996,6 +1096,16 @@ namespace CoreServices.Prediction
                         case PredictionStates.Exit_Mode:
                             // Now ready to return to the BCI app Main Menu
                             modeExit = true;
+                            headsetTokenSource.Cancel();
+                            headset.StopBackgroundAcquisition();
+                            await Task.Delay(50);
+
+                            headsetMsgBufferBlock.Complete();
+                            headsetDataBufferBlock.Complete();
+
+                            headset.Disconnect();
+                            headset.Delete();
+                            await Task.Delay(1000);
                             if (exitAction != null) exitAction();
                             break;
 
@@ -1004,15 +1114,19 @@ namespace CoreServices.Prediction
                 }  // while (!modeExit)
 
                 // Stop headset task by cancelling the token
-                headsetTokenSource.Cancel();
-                headset.StopBackgroundAcquisition();
-                await Task.Delay(50);
+                if (headset.IsConnected())
+                {
+                    headsetTokenSource.Cancel();
+                    headset.StopBackgroundAcquisition();
+                    await Task.Delay(50);
 
-                headsetMsgBufferBlock.Complete();
-                headsetDataBufferBlock.Complete();
+                    headsetMsgBufferBlock.Complete();
+                    headsetDataBufferBlock.Complete();
 
-                headset.Disconnect();
-                headset.Delete();
+                    headset.Disconnect();
+                    headset.Delete();
+                    await Task.Delay(100);
+                }
 
                 /*
                 // Don't need binaryWriter for Prediction to work. JAZ 4-12-24
@@ -1070,6 +1184,10 @@ namespace CoreServices.Prediction
         public void ForceExit()
         {
             _forceExit = true;
+        }
+        public void UnsetExitFlag()
+        {
+            _forceExit = false;
         }
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */

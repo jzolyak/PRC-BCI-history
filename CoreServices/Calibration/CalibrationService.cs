@@ -196,7 +196,7 @@ namespace CoreServices.Calibration
         private void ActivateUI()
         {
             if (RaiseActiveUIEvent == null) return;
-            RaiseActiveUIEvent(this, EventArgs.Empty);
+            RaiseActiveUIEvent(this, EventArgs.Empty);           
         }
 
         private void ExitCalibration()
@@ -222,7 +222,7 @@ namespace CoreServices.Calibration
            
             if (RaiseExitCalibrationEvent != null) RaiseExitCalibrationEvent(this, new EventArgs());
         }
-        public void ReceiveNotificationFromUI(UIInstruction instruction)
+        public void ReceiveNotificationFromUI(UIInstruction instruction)           
         {
            _stateEngine.NotificationfromUI(instruction);
         }
