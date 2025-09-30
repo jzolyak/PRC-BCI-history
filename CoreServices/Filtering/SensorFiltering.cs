@@ -32,14 +32,21 @@ namespace CoreServices.Filtering
             double[] rawDataBuffer = null;
 
             double[] HPF_bcoef = new double[] { 1.00000000000000, -1.00000000000000 };    // Filter transfer numerator coef
-            //double[] HPF_acoef = new double[] { 1.00000000000000, -0.996378967773846 };   // Filter transfer denominator coef
-            double[] HPF_acoef = new double[] { 1.00000000000000, -0.985594038922712 };   // Filter transfer denominator coef
+            //double[] HPF_acoef = new double[] { 1.00000000000000, -0.996378967773846 };   // Filter transfer denominator coef, Fc = 0.1 Hz
+            //double[] HPF_acoef = new double[] { 1.00000000000000, -0.985594038922712 };   // Filter transfer denominator coef, Fc = 0.4 Hz
+            double[] HPF_acoef = new double[] { 1.00000000000000, -0.982024858591416 };   // Filter transfer denominator coef, Fc = 0.5 Hz
 
             double[] Notch_bcoef = new double[] { 1.00000000000000, -0.618033988749895, 1.00000000000000 };
-            double[] Notch_acoef = new double[] { 1.00000000000000, -0.556230589874906, 0.810000000000000 };
+            //double[] Notch_acoef = new double[] { 1.00000000000000, -0.556230589874906, 0.810000000000000 };  // Notch width = 0.1
+            double[] Notch_acoef = new double[] { 1.00000000000000, -0.370820393249937, 0.360000000000000 };  // Notch width = 0.4
 
-            double[] LPF_bcoef = new double[] { 0.00589798046521114, 0.0176939413956334, 0.0176939413956334, 0.00589798046521114 };
-            double[] LPF_acoef = new double[] { 1.00000000000000, -2.18768735399289, 1.67381733173863, -0.438946134024050 };
+            // Fs = 300 Hz, Fpass = 15 Hz, Fstop = 30 Hz, Astop = 12 dB attenuation
+            //double[] LPF_bcoef = new double[] { 0.00589798046521114, 0.0176939413956334, 0.0176939413956334, 0.00589798046521114 };
+            //double[] LPF_acoef = new double[] { 1.00000000000000, -2.18768735399289, 1.67381733173863, -0.438946134024050 };
+
+            // Fs = 300 Hz, Fpass = 20 Hz, Fstop = 50 Hz, Astop = 30 dB attenuation
+            double[] LPF_bcoef = new double[] { 0.000803296929195750, 0.00401648464597875, 0.00803296929195750, 0.00803296929195750, 0.00401648464597875, 0.000803296929195750 };
+            double[] LPF_acoef = new double[] { 1.00000000000000, -3.18324708716957, 4.27761443724719, -2.97985186657190, 1.06783705587382, -0.156647037645276 };
 
             int HPF_order = HPF_acoef.Length - 1;       // IIR Filter order is 1 less than number of denominator coef
             int Notch_order = Notch_acoef.Length - 1;

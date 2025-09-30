@@ -226,10 +226,11 @@ namespace CoreServices.Prediction
 
         /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-        public double[] ComputeAccumulatedWeightedStimScores(int numStimGroupings, int flashSeqNum)
+        public double[] ComputeAccumulatedWeightedStimScores(int numStimGroupings, int flashSeqNum, int scoringWindowLength)
         {
+            int removalIndex;
             double acumSum;
-            double[] accumulatedStimScores = new double[numStimGroupings+1];
+            double[] accumulatedStimScores = new double[numStimGroupings + 1];
 
             if (flashSeqNum == 0)
             {
@@ -246,7 +247,17 @@ namespace CoreServices.Prediction
             {
                 for (int stimCode = 1; stimCode <= numStimGroupings; stimCode++)
                 {
-                    acumSum = accumulatedStimScoreTable[stimCode, flashSeqNum-1] + combinedStimScoreTable[stimCode, flashSeqNum];
+                    acumSum = accumulatedStimScoreTable[stimCode, flashSeqNum - 1] + combinedStimScoreTable[stimCode, flashSeqNum];
+
+                    if (flashSeqNum >= scoringWindowLength)
+                    {
+                        // Subtract oldest combined score from accumulated sum, leaving only the window length number
+                        // of combined scores in the summation. If the window length is set to maximum number of flash
+                        // sequences, then the accumulated score will match older algorithm that accumulated all scores.
+                        removalIndex = flashSeqNum - scoringWindowLength;
+                        acumSum = acumSum - combinedStimScoreTable[stimCode, removalIndex];
+                    }
+
                     accumulatedStimScoreTable[stimCode, flashSeqNum] = acumSum;
 
                     // Return back combined accumulated score covering all the flash sequences thus far 

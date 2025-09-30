@@ -19,6 +19,7 @@ using System.Reflection;
 using System.Diagnostics;
 
 using CoreServices.Headset;
+using CoreServices.Presets;
 
 namespace CoreServices.Calibration
 {
@@ -103,7 +104,6 @@ namespace CoreServices.Calibration
             int elementIndex = 0;
 
             int UI_delay_msec = 200;
-            int programmable_delay_msec = 1000;
 
             string targetKeyName;
             string[] commandLines = null;
@@ -134,6 +134,11 @@ namespace CoreServices.Calibration
             int elapsedTime;
             int sourceTimer;
 
+            bool randomMapping = true;
+            int randomValue = 0;
+
+            Random randomGen = new Random();
+
             modeState = CalibrationStates.Read_Command;
 
 
@@ -154,14 +159,32 @@ namespace CoreServices.Calibration
 
             List<FlashTableEntry> flashSequenceTable = new List<FlashTableEntry>();
 
+            // Fetch preset configuration values for flash stimulus from stored settings file.
+            FlashStimulusPresets flashConfiguration = FlashStimulusPresets.Instance;
+
+            // Convert preset values in seconds into milliseconds by multiplying by 1000.
+            int timeToFindTarget = flashConfiguration.FlashTimingPresets.timeToFindTarget * 1000;
+            int timeBetweenTargets = flashConfiguration.FlashTimingPresets.timeBetweenTargets * 1000;
+
+            // Fetch preset configuration values for calibration from stored settings file.
+            CalibrationPresets calibrationConfiguration = CalibrationPresets.Instance;
+
+            // This preset controls the amount of raw sensor data being recorded for weight coefficient generation.
+            int numFlashSeqPerTarget = calibrationConfiguration.ModeControlPresets.numFlashSeqPerTarget;
+
+            string currentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+
+            //string scriptFilename = calibrationConfiguration.ModeControlPresets.scriptFilename;
+            string scriptFilename = "CalibrationCommands.txt";
+
+            string filePath = System.IO.Path.Combine(currentDirectory, scriptFilename);
+
+
             /*   *****************************
             **   ***   Configure Headset   ***   
             **   *****************************
             */
-            
-            string currentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-            string scriptFilename = "CalibrationCommands.txt";
-            string filePath = System.IO.Path.Combine(currentDirectory, scriptFilename);
+
 
             // NOTE:  JAZ, 04-30-2024
             //
@@ -717,6 +740,14 @@ namespace CoreServices.Calibration
                             // Create cross reference lookup table between the keyID value and buttonIndex value used in flashing keys.
                             flashStimulus.CreateCrossReferenceTable(flashableKeys);
 
+                            // Now that we know keyID mapping, can now preload stimulus images to specific overlay template
+                            flashStimulus.AssignFlashImagesToButtons(flashableKeys, ref stimulusOverlay);
+
+                            if (notifyScreenOverLayChange != null)
+                            {
+                                notifyScreenOverLayChange(stimulusOverlay);
+                            }
+
                             modeState = CalibrationStates.Read_Command;
                             break;
 
@@ -735,7 +766,15 @@ namespace CoreServices.Calibration
                             }
                             else
                             {
-                                groupingMatrix = flashGroups.GenerateGroupingMaxtrix(inputParam, keyIDMap, flashableKeys, gridData, out matrixSize1, out matrixSize2);
+                                if (randomMapping == true)
+                                {
+                                    randomValue = randomGen.Next(5);
+                                }
+                                else
+                                {
+                                    randomValue = 0;
+                                }
+                                groupingMatrix = flashGroups.GenerateGroupingMaxtrix(inputParam, keyIDMap, flashableKeys, gridData, randomValue, out matrixSize1, out matrixSize2);
                             }
 
                             modeState = CalibrationStates.Create_Sequence;
@@ -790,7 +829,7 @@ namespace CoreServices.Calibration
                                 else
                                 {
                                     // Give user time to locate highlighted target when not using count down timer.
-                                    await Task.Delay(programmable_delay_msec);
+                                    await Task.Delay(timeToFindTarget);
 
                                     // Proceed on to normal flash stimulus
                                     modeState = CalibrationStates.Core_Loop;
@@ -868,8 +907,8 @@ namespace CoreServices.Calibration
 
                             // Task t0 = Task.Run(() => headsetControl.ReadHeadsetDataAsync(headset, headsetTokenSource.Token, headsetDataBufferBlock, headsetMsgBufferBlock));
 
-                            Task t1 = Task.Run(() => flashTiming.FlashDataAsync(headset, pipelineTokenSource.Token, flashSequenceTable, 
-                                                                                headsetDataBufferBlock, flashDataBufferBlock, flashMsgBufferBlock));
+                            Task t1 = Task.Run(() => flashTiming.FlashDataAsync(headset, pipelineTokenSource.Token, targetkeyIDvalue, numFlashSeqPerTarget,
+                                                                                flashSequenceTable, headsetDataBufferBlock, flashDataBufferBlock, flashMsgBufferBlock));
 
                             Task t2 = Task.Run(() => sensorFiltering.FilterDataAsync(pipelineTokenSource.Token, flashDataBufferBlock, filterDataBufferBlock));
 
@@ -1036,7 +1075,7 @@ namespace CoreServices.Calibration
                             // Wait for programmable delay so Empower can complete its click repsonse.
                             // Need to wait for Empower to generate speech, display key name in text box,
                             // and possibly update keyboard display with new set of keys.
-                            await Task.Delay(programmable_delay_msec);
+                            await Task.Delay(timeBetweenTargets);
 
                             // After selecting a key on the display, restart the processing of fetching new set of
                             // elements and creating a new overlay because key locations may have changed.

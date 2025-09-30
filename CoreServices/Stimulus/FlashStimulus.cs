@@ -39,7 +39,11 @@ namespace CoreServices.Stimulus
             _buttonsImageFileNam = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\buttonImagesNmae.txt";
             LoadButtonIamgesFile(_buttonsImageFileNam);
 
-
+            // if (flashStimulusPresets.FlashAppearancePresets.flashType == FlashAppearancePresets.FlashType.MonoColored)
+            // {
+            //    // Use single paint brush color to create flash stimulus instead of PNG image files.
+            //    isflashModeIsImage = false;
+            // }
         }
 
         List<ButtonElement> buttonList = new List<ButtonElement>();
@@ -81,11 +85,14 @@ namespace CoreServices.Stimulus
             //       children focus their attention longer, thus leading to a better evoked response.
             //   3.  Can flash all buttons simultaneously rather than sending individual commands to
             //       each original GUI element via MUIA to Flash ON and Flash OFF.
-            //load pictures from file
+
+
+            // Create a 150 x 150 pixel black color square to serve as default.png image.
+            // If see this actually on the screen, then no imaged assigned to keyID.
+            string imageName = "default.png";
 
             for (int i = 0; i < numElements; i++)
             {
-                string imageName = GetImageNameByNumber(i);
                 var button = new ButtonElement()
                 {
 
@@ -128,6 +135,33 @@ namespace CoreServices.Stimulus
             {
                 keyIDvalue = flashableKeys[i].keyID;
                 crossReferenceTable[keyIDvalue] = flashableKeys[i].buttonIndex;
+            }
+        }
+
+        /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+        public void AssignFlashImagesToButtons(List<KeyMapping> flashableKeys, ref ScreenOverlay screenOverlay)
+        {
+            int keyIDvalue;
+            int numEntries = flashableKeys.Count;
+
+            for (int i = 0; i < numEntries; i++)
+            {
+                // NOTE: flashableKeys[] is a master list that ties the indexes of the MUIA element list, 
+                //       button list, and keyID mapping together in one storage location. The number of
+                //       nonblank (i.e. flashable) buttons is between 1 and the maximum keyID value.
+                keyIDvalue = flashableKeys[i].keyID;
+
+                // The user first creates a 4 x 4 matrix template of images that they want to use as a flash
+                // stimulus pattern. Currently we don't have a software tool that takes the template and maps
+                // the images to the keyID values assigned to the keyboard. Instead, the user creates a one
+                // to one mapping between every keyID on the maximum size keyboard with the name of the PNG
+                // picture file that is associated with each key.
+                string imageName = GetImageNameByNumber(keyIDvalue);
+
+                buttonList[i].FileName = imageName;
+
+                screenOverlay.ButtonElementList[i].FileName = imageName;
             }
         }
 

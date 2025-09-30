@@ -139,7 +139,7 @@ namespace CoreServices.Stimulus
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
         public int[,,] GenerateGroupingMaxtrix(GroupingParam inputParam, int[,] keyIDMap, List<KeyMapping> flashableKeys,
-                                                GridLayout gridData, out int hiddenSize1, out int hiddenSize2)
+                                                GridLayout gridData, int randomValue, out int hiddenSize1, out int hiddenSize2)
         {
             // Identifier mapping applied to keyboard to indicate which key is selected
             int[,] keyOrder;
@@ -177,7 +177,7 @@ namespace CoreServices.Stimulus
             gridSize.numCols = gridData.maxKeyCols;
 
             // Determine the order of position in which to place keys in the hidden matrices
-            CreatePlaceOrder(inputParam.arrangement, numKeys, out int[,] placeOrder1, out int[,] placeOrder2);
+            CreatePlaceOrder(inputParam.arrangement, numKeys, randomValue, out int[,] placeOrder1, out int[,] placeOrder2);
 
             keyOrder = CreateKeyOrder(gridSize, inputParam.keyOrder);
 
@@ -329,7 +329,7 @@ namespace CoreServices.Stimulus
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-        void CreatePlaceOrder(Arrangement arrangement, int numKeys, out int[,] placeOrder1List, out int[,] placeOrder2List)
+        void CreatePlaceOrder(Arrangement arrangement, int numKeys, int randomValue, out int[,] placeOrder1List, out int[,] placeOrder2List)
         {
             int halfKeys;
             int hiddenSize1;
@@ -384,11 +384,17 @@ namespace CoreServices.Stimulus
 
                 placeOrder1List = new int[hiddenCapacity1, 2];
 
-                offset = 1;
+                offset = randomValue + 1;
 
                 for (int i = 0; i < hiddenCapacity1; i++)
                 {
                     orderValue = i + offset;
+
+                    if (orderValue > hiddenCapacity1)
+                    {
+                        orderValue = orderValue - hiddenCapacity1;
+                    }
+
                     row = 0;
                     col = 0;
                     found = false;
@@ -414,9 +420,17 @@ namespace CoreServices.Stimulus
 
                 placeOrder2List = new int[hiddenCapacity2, 2];
 
+                offset = randomValue + 4;
+
                 for (int i = 0; i < hiddenCapacity2; i++)
                 {
                     orderValue = i + offset;
+
+                    if (orderValue > hiddenCapacity2)
+                    {
+                        orderValue = orderValue - hiddenCapacity2;
+                    }
+
                     row = 0;
                     col = 0;
                     found = false;

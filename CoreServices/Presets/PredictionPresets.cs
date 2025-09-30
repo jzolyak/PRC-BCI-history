@@ -56,9 +56,9 @@ namespace CoreServices.Presets
 
         public PredictionCriteriaPresets()
         {
-            highestTopScores = 4;
-            winCountForSelection = 3;
-            predictScoreThreshold = 5000;
+            highestTopScores = 4;           // Default=4, Range={2, 4}, num of highest scores to search for row/col intersection
+            winCountForSelection = 3;       // Default=3, Range={1, maxNumFlashSeq}, num times keyID meets criteria before make prediction
+            predictScoreThreshold = 5000;   // Default=5000, Range={3000, 8000}, accum weighted score criteria before make prediction
         }
 
         public bool RetreiveSettings(Dictionary<string, string> settings)
@@ -120,11 +120,11 @@ namespace CoreServices.Presets
 
         public DecisionLogicPresets()
         {
-            scoringMethod = ScoringMethod.StimulusCode;
-            stoppingMethod = StoppingMethod.DynamicStopping;
-            finalDecisionType = DecisionMethod.Abstention;
-            maxNumFlashSequences = 15;
-            scoringWindowLength = 6;
+            scoringMethod = ScoringMethod.StimulusCode;         // Default=1, Range={KeyID = 0, StimulusCode = 1} 
+            stoppingMethod = StoppingMethod.DynamicStopping;    // Default=1, Range={FixedNumberOfSequences = 0, DynamicStopping = 1} 
+            finalDecisionType = DecisionMethod.Abstention;      // Default=1, Range={Forced = 0, Abstention = 1}, what to do if win total not met
+            maxNumFlashSequences = 15;                          // Default=15, Range={1, 15}, max flash sequences before final decision is made
+            scoringWindowLength = 6;                            // Default=6, Range={1, 15}, num flash seq used in sliding window to computing accum score 
         }
 
         public bool RetreiveSettings(Dictionary<string, string> settings)
@@ -192,8 +192,8 @@ namespace CoreServices.Presets
 
         public AbstentionPresets()
         {
-            AbstentionMessageEnabled = 0;
-            AutoPauseAbstentionCount = 5;
+            AbstentionMessageEnabled = 0;           // Default=0, Range={0, 1}, Enable popup message (=1) to appear when no prediction is detected
+            AutoPauseAbstentionCount = 5;           // Default=5, Range={5, 15},Number of consecutive abstentions before switch to AutoPause mode
         }
 
         public bool RetreiveSettings(Dictionary<string, string> settings)

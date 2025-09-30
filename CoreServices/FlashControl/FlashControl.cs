@@ -26,9 +26,9 @@ namespace CoreServices.FlashControl
 
         /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-        public async Task FlashDataAsync(IHeadset headset, CancellationToken cts, List<FlashTableEntry> flashSequenceTable,
-                                         ISourceBlock<double[]> headsetDataBufferBlock, ITargetBlock<double[]> flashDataBufferBlock,
-                                         ITargetBlock<int[]> flashMsgBufferBlock)
+        public async Task FlashDataAsync(IHeadset headset, CancellationToken cts, int targetKeyID, int numFlashSeqPerTarget,
+                                         List<FlashTableEntry> flashSequenceTable, ISourceBlock<double[]> headsetDataBufferBlock,
+                                         ITargetBlock<double[]> flashDataBufferBlock, ITargetBlock<int[]> flashMsgBufferBlock)
         {
             const int CIRCULAR_BUF_LEN = 512;       // Num sensor samples per chan in the circular buffer
 
@@ -63,9 +63,6 @@ namespace CoreServices.FlashControl
 
             // Number of flashes in the complete flash sequence is equal to size of the flash table
             int numStimulusGroups = flashSequenceTable.Count;
-
-            int numFlashSeqPerTarget = 15;
-            //int numFlashSeqPerTarget = 6;
 
             int listIndex = 0;
             int flashCycleCount = 0;
@@ -102,8 +99,6 @@ namespace CoreServices.FlashControl
             double stimulusType = 0.0;
 
             double phInSeq = 0.0;
-            //double sequenceNum = 0.0;
-            //double target = 0.0;
             double stimulusON = 0.0;        // Flag indicating when flash is ON during flash interval
 
             double[] headsetDataBuffer = null;
@@ -123,6 +118,8 @@ namespace CoreServices.FlashControl
 
 
             /* +++++++++++++++++++++++++++++++++++++++ */
+
+            attendedTarget = (double)targetKeyID;   // Type cast to double for recording with rest of the data
 
             int numberOfChannels = headset.GetNumberOfChannels();
 
