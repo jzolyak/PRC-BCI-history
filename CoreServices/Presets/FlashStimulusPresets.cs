@@ -20,6 +20,8 @@ namespace CoreServices.Presets
         public FlashAppearancePresets FlashAppearancePresets { get; private set; }
         public FlashTimingPresets FlashTimingPresets { get; private set; }
 
+        public event Action PresetsUpdated;
+
         private FlashStimulusPresets()
         {
             FlashAppearancePresets = new FlashAppearancePresets();
@@ -35,6 +37,9 @@ namespace CoreServices.Presets
 
             var timingSettings = presetsService.GetSettings(Constants.FlashStimulus, "FlashTiming");
             FlashTimingPresets.RetreiveSettings(timingSettings);
+
+            // Notify listeners
+            PresetsUpdated?.Invoke();
         }
     }
 

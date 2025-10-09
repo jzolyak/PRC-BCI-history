@@ -26,24 +26,24 @@ namespace CoreServices.Stimulus
 
         private FlashStimulusPresets flashStimulusPresets;
         private CalibrationPresets calibrationPresets;
-        private bool isflashModeIsImage = true;
+        private bool isflashModeIsImage;
         private static readonly Dictionary<int, string> _imageNameMap = new();
         private string _buttonsImageFileNam;
-        
+
 
         public FlashStimulus()
         {
             flashStimulusPresets = FlashStimulusPresets.Instance;
             calibrationPresets = CalibrationPresets.Instance;
-            //_buttonsImageFileNam = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\Settings\\buttonImagesNmae.txt";
+
             _buttonsImageFileNam = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\buttonImagesNmae.txt";
             LoadButtonIamgesFile(_buttonsImageFileNam);
 
-            // if (flashStimulusPresets.FlashAppearancePresets.flashType == FlashAppearancePresets.FlashType.MonoColored)
-            // {
-            //    // Use single paint brush color to create flash stimulus instead of PNG image files.
-            //    isflashModeIsImage = false;
-            // }
+            // Dynamically determine flash mode based on presets
+            SetFlashModeFromPresets();
+
+            // Subscribe to dynamic preset updates
+            flashStimulusPresets.PresetsUpdated += OnPresetsUpdated;
         }
 
         List<ButtonElement> buttonList = new List<ButtonElement>();
@@ -357,6 +357,40 @@ namespace CoreServices.Stimulus
             {
                 Logger.Error(this, ex.Message);
             }
+        }
+
+        private void SetFlashModeFromPresets()
+        {
+            var flashType = flashStimulusPresets.FlashAppearancePresets.flashType;
+
+            switch (flashType)
+            {
+                case FlashAppearancePresets.FlashType.MonoColored:
+                case FlashAppearancePresets.FlashType.ColoredPattern:
+                    isflashModeIsImage = false;
+                    Logger.Info(this, $"Flash mode set to COLOR ({flashType}).");
+                    break;
+
+                case FlashAppearancePresets.FlashType.PicturePattern:
+                    isflashModeIsImage = true;
+                    Logger.Info(this, "Flash mode set to IMAGE.");
+                    break;
+
+                default:
+                    isflashModeIsImage = false;
+                    Logger.Error(this, "Unknown flashType detected. Defaulting to COLOR mode.");
+                    break;
+            }
+        }
+        private void OnPresetsUpdated()
+        {
+            // Reload flash mode dynamically
+            SetFlashModeFromPresets();
+
+            // Optional: reload other appearance/timing parameters if needed
+            // Example:
+            // RefreshButtonColors();
+            Logger.Info(this, "FlashStimulus updated flash mode from new presets.");
         }
 
     }
