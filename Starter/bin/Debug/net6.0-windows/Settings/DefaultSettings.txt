@@ -3,14 +3,14 @@ Version=Brain-Computer Interface - MVP.Beta.v1.0.1
 Calibration;ModeControl;user;scriptFilename = CalibrationCommands.txt;domain=scriptfiles
 Calibration;ModeControl;user;numFlashSeqPerTarget = 15		
 
-Calibration;TargetAppearance;user;borderColor = red;domain=hlcolor			
+Calibration;TargetAppearance;user;borderColor = Red;domain=hlcolor			
 Calibration;TargetAppearance;user;borderWidth = 3			
 
-FlashStimulus;FlashAppearance;user;borderColor = yellow		
+FlashStimulus;FlashAppearance;user;borderColor = Yellow;domain=hlcolor
 FlashStimulus;FlashAppearance;user;borderWidth = 3			
-FlashStimulus;FlashAppearance;user;flashType = monoColored;domain=flashType
-FlashStimulus;FlashAppearance;user;monoFlashColor = brown	
-FlashStimulus;FlashAppearance;user;patternFilename = PictureList.txt
+FlashStimulus;FlashAppearance;user;flashType = MonoColored;domain=flashType
+FlashStimulus;FlashAppearance;user;monoFlashColor = Brown;domain=hlcolor
+FlashStimulus;FlashAppearance;user;patternFilename = buttonImageNames.txt
 
 FlashStimulus;FlashTiming;user;timeToFindTarget = 2			
 FlashStimulus;FlashTiming;user;timeBetweenTargets = 4		
@@ -27,8 +27,3 @@ Prediction;DecisionLogic;user;scoringWindowLength = 6
 
 Prediction;Abstention;user;abstentionMessageEnabled = 0		
 Prediction;Abstention;user;autoPauseAbstentionCount = 5	
-
-Calibration;TargetAppearance;user;highlightcolor=Green;domain=hlcolor
-Calibration;TargetAppearance;user;highlightoption=border color;domain=hloption
-Calibration;TargetAppearance;user;picturesfilename=buttonImagesNmae.txt
-Calibration;TargetAppearance;user;flashColor=brown

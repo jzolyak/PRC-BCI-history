@@ -36,7 +36,7 @@ namespace CoreServices.Stimulus
             flashStimulusPresets = FlashStimulusPresets.Instance;
             calibrationPresets = CalibrationPresets.Instance;
 
-            _buttonsImageFileNam = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\buttonImagesNmae.txt";
+            _buttonsImageFileNam = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\buttonImageNames.txt";
             LoadButtonIamgesFile(_buttonsImageFileNam);
 
             // Dynamically determine flash mode based on presets
@@ -250,21 +250,24 @@ namespace CoreServices.Stimulus
                     }
                     else
                     {
-                        buttonList[buttonIndex].BackgroundBrush = CustomBrushes.Brown;
+                        //buttonList[buttonIndex].BackgroundBrush = CustomBrushes.Brown;
+                        buttonList[buttonIndex].BackgroundBrush = flashStimulusPresets.FlashAppearancePresets.FlashON_BackgroundBrush;
                     }
 
-                    
+
 
                     if (keyID == targetKeyID)
                     {   // Keep the target key highlighted
                         buttonList[buttonIndex].BorderBrush = CustomBrushes.Yellow;
+                        
                         //buttonList[buttonIndex].BorderBrush = CustomBrushes.Red;
                         //buttonList[buttonIndex].Opacity = 1.0;
                         //buttonList[buttonIndex].BackgroundBrush = CustomBrushes.CornflowerBlue;
                     }
                     else
                     {
-                        buttonList[buttonIndex].BorderBrush = CustomBrushes.Yellow;
+                        //buttonList[buttonIndex].BorderBrush = CustomBrushes.Yellow;
+                        buttonList[buttonIndex].BorderBrush = flashStimulusPresets.FlashAppearancePresets.FlashON_BorderBrush;
                     }
                 }
                 else
@@ -289,7 +292,7 @@ namespace CoreServices.Stimulus
                 {
                     buttonIndex = crossReferenceTable[keyID];
 
-                    
+
                     if (isflashModeIsImage)
                     {
                         //buttonList[buttonIndex].FileName = GetImageNameByNumber(buttonIndex) ?? "default.png";
@@ -335,23 +338,23 @@ namespace CoreServices.Stimulus
                     Logger.Info(this, "buttonImagesName File does not exist");
                     return;
                 }
-                
-                    foreach (var line in File.ReadAllLines(filename))
+
+                foreach (var line in File.ReadAllLines(filename))
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+
+                    int splitIndex = line.IndexOf(' ');
+                    if (splitIndex <= 0) continue;
+
+                    string numberPart = line.Substring(0, splitIndex).Trim();
+                    string namePart = line.Substring(splitIndex + 1).Trim();
+
+                    if (int.TryParse(numberPart, out int key) && !string.IsNullOrEmpty(namePart))
                     {
-                        if (string.IsNullOrWhiteSpace(line)) continue;
-
-                        int splitIndex = line.IndexOf(' ');
-                        if (splitIndex <= 0) continue;
-
-                        string numberPart = line.Substring(0, splitIndex).Trim();
-                        string namePart = line.Substring(splitIndex + 1).Trim();
-
-                        if (int.TryParse(numberPart, out int key) && !string.IsNullOrEmpty(namePart))
-                        {
-                            _imageNameMap[key] = namePart;
-                        }
+                        _imageNameMap[key] = namePart;
                     }
-                
+                }
+
             }
             catch (Exception ex)
             {

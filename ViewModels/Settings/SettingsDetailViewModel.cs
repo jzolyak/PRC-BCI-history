@@ -20,6 +20,7 @@ namespace ViewModels.Settings
         private PresetsService presetsService;
         public string GroupName { get { return groupName; } set { groupName = value; OnPropertyChanged(nameof(GroupName)); } }
         public ICommand ReturnCmd { get; set; }
+        public bool IsInTablet { get; set; }
         public ObservableCollection<SettingsCategoryViewModel> SettingsCategoryList { get { return settingsCategoryList; } set { settingsCategoryList = value; OnPropertyChanged(nameof(SettingsCategoryList)); } }
         public SettingsDetailViewModel(Action<string> exitAction)
         {

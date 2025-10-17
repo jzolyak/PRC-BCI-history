@@ -21,7 +21,7 @@ namespace ViewModels.Settings
         public double Opacity { get => _opacity; set { _opacity = value; OnPropertyChanged(nameof(Opacity)); } }
         public object? PopupContentViewModel { get => _popupContentViewModel; set { _popupContentViewModel = value; OnPropertyChanged(nameof(PopupContentViewModel)); } }
         public bool ShowPopup { get => _showPopup; set { _showPopup = value; OnPropertyChanged(nameof(ShowPopup)); } }
-        
+        public bool IsInTablet { get; set; }
 
         public SettingsViewModel(Action<string> openCommandAction,Action exitAction,Action<bool> showorHideMainWindow) : base(exitAction, showorHideMainWindow)
         {
