@@ -8,7 +8,6 @@ using System.Reflection;
 
 namespace CoreServices.Presets
 {
-    //  Hybrid structure for ordered + fast lookup settings
     public class OrderedSettings
     {
         public List<KeyValuePair<string, string>> OrderedList { get; } = new();
@@ -33,7 +32,6 @@ namespace CoreServices.Presets
         public bool TryGetValue(string key, out string value) => Lookup.TryGetValue(key, out value);
     }
 
-    //  Hybrid structure for ordered + fast lookup domains
     public class OrderedDomain
     {
         public List<string> OrderedList { get; } = new();
@@ -78,25 +76,21 @@ namespace CoreServices.Presets
         {
             _presets = new ConcurrentDictionary<string, ConcurrentDictionary<string, OrderedSettings>>();
             _defaultSettingsFileName = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\DefaultSettings.txt";
-            _settingsFilePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\Settings";
+            _settingsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BCI", "Settings");
 
-            LoadSettings(_defaultSettingsFileName);
+            LoadSettings(_defaultSettingsFileName); // load default first
             _settingsFileName = Path.Combine(_settingsFilePath, "UserSettings.txt");
-            LoadSettings(_settingsFileName);
+            LoadSettings(_settingsFileName);        // overwrite/add values from user file
 
             LoadDomains();
         }
 
-        //  Load settings preserving file order
         private void LoadSettings(string filename)
         {
             try
             {
                 if (!File.Exists(filename))
-                {
-                    Logger.Info(this, $"Settings File {filename} does not exist");
                     return;
-                }
 
                 foreach (var line in File.ReadAllLines(filename))
                 {
@@ -135,69 +129,67 @@ namespace CoreServices.Presets
                 var value = settingStr.Substring(eqIndex + 1).Trim();
                 var dictKey = $"{type};{key}";
 
+                // Merge: if key exists, preserve domain if missing in incoming line
+                if (_presets[grouping][category].TryGetValue(dictKey, out var existingValue))
+                {
+                    if (!value.Contains("domain=", StringComparison.OrdinalIgnoreCase) &&
+                        existingValue.Contains("domain=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var domainPart = existingValue.Substring(existingValue.IndexOf(";domain=", StringComparison.OrdinalIgnoreCase));
+                        value = $"{value}{domainPart}";
+                    }
+                }
+
                 _presets[grouping][category].AddOrUpdate(dictKey, value);
             }
         }
 
-        //  Save settings while preserving file order
         public void SaveUserSettings(string grouping, string category, string type, Dictionary<string, string> newSettings)
         {
-            var defaultLines = File.Exists(_defaultSettingsFileName)
-                ? File.ReadAllLines(_defaultSettingsFileName).ToList()
-                : new List<string>();
-
             var userLines = File.Exists(_settingsFileName)
                 ? File.ReadAllLines(_settingsFileName).ToList()
                 : new List<string>();
 
             foreach (var kvp in newSettings)
             {
-                string key = $"{grouping};{category};{type};{kvp.Key}";
+                string dictKey = $"{type};{kvp.Key}";
                 string value = kvp.Value;
-                string line = $"{key}={value}";
 
+                // Only key=value, omit domain
+                string line = $"{grouping};{category};{type};{kvp.Key}={value}";
                 bool updated = false;
 
-                for (int i = 0; i < defaultLines.Count; i++)
+                for (int i = 0; i < userLines.Count; i++)
                 {
-                    if (defaultLines[i].StartsWith(key + "=", StringComparison.OrdinalIgnoreCase))
+                    if (userLines[i].StartsWith($"{grouping};{category};{type};{kvp.Key}=", StringComparison.OrdinalIgnoreCase))
                     {
-                        defaultLines[i] = line;
+                        userLines[i] = line;
                         updated = true;
                         break;
                     }
                 }
 
                 if (!updated)
-                {
-                    for (int i = 0; i < userLines.Count; i++)
-                    {
-                        if (userLines[i].StartsWith(key + "=", StringComparison.OrdinalIgnoreCase))
-                        {
-                            userLines[i] = line;
-                            updated = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (!updated)
                     userLines.Add(line);
 
+                // Update in-memory settings
                 if (_presets.TryGetValue(grouping, out var categories) &&
                     categories.TryGetValue(category, out var settings))
                 {
-                    settings.AddOrUpdate($"{type};{kvp.Key}", value);
+                    // Preserve domain info if exists
+                    if (settings.TryGetValue(dictKey, out var existingValue))
+                    {
+                        if (existingValue.Contains("domain=", StringComparison.OrdinalIgnoreCase))
+                            value = $"{value}{existingValue.Substring(existingValue.IndexOf(";domain=", StringComparison.OrdinalIgnoreCase))}";
+                    }
+                    settings.AddOrUpdate(dictKey, value);
                 }
             }
 
-            File.WriteAllLines(_defaultSettingsFileName, defaultLines);
             File.WriteAllLines(_settingsFileName, userLines);
-
             PresetsSettingsChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        //  Get single value
         public string GetSettingsValue(string grouping, string category, string type, string key)
         {
             if (_presets.TryGetValue(grouping, out var categories) &&
@@ -211,7 +203,6 @@ namespace CoreServices.Presets
             return null;
         }
 
-        //  Get unordered dictionary (fast lookups)
         public Dictionary<string, string> GetSettings(string grouping, string category)
         {
             if (_presets.TryGetValue(grouping, out var categories) &&
@@ -224,7 +215,6 @@ namespace CoreServices.Presets
             return null;
         }
 
-        //  Get ordered list (UI binding)
         public List<KeyValuePair<string, string>> GetOrderedSettings(string grouping, string category)
         {
             if (_presets.TryGetValue(grouping, out var categories) &&
@@ -236,7 +226,6 @@ namespace CoreServices.Presets
             return new List<KeyValuePair<string, string>>();
         }
 
-        //  Get categories
         public List<string> GetCategories(string grouping)
         {
             if (_presets.TryGetValue(grouping, out var categories))
@@ -248,7 +237,6 @@ namespace CoreServices.Presets
             return null;
         }
 
-        //  Load domains preserving order
         public void LoadDomains(string domainFile = null)
         {
             _domains = new Dictionary<string, OrderedDomain>();
@@ -264,9 +252,7 @@ namespace CoreServices.Presets
                 if (parts.Length == 2)
                 {
                     var domainKey = parts[0].Trim();
-                    var values = parts[1]
-                        .Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries)
-                        .Select(v => v.Trim());
+                    var values = parts[1].Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries).Select(v => v.Trim());
 
                     if (!_domains.ContainsKey(domainKey))
                         _domains[domainKey] = new OrderedDomain();
@@ -277,24 +263,18 @@ namespace CoreServices.Presets
             }
         }
 
-        //  Get all domains (ordered for UI)
         public Dictionary<string, List<string>> GetAllDomains()
         {
-            return _domains.ToDictionary(
-                kvp => kvp.Key,
-                kvp => new List<string>(kvp.Value.OrderedList));
+            return _domains.ToDictionary(kvp => kvp.Key, kvp => new List<string>(kvp.Value.OrderedList));
         }
 
-        //  Get specific domain values (ordered)
         public List<string>? GetDomainForKey(string domainKey)
         {
             if (_domains.TryGetValue(domainKey, out var domain))
                 return new List<string>(domain.OrderedList);
-
             return null;
         }
 
-        //  Fast check if value exists in domain
         public bool DomainContainsValue(string domainKey, string value)
         {
             return _domains.TryGetValue(domainKey, out var domain) && domain.Contains(value);

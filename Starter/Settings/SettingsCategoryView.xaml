@@ -7,9 +7,11 @@
              xmlns:local="clr-namespace:Starter.Settings"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
+
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     </UserControl.Resources>
+
     <Grid Background="#f5f5f5">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
@@ -17,7 +19,7 @@
             <RowDefinition Height="50" />
         </Grid.RowDefinitions>
 
-        <!-- Settings List Section -->
+        <!-- Settings List -->
         <ItemsControl Name="settings" ItemsSource="{Binding SettingsList}" 
                       ScrollViewer.VerticalScrollBarVisibility="Auto" 
                       VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="20">
@@ -26,42 +28,44 @@
                     <Grid Margin="10" HorizontalAlignment="Stretch" VerticalAlignment="Top">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="200" />
-                            <ColumnDefinition Width="500" />
+                            <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
                         <!-- Header Label -->
                         <Label Grid.Column="0" Content="{Binding Header}" 
-               FontWeight="Bold" FontSize="18" Foreground="#333"
-               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                               FontWeight="Bold" FontSize="18" Foreground="#333"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
 
-                        <!-- Switch between ComboBox and TextBox -->
+                        <!-- Value Input (TextBox or ComboBox) -->
                         <Border Grid.Column="1" Background="#ffffff" BorderBrush="#cccccc" 
-                BorderThickness="1" CornerRadius="8" Margin="5,0">
+                                BorderThickness="1" CornerRadius="8" Margin="5,0">
                             <ContentControl Content="{Binding}">
                                 <ContentControl.Style>
                                     <Style TargetType="ContentControl">
                                         <Style.Triggers>
+                                            <!-- Dropdown if HasDomain -->
                                             <DataTrigger Binding="{Binding HasDomain}" Value="True">
                                                 <Setter Property="ContentTemplate">
                                                     <Setter.Value>
                                                         <DataTemplate>
                                                             <ComboBox ItemsSource="{Binding DomainValues}" 
-                                                      SelectedItem="{Binding Content, Mode=TwoWay}" 
-                                                      Height="50" FontSize="18" Padding="12,8"/>
+                                                                      SelectedItem="{Binding Content, Mode=TwoWay}" 
+                                                                      FontSize="18" Height="50" Padding="12,8"/>
                                                         </DataTemplate>
                                                     </Setter.Value>
                                                 </Setter>
                                             </DataTrigger>
+
+                                            <!-- TextBox if no domain -->
                                             <DataTrigger Binding="{Binding HasDomain}" Value="False">
                                                 <Setter Property="ContentTemplate">
                                                     <Setter.Value>
                                                         <DataTemplate>
                                                             <customcontrols:ExtendedTextBox Text="{Binding Content, Mode=TwoWay}"
-        OnTablet="{Binding DataContext.IsInTablet, RelativeSource={RelativeSource AncestorType=Window}}"
-        Height="50" FontSize="18" Padding="12,8"/>
+                                                                                             OnTablet="{Binding DataContext.IsInTablet, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                                             Height="50" FontSize="18" Padding="12,8"/>
                                                         </DataTemplate>
-
                                                     </Setter.Value>
                                                 </Setter>
                                             </DataTrigger>
@@ -72,27 +76,29 @@
                         </Border>
                     </Grid>
                 </DataTemplate>
-
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <!-- Button Section -->
+        <!-- Buttons -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
-            <Button HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="150" Margin="8" Style="{StaticResource ButtonStyle}" FontSize="20" Content="Save" Command="{Binding SaveCmd}"></Button>
-            <Button HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="150" Margin="8" Style="{StaticResource ButtonStyle}" FontSize="20" Content="Return" Command="{Binding ReturnCmd}"></Button>
+            <Button Width="150" Margin="8" Style="{StaticResource ButtonStyle}" FontSize="20" 
+                    Content="Save" Command="{Binding SaveCmd}"/>
+            <Button Width="150" Margin="8" Style="{StaticResource ButtonStyle}" FontSize="20" 
+                    Content="Return" Command="{Binding ReturnCmd}"/>
         </StackPanel>
 
+        <!-- Popup Overlay -->
         <Border Background="#80000000"
-        Visibility="{Binding ShowPopup, Converter={StaticResource BoolToVis}}"
-        HorizontalAlignment="Stretch"
-        VerticalAlignment="Stretch"
-        Panel.ZIndex="99">
+                Visibility="{Binding ShowPopup, Converter={StaticResource BoolToVis}}"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                Panel.ZIndex="99">
             <ContentControl Content="{Binding PopupContentViewModel}"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Background="White"
-                    Width="400"
-                    Height="200" />
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Background="White"
+                            Width="400"
+                            Height="200" />
         </Border>
     </Grid>
 </UserControl>
