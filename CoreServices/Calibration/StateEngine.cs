@@ -459,12 +459,9 @@ namespace CoreServices.Calibration
                             break;
 
                         case CalibrationStates.Read_Command:
-                            if(startSetNum > 5)
+                            if (calibrationFileMetadata != null && startSetNum > calibrationFileMetadata.NumofSets)
                             {
-                                if (completeAction != null)
-                                {
-                                    completeAction();
-                                }
+                                completeAction?.Invoke();
                                 modeState = CalibrationStates.Clean_Up;
                                 break;
                             }
@@ -482,11 +479,25 @@ namespace CoreServices.Calibration
                                 if (fields[0] == "START")
                                 {
                                     // Determine which set number you are at in the script
+                                    //currentSetNum = Int32.Parse(fields[1]);
+                                    //totalSetNum = Int32.Parse(fields[2]);
+                                    //calibrationFileMetadata.NumofSets = totalSetNum;
+                                    //calibrationFileMetadata.CurrentSet = currentSetNum;
+                                    
                                     currentSetNum = Int32.Parse(fields[1]);
                                     totalSetNum = Int32.Parse(fields[2]);
-                                    calibrationFileMetadata.NumofSets = totalSetNum;
-                                    calibrationFileMetadata.CurrentSet = currentSetNum;
-                                    calibrationFileMetadata.IsCurrent = true;
+                                    //startSetNum = currentSetNum;
+                                    if (calibrationFileMetadata != null)
+                                    {
+                                        calibrationFileMetadata.CurrentSet = currentSetNum;
+
+                                        // Override default ONLY if script value is valid
+                                        if (totalSetNum > 0)
+                                        {
+                                            calibrationFileMetadata.NumofSets = totalSetNum;
+                                        }
+                                        calibrationFileMetadata.IsCurrent = true;
+                                    }
                                     if (currentSetNum == startSetNum)
                                     {
                                         // Found where we need to start. Advance to next command in list

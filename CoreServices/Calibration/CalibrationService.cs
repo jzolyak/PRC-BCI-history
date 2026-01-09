@@ -30,7 +30,7 @@ namespace CoreServices.Calibration
         public event EventHandler<EventArgs>? RaiseCoeffInProgress;
         public event EventHandler<EventArgs>? RaiseCoeffCompleted;
         public event EventHandler<EventArgs>? RaiseExitCalibrationEvent;
-      
+        public event EventHandler<EventArgs>? RaiseCoeffFailed;
 
         private StateEngine _stateEngine;
 
@@ -199,29 +199,44 @@ namespace CoreServices.Calibration
             RaiseActiveUIEvent(this, EventArgs.Empty);           
         }
 
-        private void ExitCalibration()
+        private async void ExitCalibration()
         {
-            if(RaiseCoeffInProgress!=null)
+            bool isCOEFileGenerated = false;
+
+            if (_caLibrationCompleted &&
+                !string.IsNullOrEmpty(_coeffFileName) &&
+                _numofSets > 0)
             {
-                RaiseCoeffInProgress(this, EventArgs.Empty);
-            }
-            if (_caLibrationCompleted && !string.IsNullOrEmpty(_coeffFileName) && _numofSets > 0)
-            {
-                GenerateCOEFFile(_coeffFileName, _numofSets);
-                var predictionFile = new PredictionFileMetadata
+                const int maxAttempts = 3;
+
+                for (int attempt = 1; attempt <= maxAttempts; attempt++)
                 {
-                    Name = _coeffFileName,
-                    FilePath = _calibrationFilePath
-                };
-                _predictionMetadataList.TryAdd(_coeffFileName, predictionFile);
+                    RaiseCoeffInProgress?.Invoke(this, EventArgs.Empty);
+
+                    isCOEFileGenerated = await GenerateCOEFFile(_coeffFileName, _numofSets);
+
+                    if (isCOEFileGenerated)
+                    {
+                        var predictionFile = new PredictionFileMetadata
+                        {
+                            Name = _coeffFileName,
+                            FilePath = _calibrationFilePath
+                        };
+                        _predictionMetadataList.TryAdd(_coeffFileName, predictionFile);
+
+                        RaiseCoeffCompleted?.Invoke(this, EventArgs.Empty);
+                        return;
+                    }
+                }
+
+                // FAILED after 3 attempts
+                RaiseCoeffFailed?.Invoke(this, EventArgs.Empty);
+                return;
             }
-            if (RaiseCoeffCompleted!=null)
-            {
-                RaiseCoeffCompleted(this, EventArgs.Empty);
-            }
-           
-            if (RaiseExitCalibrationEvent != null) RaiseExitCalibrationEvent(this, new EventArgs());
+
+            RaiseCoeffFailed?.Invoke(this, EventArgs.Empty);
         }
+
         public void ReceiveNotificationFromUI(UIInstruction instruction)           
         {
            _stateEngine.NotificationfromUI(instruction);
@@ -268,66 +283,67 @@ namespace CoreServices.Calibration
             
 
         }
-        public void GenerateCOEFFile(string fileName, int numOfSets)
+        public async Task<bool> GenerateCOEFFile(string fileName, int numOfSets)
         {
             try
             {
-
-
                 const int timeout = 10000;
+
                 if (numOfSets <= 0)
                 {
-                    Logger.Error(this, "number of sets are 0. unable to generate the coef file");
-                    return;
+                    Logger.Error(this, "Number of sets is 0. Unable to generate the COEF file.");
+                    return false;
                 }
 
-                string calibrationFilesFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BCI", "CalibrationFiles");
-                string cmdName = "\"\"" + Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "script.bat") + "\"";
+                string calibrationFilesFolderPath =
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                                 "BCI", "CalibrationFiles");
+
+                string baseCommand =
+                    "\"\"" + Path.Combine(
+                        Path.GetDirectoryName(Assembly.GetEntryAssembly().Location),
+                        "script.bat") + "\"";
+
                 for (int setNum = 1; setNum <= numOfSets; setNum++)
                 {
-                    cmdName = cmdName + " \"" + fileName + "_" + setNum + "_" + numOfSets + "\"";
+                    baseCommand += $" \"{fileName}_{setNum}_{numOfSets}\"";
                 }
-                // P300Classifier_electrode_selection.exe can't accept a space in the .coef file name, so make up a temporary name.
+
                 string spacelessFileName = fileName.Replace(' ', '_');
-                cmdName = cmdName + " " + spacelessFileName + "\"";
-                Logger.Info(this, "Command to be run: " + cmdName);
-                int ExitCode;
-                ProcessStartInfo ProcessInfo;
-                Process process;
+                baseCommand += $" {spacelessFileName}\"";
 
-                ProcessInfo = new ProcessStartInfo("cmd.exe", "/c " + cmdName);
-                ProcessInfo.CreateNoWindow = true;
-                ProcessInfo.UseShellExecute = false;
-                ProcessInfo.WorkingDirectory = Path.Combine(calibrationFilesFolderPath, "Completed");
-                // *** Redirect the output ***
-                ProcessInfo.RedirectStandardError = true;
-                ProcessInfo.RedirectStandardOutput = true;
+                string finalFilePath =
+                    Path.Combine(calibrationFilesFolderPath, fileName + ".coef");
 
+                ProcessStartInfo processInfo = new ProcessStartInfo(
+                    "cmd.exe", "/c " + baseCommand)
+                {
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                    WorkingDirectory = Path.Combine(calibrationFilesFolderPath, "Completed"),
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true
+                };
 
-                process = Process.Start(ProcessInfo);
-                // *** Read the streams ***
-                string output = process.StandardOutput.ReadToEnd();
-                string error = process.StandardError.ReadToEnd();
+                using (Process process = Process.Start(processInfo))
+                {
+                    process.WaitForExit(timeout);
+                }
 
-                process.WaitForExit(timeout);
+                FileHandlerService.RenameFile(
+                    spacelessFileName,
+                    fileName,
+                    calibrationFilesFolderPath);
 
-                // *** Read the streams ***
-
-                ExitCode = process.ExitCode;
-
-                process.Close();
-                Logger.Info(this, "output>>" + (String.IsNullOrEmpty(output) ? "(none)" : output));
-                Logger.Info(this, "error>>" + (String.IsNullOrEmpty(error) ? "(none)" : error));
-                Logger.Info(this, "ExitCode: " + ExitCode.ToString());
-
-                // Rename the .coef file to what the user expects
-                FileHandlerService.RenameFile(spacelessFileName, fileName, calibrationFilesFolderPath);
+                return File.Exists(finalFilePath);
             }
             catch (Exception ex)
             {
                 Logger.Error(this, ex.Message);
+                return false;
             }
         }
+
 
         public void OnCalibrationPaused()
         {

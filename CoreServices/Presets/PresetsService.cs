@@ -1,5 +1,4 @@
-﻿using CoreServices.Common;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -51,12 +50,12 @@ namespace CoreServices.Presets
 
     public class PresetsService
     {
-        private ConcurrentDictionary<string, ConcurrentDictionary<string, OrderedSettings>> _presets;
+        private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, OrderedSettings>> _presets;
         private Dictionary<string, OrderedDomain> _domains;
 
-        private string _settingsFileName;
-        private string _defaultSettingsFileName;
-        private string _settingsFilePath;
+        private readonly string _settingsFilePath;
+        private readonly string _defaultSettingsFileName;
+        private readonly string _settingsFileName;
 
         private static PresetsService instance;
 
@@ -75,13 +74,22 @@ namespace CoreServices.Presets
         public PresetsService()
         {
             _presets = new ConcurrentDictionary<string, ConcurrentDictionary<string, OrderedSettings>>();
-            _defaultSettingsFileName = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\DefaultSettings.txt";
-            _settingsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BCI", "Settings");
 
-            LoadSettings(_defaultSettingsFileName); // load default first
+            _defaultSettingsFileName = Path.Combine(
+                Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)!,
+                "Settings",
+                "DefaultSettings.txt");
+
+            _settingsFilePath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "BCI",
+                "Settings");
+
             _settingsFileName = Path.Combine(_settingsFilePath, "UserSettings.txt");
-            LoadSettings(_settingsFileName);        // overwrite/add values from user file
 
+            LoadSettings(_defaultSettingsFileName);
+
+            LoadUserSettings(_settingsFileName);
             LoadDomains();
         }
 
@@ -93,9 +101,7 @@ namespace CoreServices.Presets
                     return;
 
                 foreach (var line in File.ReadAllLines(filename))
-                {
                     ProcessSettings(line);
-                }
             }
             catch (Exception ex)
             {
@@ -120,28 +126,90 @@ namespace CoreServices.Presets
             if (!_presets[grouping].ContainsKey(category))
                 _presets[grouping][category] = new OrderedSettings();
 
-            var settingStr = string.Join(';', parts.Skip(3));
+            var settingStr = string.Join(';', parts.Skip(3)).Trim();
             var eqIndex = settingStr.IndexOf('=');
+            if (eqIndex <= 0) return;
 
-            if (eqIndex > 0)
+            var key = settingStr[..eqIndex].Trim();
+            var value = settingStr[(eqIndex + 1)..].Trim();
+
+            var dictKey = $"{type.ToLowerInvariant()};{key.ToLowerInvariant()}";
+            _presets[grouping][category].AddOrUpdate(dictKey, value);
+        }
+
+        private void LoadUserSettings(string filename)
+        {
+            try
             {
-                var key = settingStr.Substring(0, eqIndex).Trim();
-                var value = settingStr.Substring(eqIndex + 1).Trim();
-                var dictKey = $"{type};{key}";
+                if (!File.Exists(filename))
+                    return;
 
-                // Merge: if key exists, preserve domain if missing in incoming line
-                if (_presets[grouping][category].TryGetValue(dictKey, out var existingValue))
-                {
-                    if (!value.Contains("domain=", StringComparison.OrdinalIgnoreCase) &&
-                        existingValue.Contains("domain=", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var domainPart = existingValue.Substring(existingValue.IndexOf(";domain=", StringComparison.OrdinalIgnoreCase));
-                        value = $"{value}{domainPart}";
-                    }
-                }
-
-                _presets[grouping][category].AddOrUpdate(dictKey, value);
+                foreach (var line in File.ReadAllLines(filename))
+                    ProcessUserSettings(line);
             }
+            catch (Exception ex)
+            {
+                Logger.Error(this, ex.Message);
+            }
+        }
+
+        private void ProcessUserSettings(string line)
+        {
+            if (string.IsNullOrWhiteSpace(line)) return;
+
+            var parts = line.Split(';');
+            if (parts.Length < 4) return;
+
+            var grouping = parts[0];
+            var category = parts[1];
+            var type = parts[2];
+
+            if (!_presets.ContainsKey(grouping))
+                _presets[grouping] = new ConcurrentDictionary<string, OrderedSettings>();
+
+            if (!_presets[grouping].ContainsKey(category))
+                _presets[grouping][category] = new OrderedSettings();
+
+            var settingStr = string.Join(';', parts.Skip(3)).Trim();
+            var eqIndex = settingStr.IndexOf('=');
+            if (eqIndex <= 0) return;
+
+            var key = settingStr[..eqIndex].Trim();
+            var rawValue = settingStr[(eqIndex + 1)..].Trim();
+            var dictKey = $"{type.ToLowerInvariant()};{key.ToLowerInvariant()}";
+
+            string value = rawValue;
+
+            int domainIndex = value.IndexOf(";domain=", StringComparison.OrdinalIgnoreCase);
+            if (domainIndex >= 0)
+            {
+                int afterDomain = value.IndexOf(';', domainIndex + 1);
+                if (afterDomain > 0)
+                    value = value.Substring(0, afterDomain).TrimEnd(';', ' ');
+            }
+            else
+            {
+                int firstExtra = value.IndexOf(';');
+                if (firstExtra > 0)
+                    value = value[..firstExtra].Trim();
+            }
+
+            int spaceOrSemi = value.IndexOfAny(new[] { ';', ' ' });
+            if (spaceOrSemi > 0)
+                value = value[..spaceOrSemi].Trim();
+
+            if (_presets[grouping][category].TryGetValue(dictKey, out var existingValue))
+            {
+                if (!value.Contains("domain=", StringComparison.OrdinalIgnoreCase) &&
+                    existingValue.Contains("domain=", StringComparison.OrdinalIgnoreCase))
+                {
+                    var domainPart = existingValue.Substring(
+                        existingValue.IndexOf(";domain=", StringComparison.OrdinalIgnoreCase));
+                    value = $"{value}{domainPart}";
+                }
+            }
+
+            _presets[grouping][category].AddOrUpdate(dictKey, value);
         }
 
         public void SaveUserSettings(string grouping, string category, string type, Dictionary<string, string> newSettings)
@@ -154,11 +222,9 @@ namespace CoreServices.Presets
             {
                 string dictKey = $"{type};{kvp.Key}";
                 string value = kvp.Value;
-
-                // Only key=value, omit domain
                 string line = $"{grouping};{category};{type};{kvp.Key}={value}";
-                bool updated = false;
 
+                bool updated = false;
                 for (int i = 0; i < userLines.Count; i++)
                 {
                     if (userLines[i].StartsWith($"{grouping};{category};{type};{kvp.Key}=", StringComparison.OrdinalIgnoreCase))
@@ -172,16 +238,15 @@ namespace CoreServices.Presets
                 if (!updated)
                     userLines.Add(line);
 
-                // Update in-memory settings
                 if (_presets.TryGetValue(grouping, out var categories) &&
                     categories.TryGetValue(category, out var settings))
                 {
-                    // Preserve domain info if exists
-                    if (settings.TryGetValue(dictKey, out var existingValue))
+                    if (settings.TryGetValue(dictKey, out var existingValue) &&
+                        existingValue.Contains("domain=", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (existingValue.Contains("domain=", StringComparison.OrdinalIgnoreCase))
-                            value = $"{value}{existingValue.Substring(existingValue.IndexOf(";domain=", StringComparison.OrdinalIgnoreCase))}";
+                        value = $"{value}{existingValue.Substring(existingValue.IndexOf(";domain=", StringComparison.OrdinalIgnoreCase))}";
                     }
+
                     settings.AddOrUpdate(dictKey, value);
                 }
             }
@@ -194,7 +259,7 @@ namespace CoreServices.Presets
         {
             if (_presets.TryGetValue(grouping, out var categories) &&
                 categories.TryGetValue(category, out var settings) &&
-                settings.TryGetValue(type + ";" + key, out var value))
+                settings.TryGetValue($"{type};{key}", out var value))
             {
                 return value;
             }
@@ -207,9 +272,7 @@ namespace CoreServices.Presets
         {
             if (_presets.TryGetValue(grouping, out var categories) &&
                 categories.TryGetValue(category, out var settings))
-            {
                 return new Dictionary<string, string>(settings.Lookup);
-            }
 
             Logger.Error(this, $"Settings not found for Grouping: {grouping}, Category: {category}");
             return null;
@@ -219,9 +282,7 @@ namespace CoreServices.Presets
         {
             if (_presets.TryGetValue(grouping, out var categories) &&
                 categories.TryGetValue(category, out var settings))
-            {
                 return new List<KeyValuePair<string, string>>(settings.OrderedList);
-            }
 
             return new List<KeyValuePair<string, string>>();
         }
@@ -229,9 +290,7 @@ namespace CoreServices.Presets
         public List<string> GetCategories(string grouping)
         {
             if (_presets.TryGetValue(grouping, out var categories))
-            {
                 return categories.Keys.ToList();
-            }
 
             Logger.Error(this, $"Settings not found for Grouping: {grouping}");
             return null;
@@ -240,7 +299,10 @@ namespace CoreServices.Presets
         public void LoadDomains(string domainFile = null)
         {
             _domains = new Dictionary<string, OrderedDomain>();
-            domainFile ??= Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\domain.txt";
+            domainFile ??= Path.Combine(
+                Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)!,
+                "Settings",
+                "domain.txt");
 
             if (!File.Exists(domainFile)) return;
 
@@ -252,7 +314,8 @@ namespace CoreServices.Presets
                 if (parts.Length == 2)
                 {
                     var domainKey = parts[0].Trim();
-                    var values = parts[1].Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries).Select(v => v.Trim());
+                    var values = parts[1].Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(v => v.Trim());
 
                     if (!_domains.ContainsKey(domainKey))
                         _domains[domainKey] = new OrderedDomain();
@@ -264,20 +327,12 @@ namespace CoreServices.Presets
         }
 
         public Dictionary<string, List<string>> GetAllDomains()
-        {
-            return _domains.ToDictionary(kvp => kvp.Key, kvp => new List<string>(kvp.Value.OrderedList));
-        }
+            => _domains.ToDictionary(kvp => kvp.Key, kvp => new List<string>(kvp.Value.OrderedList));
 
         public List<string>? GetDomainForKey(string domainKey)
-        {
-            if (_domains.TryGetValue(domainKey, out var domain))
-                return new List<string>(domain.OrderedList);
-            return null;
-        }
+            => _domains.TryGetValue(domainKey, out var domain) ? new List<string>(domain.OrderedList) : null;
 
         public bool DomainContainsValue(string domainKey, string value)
-        {
-            return _domains.TryGetValue(domainKey, out var domain) && domain.Contains(value);
-        }
+            => _domains.TryGetValue(domainKey, out var domain) && domain.Contains(value);
     }
 }
