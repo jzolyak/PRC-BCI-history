@@ -30,7 +30,15 @@ namespace CoreServices.Models
 
         public string GetCurrentBinFileName()
         {
-            return _userGivenName + "_" + _currentSet + "_" + _numofSets + ".bin";
+            if (_numofSets <= 0)
+                throw new InvalidOperationException("NumofSets not initialized");
+
+            if (_currentSet > _numofSets)
+                throw new InvalidOperationException(
+                    $"CurrentSet {_currentSet} exceeds NumofSets {_numofSets}");
+
+            return $"{_userGivenName}_{_currentSet}_{_numofSets}.bin";
         }
+
     }
 }

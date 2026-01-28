@@ -33,6 +33,8 @@ namespace CoreServices.Calibration
         private Action activeUIAction;
         private Action<ScreenOverlay> notifyScreenOverLayChange;
         private CalibrationFileMetadata calibrationFileMetadata;
+        private int _detectedTotalSets = 0;
+        private bool _totalSetsDetected = false;
 
 
         private Action exitAction;
@@ -170,7 +172,7 @@ namespace CoreServices.Calibration
             CalibrationPresets calibrationConfiguration = CalibrationPresets.Instance;
 
             // This preset controls the amount of raw sensor data being recorded for weight coefficient generation.
-            int numFlashSeqPerTarget = calibrationConfiguration.ModeControlPresets.numFlashSeqPerTarget;
+            int numFlashSeqPerTarget = 2; //calibrationConfiguration.ModeControlPresets.numFlashSeqPerTarget;
 
             string currentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 
@@ -320,6 +322,18 @@ namespace CoreServices.Calibration
                 maxLinesInFile = commandLines.Length;
                 currentLine = 0;
                 repeatCalibrationLine = 0;
+                _detectedTotalSets = commandLines.Count(line => line.TrimStart().StartsWith("START", StringComparison.OrdinalIgnoreCase));
+
+                if (_detectedTotalSets <= 0)
+                {
+                    throw new InvalidOperationException("No START commands found in CalibrationCommands.txt");
+                }
+
+                _totalSetsDetected = true;
+                //if (calibrationFileMetadata != null)
+                //{
+                //    calibrationFileMetadata.NumofSets = _detectedTotalSets;
+                //}
                 BinaryWriter? binaryWriter=null;
                 if(calibrationFileMetadata != null)
                 {
@@ -364,6 +378,15 @@ namespace CoreServices.Calibration
                                         FileHandlerService.CloseBinaryWriter(binaryWriter);
                                     }
                                     // Close raw data file for this calibration set
+
+                                    if (calibrationFileMetadata != null)
+                                    {
+                                        calibrationFileMetadata.NumofSets++;
+                                        calibrationFileMetadata.CurrentSet = calibrationFileMetadata.NumofSets;
+
+                                        Logger.Info(this,
+                                            $"Calibration set completed. NumofSets = {calibrationFileMetadata.NumofSets}");
+                                    }
 
                                     if (startSetNum > totalSetNum)
                                     {
@@ -485,7 +508,8 @@ namespace CoreServices.Calibration
                                     //calibrationFileMetadata.CurrentSet = currentSetNum;
                                     
                                     currentSetNum = Int32.Parse(fields[1]);
-                                    totalSetNum = Int32.Parse(fields[2]);
+                                    //totalSetNum = Int32.Parse(fields[2]);
+                                    totalSetNum = calibrationFileMetadata.NumofSets;
                                     //startSetNum = currentSetNum;
                                     if (calibrationFileMetadata != null)
                                     {

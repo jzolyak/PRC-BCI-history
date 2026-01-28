@@ -161,7 +161,7 @@ namespace CoreServices.Calibration
       
         public CalibrationFileMetadata CreateNewCalibrationFile(string name)
         {
-            var calibrationFileMetadata = new CalibrationFileMetadata { UserGivenName = name, NumofSets = 5, CurrentSet = 1, IsCurrent = true, IsStale =false };
+            var calibrationFileMetadata = new CalibrationFileMetadata { UserGivenName = name, NumofSets = 0, CurrentSet = 1, IsCurrent = true, IsStale =false };
             calibrationFileMetadata.FilePath = _calibrationFilePath;
             //NotifyFileMetadataChange(calibrationFileMetadata);
             _currentCalibrationFile = calibrationFileMetadata;
@@ -291,7 +291,7 @@ namespace CoreServices.Calibration
 
                 if (numOfSets <= 0)
                 {
-                    Logger.Error(this, "Number of sets is 0. Unable to generate the COEF file.");
+                    Logger.Error(this, "Number of sets is 0 or invalid. Unable to generate COEF file.");
                     return false;
                 }
 
@@ -299,50 +299,103 @@ namespace CoreServices.Calibration
                     Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                                  "BCI", "CalibrationFiles");
 
+                string completedFolder =
+                    Path.Combine(calibrationFilesFolderPath, "Completed");
+
+                string spacelessFileName = fileName.Replace(' ', '_');
+
+                // --------------------------------------------------
+                // Validate all required BIN files exist
+                // --------------------------------------------------
+                for (int setNum = 1; setNum <= numOfSets; setNum++)
+                {
+                    string binFilePath = Path.Combine(
+                        completedFolder,
+                        $"{fileName}_{setNum}_{numOfSets}.bin");
+
+                    if (!File.Exists(binFilePath))
+                    {
+                        Logger.Error(this, $"Missing calibration BIN file: {binFilePath}");
+                        return false;
+                    }
+                }
+
+                // --------------------------------------------------
+                // Build batch command
+                // --------------------------------------------------
                 string baseCommand =
                     "\"\"" + Path.Combine(
                         Path.GetDirectoryName(Assembly.GetEntryAssembly().Location),
                         "script.bat") + "\"";
+
+                baseCommand += $" \"{spacelessFileName}\"";
 
                 for (int setNum = 1; setNum <= numOfSets; setNum++)
                 {
                     baseCommand += $" \"{fileName}_{setNum}_{numOfSets}\"";
                 }
 
-                string spacelessFileName = fileName.Replace(' ', '_');
-                baseCommand += $" {spacelessFileName}\"";
+                baseCommand += "\"";
 
-                string finalFilePath =
+                string finalCoefFilePath =
                     Path.Combine(calibrationFilesFolderPath, fileName + ".coef");
 
+                // --------------------------------------------------
+                // Start classifier process
+                // --------------------------------------------------
                 ProcessStartInfo processInfo = new ProcessStartInfo(
                     "cmd.exe", "/c " + baseCommand)
                 {
                     CreateNoWindow = true,
                     UseShellExecute = false,
-                    WorkingDirectory = Path.Combine(calibrationFilesFolderPath, "Completed"),
-                    RedirectStandardError = true,
-                    RedirectStandardOutput = true
+                    WorkingDirectory = completedFolder,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
                 };
 
                 using (Process process = Process.Start(processInfo))
                 {
-                    process.WaitForExit(timeout);
+                    if (!process.WaitForExit(timeout))
+                    {
+                        Logger.Error(this, "Classifier process timed out.");
+                        try { process.Kill(); } catch { }
+                        return false;
+                    }
+
+                    string stdout = process.StandardOutput.ReadToEnd();
+                    string stderr = process.StandardError.ReadToEnd();
+
+                    if (!string.IsNullOrWhiteSpace(stderr))
+                    {
+                        Logger.Error(this, $"Classifier error output: {stderr}");
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(stdout))
+                    {
+                        Logger.Info(this, $"Classifier output: {stdout}");
+                    }
                 }
 
+                // --------------------------------------------------
+                // Rename spaceless COEF file (if needed)
+                // --------------------------------------------------
                 FileHandlerService.RenameFile(
                     spacelessFileName,
                     fileName,
                     calibrationFilesFolderPath);
 
-                return File.Exists(finalFilePath);
+                // --------------------------------------------------
+                // Final validation
+                // --------------------------------------------------
+                return File.Exists(finalCoefFilePath);
             }
             catch (Exception ex)
             {
-                Logger.Error(this, ex.Message);
+                Logger.Error(this, $"GenerateCOEFFile failed: {ex}");
                 return false;
             }
         }
+
 
 
         public void OnCalibrationPaused()
