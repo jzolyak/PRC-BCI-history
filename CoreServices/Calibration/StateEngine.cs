@@ -482,7 +482,7 @@ namespace CoreServices.Calibration
                             break;
 
                         case CalibrationStates.Read_Command:
-                            if (calibrationFileMetadata != null && startSetNum > calibrationFileMetadata.NumofSets)
+                            if (calibrationFileMetadata != null && startSetNum > _detectedTotalSets)
                             {
                                 completeAction?.Invoke();
                                 modeState = CalibrationStates.Clean_Up;
@@ -509,7 +509,7 @@ namespace CoreServices.Calibration
                                     
                                     currentSetNum = Int32.Parse(fields[1]);
                                     //totalSetNum = Int32.Parse(fields[2]);
-                                    totalSetNum = calibrationFileMetadata.NumofSets;
+                                    totalSetNum = _detectedTotalSets;
                                     //startSetNum = currentSetNum;
                                     if (calibrationFileMetadata != null)
                                     {
