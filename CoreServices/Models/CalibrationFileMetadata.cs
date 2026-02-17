@@ -16,6 +16,7 @@ namespace CoreServices.Models
         public bool IsStale { get => isStale; set => isStale = value; }
         public string UserGivenName { get => _userGivenName; set => _userGivenName = value; }
         public int NumofSets { get => _numofSets; set => _numofSets = value; }
+        public int TotalNumOfSets { get; set; }
         public int CurrentSet { get => _currentSet; set => _currentSet = value; }
         public bool IsCurrent { get => isCurrent; set => isCurrent = value; }
         public DateTime LastUpdatedTime { get => lastUpdatedTime; set => lastUpdatedTime = value; }

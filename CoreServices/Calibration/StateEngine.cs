@@ -518,7 +518,7 @@ namespace CoreServices.Calibration
                                         // Override default ONLY if script value is valid
                                         if (totalSetNum > 0)
                                         {
-                                            calibrationFileMetadata.NumofSets = totalSetNum;
+                                            calibrationFileMetadata.TotalNumOfSets = totalSetNum;
                                         }
                                         calibrationFileMetadata.IsCurrent = true;
                                     }
