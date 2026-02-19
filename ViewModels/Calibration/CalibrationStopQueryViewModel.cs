@@ -31,7 +31,7 @@ namespace ViewModels.Calibration
             {
                 return;
             }
-           Text = "Do you want to Keep or Discard data collected in Calibration Set " +calibrationFileMetadata.CurrentSet +" of " +calibrationFileMetadata.NumofSets+ " ?";
+           Text = "Do you want to Keep or Discard data collected in Calibration Set " +calibrationFileMetadata.CurrentSet +" of " +calibrationFileMetadata.TotalNumOfSets+ " ?";
         }
 
         private void KeepCalibrationSet(Object obj)
