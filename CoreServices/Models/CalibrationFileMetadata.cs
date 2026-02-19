@@ -34,11 +34,11 @@ namespace CoreServices.Models
             if (_numofSets <= 0)
                 throw new InvalidOperationException("NumofSets not initialized");
 
-            if (_currentSet > _numofSets)
+            if (_currentSet > TotalNumOfSets)
                 throw new InvalidOperationException(
-                    $"CurrentSet {_currentSet} exceeds NumofSets {_numofSets}");
+                    $"CurrentSet {_currentSet} exceeds NumofSets {TotalNumOfSets}");
 
-            return $"{_userGivenName}_{_currentSet}_{_numofSets}.bin";
+            return $"{_userGivenName}_{_currentSet}_{TotalNumOfSets}.bin";
         }
 
     }

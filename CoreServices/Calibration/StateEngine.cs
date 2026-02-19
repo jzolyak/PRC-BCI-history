@@ -381,11 +381,10 @@ namespace CoreServices.Calibration
 
                                     if (calibrationFileMetadata != null)
                                     {
-                                        calibrationFileMetadata.NumofSets++;
-                                        calibrationFileMetadata.CurrentSet = calibrationFileMetadata.NumofSets;
-
+                                       
                                         Logger.Info(this,
-                                            $"Calibration set completed. NumofSets = {calibrationFileMetadata.NumofSets}");
+                                            $"Calibration set completed. NumofSets = {calibrationFileMetadata.CurrentSet}");
+                                        calibrationFileMetadata.CurrentSet = calibrationFileMetadata.CurrentSet;
                                     }
 
                                     if (startSetNum > totalSetNum)
@@ -395,7 +394,7 @@ namespace CoreServices.Calibration
                                         modeState = CalibrationStates.Wait_On_UI;
                                         uiInstruction.Type = UIType.CalibrationComplete;
                                         calibrationCompleted = true;
-                                        calibrationFileMetadata.CurrentSet = calibrationFileMetadata.NumofSets;
+                                        calibrationFileMetadata.CurrentSet = calibrationFileMetadata.TotalNumOfSets;
                                         calibrationFileMetadata.IsCurrent = false;
                                         if (completeAction != null)
                                         {
@@ -514,11 +513,12 @@ namespace CoreServices.Calibration
                                     if (calibrationFileMetadata != null)
                                     {
                                         calibrationFileMetadata.CurrentSet = currentSetNum;
-
+                                        calibrationFileMetadata.NumofSets = currentSetNum;
                                         // Override default ONLY if script value is valid
                                         if (totalSetNum > 0)
                                         {
                                             calibrationFileMetadata.TotalNumOfSets = totalSetNum;
+
                                         }
                                         calibrationFileMetadata.IsCurrent = true;
                                     }
