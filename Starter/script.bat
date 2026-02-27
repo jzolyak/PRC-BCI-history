@@ -34,14 +34,10 @@ SHIFT
 GOTO loop
 
 :done
+
 popd
 
 REM ---------------------------------
 REM Run classifier
 REM ---------------------------------
-"%~dp0P300Classifier_electrode_selection.exe" ^
- -TrainingDataFiles %datFiles% ^
- -inicfg "%~dp0parameters_AAC-BCI.ini" ^
- -ClassifierOutputFile "%OutputPath%\%outputFileName%.coef"
-
-endlocal
+"P300Classifier_electrode_selection.exe" -TrainingDataFiles %datFiles% -inicfg "%~dp0parameters_AAC-BCI.ini" -ClassifierOutputFile "%OutputPath%\%outputFileName%.coef"
