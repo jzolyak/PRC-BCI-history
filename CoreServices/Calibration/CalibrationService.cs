@@ -275,7 +275,7 @@ namespace CoreServices.Calibration
         public void OnCalibrationComplete()
         {
             _coeffFileName = _currentCalibrationFile.UserGivenName;
-            _numofSets = _currentCalibrationFile.TotalNumOfSets;
+            _numofSets = _currentCalibrationFile.NumofSets;
             
             UpdateCurrentCalibrationFileState("Completed");
             _caLibrationCompleted = true;
