@@ -9,7 +9,7 @@ REM First, capture output filename
 REM ---------------------------------
 SET outputFileName=%~1
 SHIFT
-
+echo "%~dp0"
 REM ---------------------------------
 REM Move to data folder
 REM ---------------------------------
@@ -20,6 +20,7 @@ SET datFiles=
 REM ---------------------------------
 REM Loop through all remaining args
 REM ---------------------------------
+echo "%~dp0"
 :loop
 IF "%~1"=="" GOTO done
 
@@ -34,14 +35,10 @@ SHIFT
 GOTO loop
 
 :done
-popd
 
+popd
+echo "%~dp0"
 REM ---------------------------------
 REM Run classifier
 REM ---------------------------------
-"%~dp0P300Classifier_electrode_selection.exe" ^
- -TrainingDataFiles %datFiles% ^
- -inicfg "%~dp0parameters_AAC-BCI.ini" ^
- -ClassifierOutputFile "%OutputPath%\%outputFileName%.coef"
-
-endlocal
+"%~dp0P300Classifier_electrode_selection.exe" -TrainingDataFiles %datFiles% -inicfg "%~dp0parameters_AAC-BCI.ini" -ClassifierOutputFile "%OutputPath%\%outputFileName%.coef"

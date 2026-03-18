@@ -275,7 +275,7 @@ namespace CoreServices.Calibration
         public void OnCalibrationComplete()
         {
             _coeffFileName = _currentCalibrationFile.UserGivenName;
-            _numofSets = _currentCalibrationFile.TotalNumOfSets;
+            _numofSets = _currentCalibrationFile.NumofSets;
             
             UpdateCurrentCalibrationFileState("Completed");
             _caLibrationCompleted = true;
@@ -348,7 +348,7 @@ namespace CoreServices.Calibration
                 {
                     CreateNoWindow = true,
                     UseShellExecute = false,
-                    WorkingDirectory = completedFolder,
+                    WorkingDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location),
                     RedirectStandardOutput = true,
                     RedirectStandardError = true
                 };
