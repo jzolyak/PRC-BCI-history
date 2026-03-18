@@ -348,7 +348,7 @@ namespace CoreServices.Calibration
                 {
                     CreateNoWindow = true,
                     UseShellExecute = false,
-                    WorkingDirectory = completedFolder,
+                    WorkingDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location),
                     RedirectStandardOutput = true,
                     RedirectStandardError = true
                 };
