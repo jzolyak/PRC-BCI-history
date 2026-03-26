@@ -92,6 +92,7 @@ namespace CoreServices.Stimulus
             IsEnabled = false;
             Name=String.Empty;
             Opacity = 1;
+            FileName = "default.png";
         }
 
         private void OnClick(object obj)

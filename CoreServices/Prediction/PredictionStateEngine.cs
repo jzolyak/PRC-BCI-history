@@ -19,6 +19,8 @@ using System.Diagnostics;
 using CoreServices.Headset;
 using CoreServices.Presets;
 using static System.Formats.Asn1.AsnWriter;
+using static CoreServices.Prediction.PredictionControl;
+using static CoreServices.SensorData.ReadBinaryFileData;
 
 namespace CoreServices.Prediction
 {
@@ -77,7 +79,17 @@ namespace CoreServices.Prediction
             // PRC_mode eventually needs to be a controllable preset value to support different key grids.
             bool PRC_mode = true;
 
-            //bool calibrationCompleted = false;
+            // NOTE: During normal operation, sensor data is received from the headset and pushed down
+            //       the processing pipeline to the Prediction task. In that scenario, the transmitMethod
+            //       parameter should be set equal to PushMethod. In offline testing, waiting for 30 msec
+            //       per packet would take forever to generate the Prediction Accuracy Report. Instead, 
+            //       compile the code with the transmitMethod set equal to the PullMethod. As soon as the 
+            //       sensor data packet is processed in the Prediction task, it signals to the ReadFileDataAsync() 
+            //       task via a semaphore to fetch the sensor data from a file instead of the headset.
+
+            TransmitMethod transmitMethod = TransmitMethod.PushMethod;
+            // TransmitMethod transmitMethod = TransmitMethod.PullMethod;
+
 
             //int startSetNum = 1;
             //int totalSetNum = 0;
@@ -116,6 +128,7 @@ namespace CoreServices.Prediction
             const int ENABLE_PIPELINE_SENSOR_DATA = 1;
             const int DISABLE_PIPELINE_SENSOR_DATA = 2;
 
+            /*
             // Prediction Control Message ID numbers
             const int MARK_STATE_CHANGE = 18;       // Report when stimulus changes state (for debug only)
             const int MARK_STIM_CHANGE = 20;        // Report when stimulus changes stim code (for debug only)
@@ -123,10 +136,11 @@ namespace CoreServices.Prediction
             const int STIM_STATE_ERROR = 30;        // Report when unexpected value appeared in packet data
             const int STIM_CODE_ERROR = 32;         // Report when unexpected value appeared in packet data
 
-            const int PREDICT_STATUS = 21;          // Detailed predict status at end of each flash sequence
+            const int PREDICTION_STATUS = 21;          // Detailed predict status at end of each flash sequence
             const int ABSTENTION_PREDICT = 92;      // Report when reach max number of flash sequences, but no key selected
             const int FORCED_PREDICT = 94;          // Report when reach max number of flash seq, force select with highest win count
             const int END_OF_PREDICTION = 99;       // Report keyID when reach max number of flash sequences or reach dynamic stopping
+            */
 
             const int samplesPerBatch = 9;              // 9 samples = 30 msec @ Fs=300 Hz
             const double bufferAheadSec = 0.100;        // 100 msec
@@ -143,6 +157,9 @@ namespace CoreServices.Prediction
             int sourceTimer;
 
             WeightCoefficients testWeightCoef = new WeightCoefficients();
+
+            EndDecisionStrings decisionString = new EndDecisionStrings();
+            PredictionAccuracyStrings accuracyString = new PredictionAccuracyStrings();
 
             bool randomMapping = true;
             int randomValue = 0;
@@ -363,7 +380,6 @@ namespace CoreServices.Prediction
                                         //Handover the calib files to generate coef and move the bin files to completed folder
                                         modeState = CalibrationStates.Wait_On_UI;
                                         uiInstruction.Type = UIType.CalibrationComplete;
-                                        calibrationCompleted = true;
                                         calibrationFileMetadata.CurrentSet = calibrationFileMetadata.NumofSets;
                                         calibrationFileMetadata.IsCurrent = false;
                                         uiInstruction.Result = false;
@@ -716,6 +732,9 @@ namespace CoreServices.Prediction
                             int predKey;
                             int winCnt;
                             int selKey;
+                            int attKey;
+                            int decision;
+                            int accuracy;
 
                             /* ********************************* */
                             /*
@@ -737,6 +756,7 @@ namespace CoreServices.Prediction
 
 
                             CancellationTokenSource pipelineTokenSource = new CancellationTokenSource();
+                            SemaphoreSlim _signal = new SemaphoreSlim(0, 1);
 
                             DataflowBlockOptions blockOptions = new DataflowBlockOptions();
                             blockOptions.CancellationToken = pipelineTokenSource.Token;
@@ -774,7 +794,8 @@ namespace CoreServices.Prediction
                             //Task t3 = Task.Run(() => recordBinary.RecordDataAsync(pipelineTokenSource.Token, filterDataBufferBlock, binaryWriter));
 
                             Task t4 = Task.Run(() => predictionControl.PredictionControlAsync(pipelineTokenSource.Token, predictionConfiguration,
-                                                        weightCoefBufferBlock, filterDataBufferBlock, commandMsgBufferBlock, statusMsgBufferBlock));
+                                                        weightCoefBufferBlock, filterDataBufferBlock, commandMsgBufferBlock, statusMsgBufferBlock,
+                                                        _signal, transmitMethod));
 
 
                             // Enable the flow of sensor data from the headset to the processing pipeline now.
@@ -839,7 +860,7 @@ namespace CoreServices.Prediction
 
                                     messageType = predictStatusMessage.content[0];
 
-                                    if (messageType == MARK_STATE_CHANGE)
+                                    if (messageType == (int)PredictControlMsgID.MARK_STATE_CHANGE)
                                     {
                                         messageLen = predictStatusMessage.content[1];
                                         phaseInSequence = predictStatusMessage.content[2];
@@ -855,7 +876,7 @@ namespace CoreServices.Prediction
                                         }
                                     }
 
-                                    else if (messageType == MARK_STIM_CHANGE)
+                                    else if (messageType == (int)PredictControlMsgID.MARK_STIM_CHANGE)
                                     {
                                         messageLen = predictStatusMessage.content[1];
                                         phaseInSequence = predictStatusMessage.content[2];
@@ -866,10 +887,8 @@ namespace CoreServices.Prediction
                                         //Debug.WriteLine("{0}  MARK_STIM,  phase = {1}, seq num = {2}, action = {3} \n", flashTime, phaseInSequence, stimCode, reportedAction);
                                     }
                                     
-                                    else 
+                                    else if (messageType == (int)PredictControlMsgID.PREDICTION_STATUS)
                                     {
-                                        // All other Prediction status message types.
-                                        // Fetch and parse message contents.
                                         messageLen = predictStatusMessage.content[1];
                                         fseq = predictStatusMessage.content[2];
                                         code1 = predictStatusMessage.content[3];
@@ -890,55 +909,47 @@ namespace CoreServices.Prediction
                                         predKey = predictStatusMessage.content[15];
                                         winCnt = predictStatusMessage.content[16];
                                         selKey = predictStatusMessage.content[17];
+                                        attKey = predictStatusMessage.content[18];
+                                        decision = predictStatusMessage.content[19];
+                                        accuracy = predictStatusMessage.content[20];
 
-                                        // We have a winner if Prediction task returns nonzero value for selectedKeyIDvalue !!!
+                                        // We have a winner if Prediction task returns nonzero value for selectedKeyIDvalue! 
                                         // If value is zero, then Prediction could not be made within a preset number of flash sequences,
                                         // i.e. the sensor signals did not reach the preset config values set for detection criteria.
                                         selectedKeyIDvalue = selKey;
 
-                                        // Next customize log information based on type of status information
-                                        if (messageType == PREDICT_STATUS)
+                                        string subString1 = "Decision = " + decisionString.GetString(decision);
+                                        string subString2 = "  Predict keyID = " + predKey + "  Select keyID = " + selKey + "  Attend keyID = " + attKey;
+                                        string subString3 = "  Accuracy = " + accuracyString.GetString(accuracy);
+
+                                        if (decision == (int)EndDecision.STATUS_UPDATE_MSG)
                                         {
                                             Logger.Info("STATUS,  fseq = " + fseq + "  code1 = " + code1 + "   code2 = " + code2 + "      code3 = " + code3 + "       code4 = " + code4 + "       code5 = " + code5 + "      iPoint1 = " + iPoint1 + "  iPoint2 = " + iPoint2);
                                             Logger.Info("                score1 = " + score1 + "  score2 = " + score2 + "   score3 = " + score3 + "   score4 = " + score4 + "  score5 = " + score5 + "   predKey = " + predKey + "  winCnt = " + winCnt + "  selKey = " + selKey + "\n");
+                                            Logger.Info(subString1 + subString2 + subString3 + "\n");
                                         }
-
-                                        else if (messageType == END_OF_PREDICTION)
+                                        else
                                         {
-                                            // Reached final decision. Time to report prediction selection.
+                                            // End of prediction
                                             exitFlag = true;
 
                                             Logger.Info("SELECT,  fseq = " + fseq + "  code1 = " + code1 + "   code2 = " + code2 + "      code3 = " + code3 + "       code4 = " + code4 + "       code5 = " + code5 + "      iPoint1 = " + iPoint1 + "  iPoint2 = " + iPoint2);
                                             Logger.Info("                score1 = " + score1 + "  score2 = " + score2 + "   score3 = " + score3 + "   score4 = " + score4 + "  score5 = " + score5 + "   predKey = " + predKey + "  winCnt = " + winCnt + "  selKey = " + selKey + "\n");
-                                            Logger.Info("End Logic = END_OF_PREDICTION,  Selected keyID = selKey,  Target keyID = attended key,   Decision = Eval result");
-                                            Logger.Info("\n\n\n ************************ \n\n");
-                                        }
-
-                                        else if (messageType == FORCED_PREDICT)
-                                        {
-                                            exitFlag = true;
-
-                                            Logger.Info("SELECT,  fseq = " + fseq + "  code1 = " + code1 + "   code2 = " + code2 + "      code3 = " + code3 + "       code4 = " + code4 + "       code5 = " + code5 + "      iPoint1 = " + iPoint1 + "  iPoint2 = " + iPoint2);
-                                            Logger.Info("                score1 = " + score1 + "  score2 = " + score2 + "   score3 = " + score3 + "   score4 = " + score4 + "  score5 = " + score5 + "   predKey = " + predKey + "  winCnt = " + winCnt + "  selKey = " + selKey + "\n");
-                                            Logger.Info("End Logic = FORCED_PREDICT,  Selected keyID = selKey,  Target keyID = attended key,   Decision = Eval result");
-                                            Logger.Info("\n\n\n ************************ \n\n");
-                                        }
-
-                                        else if (messageType == ABSTENTION_PREDICT)
-                                        {
-                                            exitFlag = true;
-
-                                            Logger.Info("SELECT,  fseq = " + fseq + "  code1 = " + code1 + "   code2 = " + code2 + "      code3 = " + code3 + "       code4 = " + code4 + "       code5 = " + code5 + "      iPoint1 = " + iPoint1 + "  iPoint2 = " + iPoint2);
-                                            Logger.Info("                score1 = " + score1 + "  score2 = " + score2 + "   score3 = " + score3 + "   score4 = " + score4 + "  score5 = " + score5 + "   predKey = " + predKey + "  winCnt = " + winCnt + "  selKey = " + selKey + "\n");
-                                            Logger.Info("End Logic = ABSTENTION,  Selected keyID = selKey,  Target keyID = attended key,   Decision = Eval result");
+                                            Logger.Info(subString1 + subString2 + subString3 + "\n");
                                             Logger.Info("\n\n\n ************************ \n\n");
 
-                                            // Check if user is informed of abstention choice on the display screen.
+                                            Console.WriteLine("selected keyID = {0} \n", selKey);
 
-                                            // Update consecutive abstention counter value.
-                                            // If reeach a preset limit of abstentions in a row, then switch over to Auto Pause mode
-                                            // because user is not engaued with the flashing  stimulus
+                                            /*
+                                            if (decision == (int)EndDecision.ABSTENTION_PREDICT)
+                                            {
+                                                // Check if user is informed of abstention choice on the display screen.
 
+                                                // Update consecutive abstention counter value.
+                                                // If reeach a preset limit of abstentions in a row, then switch over to Auto Pause mode
+                                                // because user is not engaued with the flashing stimulus.
+                                            }
+                                            */
                                         }
 
                                     }  // if (messageType)
@@ -1135,15 +1146,8 @@ namespace CoreServices.Prediction
                     FileHandlerService.CloseBinaryWriter(binaryWriter);
                 }
                 */
-
-                /*
-                if(calibrationCompleted&&completeAction!=null)
-                {
-                    completeAction();
-                }
-                */
-
             }
+
             catch (Exception ex)
             {
                 Logger.Error(this, "Exception in state engine" + ex.ToString());

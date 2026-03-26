@@ -61,6 +61,8 @@ namespace CoreServices.Prediction
             public int predictWinCount;         // # times keyID was predicted winner of flash sequence
             public int attendedKeyID;           // Key user is watching during Calib or Valid
             public int selectedKeyID;           // keyID that is selected at and of stopping method
+            public int decision;                // Enumerated integer value for EndDecision
+            public int accuracy;                // Enumerated integer value for PredictionAccuracy
 
             public PredictionResult()
             {
@@ -75,6 +77,8 @@ namespace CoreServices.Prediction
                 predictWinCount = 0;
                 attendedKeyID = 0;
                 selectedKeyID = 0;
+                decision = 0;                   // STATUS_UPDATE_MSG
+                accuracy = 0;                   // NO_TARGET
             }
         }
 

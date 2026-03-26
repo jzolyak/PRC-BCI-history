@@ -287,7 +287,7 @@ namespace CoreServices.Calibration
         {
             try
             {
-                const int timeout = 10000;
+                const int timeout = 20000;
 
                 if (numOfSets <= 0)
                 {

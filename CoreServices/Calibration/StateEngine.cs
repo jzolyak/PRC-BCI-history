@@ -172,7 +172,7 @@ namespace CoreServices.Calibration
             CalibrationPresets calibrationConfiguration = CalibrationPresets.Instance;
 
             // This preset controls the amount of raw sensor data being recorded for weight coefficient generation.
-            int numFlashSeqPerTarget = 2; //calibrationConfiguration.ModeControlPresets.numFlashSeqPerTarget;
+            int numFlashSeqPerTarget = calibrationConfiguration.ModeControlPresets.numFlashSeqPerTarget;
 
             string currentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 
