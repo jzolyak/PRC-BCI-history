@@ -1,13 +1,8 @@
-﻿using CoreServices.Common;
-using CoreServices.Models;
-using CoreServices.Presets;
+﻿using CoreServices.Presets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Input;
-using ViewModels.Help;
 
 namespace ViewModels.Settings
 {
@@ -26,7 +21,7 @@ namespace ViewModels.Settings
         public SettingsCategoryViewModel(Action<string> exitAction)
         {
             this.exitAction = exitAction;
-            presetsService = ServiceLocator.PresetsService;
+            presetsService = PresetsService.Instance;
             statusViewModel = new SettingsSaveStatusViewModel(ClosePopup);
 
             SaveCmd = new RelayCommand(SaveSettings);
@@ -57,41 +52,15 @@ namespace ViewModels.Settings
                 if (key == "domain") continue;
 
                 string rawValue = kvp.Value;
-                var allValues = rawValue.Split('|');
-
-                string? selectedValue = null;
+                string? selectedValue = rawValue;
                 string? selectedDomainKey = null;
 
-                foreach (var v in allValues)
+                // Extract domain if present
+                if (rawValue.Contains(";domain=", StringComparison.OrdinalIgnoreCase))
                 {
-                    var parts = v.Split(';');
-                    var valuePart = parts.FirstOrDefault(p => !p.StartsWith("domain=", StringComparison.OrdinalIgnoreCase));
-                    var domainPart = parts.FirstOrDefault(p => p.StartsWith("domain=", StringComparison.OrdinalIgnoreCase));
-
-                    if (!string.IsNullOrWhiteSpace(valuePart))
-                    {
-                        if (valuePart.StartsWith(key + "=", StringComparison.OrdinalIgnoreCase))
-                        {
-                            var eqSplit = valuePart.Split('=');
-                            if (eqSplit.Length == 2)
-                                selectedValue = eqSplit[1].Trim();
-                        }
-                        else
-                        {
-                            selectedValue = valuePart.Trim();
-                        }
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(domainPart))
-                    {
-                        var tokens = domainPart.Split('=');
-                        if (tokens.Length == 2)
-                            selectedDomainKey = tokens[1].Trim();
-                    }
-
-                    // ✅ Break once we found a domain + value pair
-                    if (selectedValue != null && selectedDomainKey != null)
-                        break;
+                    var parts = rawValue.Split(new[] { ";domain=" }, StringSplitOptions.None);
+                    selectedValue = parts[0].Trim();
+                    selectedDomainKey = parts[1].Trim();
                 }
 
                 List<string>? domainValues = null;
@@ -99,13 +68,12 @@ namespace ViewModels.Settings
                 {
                     domainValues = presetsService.GetDomainForKey(selectedDomainKey);
 
-                    // ✅ Fix 2: ensure case-insensitive match with domain values
+                    // match exact casing
                     if (domainValues != null && selectedValue != null)
                     {
-                        var match = domainValues
-                            .FirstOrDefault(v => v.Equals(selectedValue, StringComparison.OrdinalIgnoreCase));
+                        var match = domainValues.FirstOrDefault(v => v.Equals(selectedValue, StringComparison.OrdinalIgnoreCase));
                         if (match != null)
-                            selectedValue = match; // use exact domain value so ComboBox selects correctly
+                            selectedValue = match;
                     }
                 }
 
@@ -120,7 +88,6 @@ namespace ViewModels.Settings
 
             SettingsList = result;
         }
-
 
         private void SaveSettings(object obj)
         {
@@ -137,22 +104,10 @@ namespace ViewModels.Settings
 
                 foreach (var item in settingsList)
                 {
-                    if (string.IsNullOrWhiteSpace(item.Header))
-                        continue;
+                    if (string.IsNullOrWhiteSpace(item.Header)) continue;
 
-                    if (item.DomainValues != null && item.SelectedDomainKey != null)
-                    {
-                        // ✅ Save only selected value + domain reference
-                        if (!string.IsNullOrWhiteSpace(item.Content))
-                        {
-                            dict[item.Header] = $"{item.Content};domain={item.SelectedDomainKey}";
-                        }
-                    }
-                    else
-                    {
-                        // No domain → normal key=value
-                        dict[item.Header] = item.Content ?? string.Empty;
-                    }
+                    // Save only value, omit domain in user file
+                    dict[item.Header] = item.Content ?? string.Empty;
                 }
 
                 presetsService.SaveUserSettings(groupName, categoryName, "user", dict);
@@ -166,11 +121,9 @@ namespace ViewModels.Settings
             DisplayPopup(statusViewModel);
         }
 
-
         private void Return(object obj)
         {
-            if (exitAction == null) return;
-            exitAction(Constants.Settings);
+            exitAction?.Invoke("Settings");
         }
 
         private void DisplayPopup(object content)

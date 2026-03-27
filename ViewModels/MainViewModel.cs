@@ -159,15 +159,15 @@ namespace ViewModels
             else if (mode == Constants.Calibration) { CurrentViewModel = _calibrationViewModel; _calibrationViewModel.IsInTablet = IsInTablet; }
             else if (mode == Constants.Validation) { CurrentViewModel = _validationViewModel; }
             else if (mode == Constants.Prediction) { _predictionViewModel.Refresh(); CurrentViewModel = _predictionViewModel; }
-            else if (mode == Constants.Settings) { CurrentViewModel = _settingsViewModel; }
-            else if (mode == Constants.ConnectivitySettings) { _settingsDetailViewModel.UpdateGroup(Constants.Connectivity); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.CalibrationSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Calibration); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.PredictionSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Prediction); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.ValidationSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Validation); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.MiscSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Misc); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.FlashSettings) { _settingsDetailViewModel.UpdateGroup(Constants.FlashStimulus); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.LoggingSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Logging); CurrentViewModel = _settingsDetailViewModel; }
-            else if (mode == Constants.SystemSettings) { _settingsDetailViewModel.UpdateGroup(Constants.System); CurrentViewModel = _settingsDetailViewModel; }
+            else if (mode == Constants.Settings) { CurrentViewModel = _settingsViewModel; _settingsViewModel.IsInTablet = IsInTablet; }
+            else if (mode == Constants.ConnectivitySettings) { _settingsDetailViewModel.UpdateGroup(Constants.Connectivity); CurrentViewModel = _settingsDetailViewModel; _settingsDetailViewModel.IsInTablet = IsInTablet; }
+            else if (mode == Constants.CalibrationSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Calibration); CurrentViewModel = _settingsDetailViewModel; _settingsDetailViewModel.IsInTablet = IsInTablet; }
+            else if (mode == Constants.PredictionSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Prediction); CurrentViewModel = _settingsDetailViewModel; _settingsDetailViewModel.IsInTablet = IsInTablet; }
+            else if (mode == Constants.ValidationSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Validation); CurrentViewModel = _settingsDetailViewModel; _settingsDetailViewModel.IsInTablet = IsInTablet; }
+            else if (mode == Constants.MiscSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Misc); CurrentViewModel = _settingsDetailViewModel; _settingsDetailViewModel.IsInTablet = IsInTablet; }
+            else if (mode == Constants.FlashSettings) { _settingsDetailViewModel.UpdateGroup(Constants.FlashStimulus); CurrentViewModel = _settingsDetailViewModel; _settingsDetailViewModel.IsInTablet = IsInTablet; }
+            else if (mode == Constants.LoggingSettings) { _settingsDetailViewModel.UpdateGroup(Constants.Logging); CurrentViewModel = _settingsDetailViewModel; _settingsDetailViewModel.IsInTablet = IsInTablet; }
+            else if (mode == Constants.SystemSettings) { _settingsDetailViewModel.UpdateGroup(Constants.System); CurrentViewModel = _settingsDetailViewModel; _settingsDetailViewModel.IsInTablet = IsInTablet; }
 
         }
         private void Close()

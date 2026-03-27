@@ -33,6 +33,8 @@ namespace CoreServices.Calibration
         private Action activeUIAction;
         private Action<ScreenOverlay> notifyScreenOverLayChange;
         private CalibrationFileMetadata calibrationFileMetadata;
+        private int _detectedTotalSets = 0;
+        private bool _totalSetsDetected = false;
 
 
         private Action exitAction;
@@ -320,6 +322,18 @@ namespace CoreServices.Calibration
                 maxLinesInFile = commandLines.Length;
                 currentLine = 0;
                 repeatCalibrationLine = 0;
+                _detectedTotalSets = commandLines.Count(line => line.TrimStart().StartsWith("START", StringComparison.OrdinalIgnoreCase));
+
+                if (_detectedTotalSets <= 0)
+                {
+                    throw new InvalidOperationException("No START commands found in CalibrationCommands.txt");
+                }
+
+                _totalSetsDetected = true;
+                //if (calibrationFileMetadata != null)
+                //{
+                //    calibrationFileMetadata.NumofSets = _detectedTotalSets;
+                //}
                 BinaryWriter? binaryWriter=null;
                 if(calibrationFileMetadata != null)
                 {
@@ -365,6 +379,14 @@ namespace CoreServices.Calibration
                                     }
                                     // Close raw data file for this calibration set
 
+                                    if (calibrationFileMetadata != null)
+                                    {
+                                       
+                                        Logger.Info(this,
+                                            $"Calibration set completed. NumofSets = {calibrationFileMetadata.CurrentSet}");
+                                        calibrationFileMetadata.CurrentSet = calibrationFileMetadata.CurrentSet;
+                                    }
+
                                     if (startSetNum > totalSetNum)
                                     {
                                         // Reached last set in the script file. Inform user calibration is finished.
@@ -372,7 +394,7 @@ namespace CoreServices.Calibration
                                         modeState = CalibrationStates.Wait_On_UI;
                                         uiInstruction.Type = UIType.CalibrationComplete;
                                         calibrationCompleted = true;
-                                        calibrationFileMetadata.CurrentSet = calibrationFileMetadata.NumofSets;
+                                        calibrationFileMetadata.CurrentSet = calibrationFileMetadata.TotalNumOfSets;
                                         calibrationFileMetadata.IsCurrent = false;
                                         if (completeAction != null)
                                         {
@@ -459,12 +481,9 @@ namespace CoreServices.Calibration
                             break;
 
                         case CalibrationStates.Read_Command:
-                            if(startSetNum > 5)
+                            if (calibrationFileMetadata != null && startSetNum > _detectedTotalSets)
                             {
-                                if (completeAction != null)
-                                {
-                                    completeAction();
-                                }
+                                completeAction?.Invoke();
                                 modeState = CalibrationStates.Clean_Up;
                                 break;
                             }
@@ -482,11 +501,27 @@ namespace CoreServices.Calibration
                                 if (fields[0] == "START")
                                 {
                                     // Determine which set number you are at in the script
+                                    //currentSetNum = Int32.Parse(fields[1]);
+                                    //totalSetNum = Int32.Parse(fields[2]);
+                                    //calibrationFileMetadata.NumofSets = totalSetNum;
+                                    //calibrationFileMetadata.CurrentSet = currentSetNum;
+                                    
                                     currentSetNum = Int32.Parse(fields[1]);
-                                    totalSetNum = Int32.Parse(fields[2]);
-                                    calibrationFileMetadata.NumofSets = totalSetNum;
-                                    calibrationFileMetadata.CurrentSet = currentSetNum;
-                                    calibrationFileMetadata.IsCurrent = true;
+                                    //totalSetNum = Int32.Parse(fields[2]);
+                                    totalSetNum = _detectedTotalSets;
+                                    //startSetNum = currentSetNum;
+                                    if (calibrationFileMetadata != null)
+                                    {
+                                        calibrationFileMetadata.CurrentSet = currentSetNum;
+                                        calibrationFileMetadata.NumofSets = currentSetNum;
+                                        // Override default ONLY if script value is valid
+                                        if (totalSetNum > 0)
+                                        {
+                                            calibrationFileMetadata.TotalNumOfSets = totalSetNum;
+
+                                        }
+                                        calibrationFileMetadata.IsCurrent = true;
+                                    }
                                     if (currentSetNum == startSetNum)
                                     {
                                         // Found where we need to start. Advance to next command in list

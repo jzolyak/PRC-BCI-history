@@ -74,7 +74,7 @@ namespace CoreServices.Presets
                 string rawValue = kvp.Value?.Trim() ?? string.Empty;
                 string cleanValue = rawValue.Split(';')[0];
 
-                if (key.Equals("user;highlightcolor", StringComparison.OrdinalIgnoreCase))
+                if (key.Equals("user;bordercolor", StringComparison.OrdinalIgnoreCase))
                 {
                     if (Enum.TryParse(cleanValue, true, out CustomBrushes brush))
                     {

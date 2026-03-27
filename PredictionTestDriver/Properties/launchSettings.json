@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "PredictionTestDriver": {
+      "commandName": "Project",
+      "commandLineArgs": "PresetionTestInputFileInfo.txt PredictionTestPresetParam.txt",
+      "workingDirectory": "C:\\Users\\Joseph8207\\source\\repos4\\BCI_NewCalibration7\\BCI\\PredictionTestDriver\\bin\\Debug\\net6.0"
+    }
+  }
+}

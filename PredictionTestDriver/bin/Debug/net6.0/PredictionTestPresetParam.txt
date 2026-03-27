@@ -1,0 +1,10 @@
+highestTopScores 4
+winCountForSelection 3
+predictScoreThreshold 5000
+scoringMethod 1
+stoppingMethod 1
+finalDecisionType 1
+maxNumFlashSequences 15
+scoringWindowLength 15
+AbstentionMessageEnabled 0
+AutoPauseAbstentionCount 5

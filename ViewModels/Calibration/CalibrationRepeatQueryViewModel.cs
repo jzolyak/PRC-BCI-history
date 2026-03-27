@@ -30,7 +30,7 @@ namespace ViewModels.Calibration
             {
                 return;
             }
-            RepeatText = "Do you want to repeat collecting Calibration set " + calibrationFileMetadata.CurrentSet + " of " + calibrationFileMetadata.NumofSets + " ?";
+            RepeatText = "Do you want to repeat collecting Calibration set " + calibrationFileMetadata.CurrentSet + " of " + calibrationFileMetadata.TotalNumOfSets + " ?";
         }
 
         private void RepeatCalibrationSet(Object obj)

@@ -130,6 +130,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<None Update="Settings\buttonImageNames.txt">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 		<None Update="Settings\buttonImagesNmae.txt">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
