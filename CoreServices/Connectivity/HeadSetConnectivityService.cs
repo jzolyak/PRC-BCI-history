@@ -402,8 +402,8 @@ namespace CoreServices.Connectivity
             await Task.Delay(1000);
 
             headset.Delete();
-
-           Logger.Info(this,"Terminating the application...");
+            bw?.Close();
+            Logger.Info(this,"Terminating the application...");
 
         }  // ConnectivityMode()
 

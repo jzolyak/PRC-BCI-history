@@ -26,24 +26,24 @@ namespace CoreServices.Stimulus
 
         private FlashStimulusPresets flashStimulusPresets;
         private CalibrationPresets calibrationPresets;
-        private bool isflashModeIsImage = true;
+        private bool isflashModeIsImage;
         private static readonly Dictionary<int, string> _imageNameMap = new();
         private string _buttonsImageFileNam;
-        
+
 
         public FlashStimulus()
         {
             flashStimulusPresets = FlashStimulusPresets.Instance;
             calibrationPresets = CalibrationPresets.Instance;
-            //_buttonsImageFileNam = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BCI\\Settings\\buttonImagesNmae.txt";
-            _buttonsImageFileNam = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\buttonImagesNmae.txt";
+
+            _buttonsImageFileNam = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\Settings\\buttonImageNames.txt";
             LoadButtonIamgesFile(_buttonsImageFileNam);
 
-            // if (flashStimulusPresets.FlashAppearancePresets.flashType == FlashAppearancePresets.FlashType.MonoColored)
-            // {
-            //    // Use single paint brush color to create flash stimulus instead of PNG image files.
-            //    isflashModeIsImage = false;
-            // }
+            // Dynamically determine flash mode based on presets
+            SetFlashModeFromPresets();
+
+            // Subscribe to dynamic preset updates
+            flashStimulusPresets.PresetsUpdated += OnPresetsUpdated;
         }
 
         List<ButtonElement> buttonList = new List<ButtonElement>();
@@ -250,21 +250,24 @@ namespace CoreServices.Stimulus
                     }
                     else
                     {
-                        buttonList[buttonIndex].BackgroundBrush = CustomBrushes.Brown;
+                        //buttonList[buttonIndex].BackgroundBrush = CustomBrushes.Brown;
+                        buttonList[buttonIndex].BackgroundBrush = flashStimulusPresets.FlashAppearancePresets.FlashON_BackgroundBrush;
                     }
 
-                    
+
 
                     if (keyID == targetKeyID)
                     {   // Keep the target key highlighted
                         buttonList[buttonIndex].BorderBrush = CustomBrushes.Yellow;
+                        
                         //buttonList[buttonIndex].BorderBrush = CustomBrushes.Red;
                         //buttonList[buttonIndex].Opacity = 1.0;
                         //buttonList[buttonIndex].BackgroundBrush = CustomBrushes.CornflowerBlue;
                     }
                     else
                     {
-                        buttonList[buttonIndex].BorderBrush = CustomBrushes.Yellow;
+                        //buttonList[buttonIndex].BorderBrush = CustomBrushes.Yellow;
+                        buttonList[buttonIndex].BorderBrush = flashStimulusPresets.FlashAppearancePresets.FlashON_BorderBrush;
                     }
                 }
                 else
@@ -289,7 +292,7 @@ namespace CoreServices.Stimulus
                 {
                     buttonIndex = crossReferenceTable[keyID];
 
-                    
+
                     if (isflashModeIsImage)
                     {
                         //buttonList[buttonIndex].FileName = GetImageNameByNumber(buttonIndex) ?? "default.png";
@@ -335,28 +338,62 @@ namespace CoreServices.Stimulus
                     Logger.Info(this, "buttonImagesName File does not exist");
                     return;
                 }
-                
-                    foreach (var line in File.ReadAllLines(filename))
+
+                foreach (var line in File.ReadAllLines(filename))
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+
+                    int splitIndex = line.IndexOf(' ');
+                    if (splitIndex <= 0) continue;
+
+                    string numberPart = line.Substring(0, splitIndex).Trim();
+                    string namePart = line.Substring(splitIndex + 1).Trim();
+
+                    if (int.TryParse(numberPart, out int key) && !string.IsNullOrEmpty(namePart))
                     {
-                        if (string.IsNullOrWhiteSpace(line)) continue;
-
-                        int splitIndex = line.IndexOf(' ');
-                        if (splitIndex <= 0) continue;
-
-                        string numberPart = line.Substring(0, splitIndex).Trim();
-                        string namePart = line.Substring(splitIndex + 1).Trim();
-
-                        if (int.TryParse(numberPart, out int key) && !string.IsNullOrEmpty(namePart))
-                        {
-                            _imageNameMap[key] = namePart;
-                        }
+                        _imageNameMap[key] = namePart;
                     }
-                
+                }
+
             }
             catch (Exception ex)
             {
                 Logger.Error(this, ex.Message);
             }
+        }
+
+        private void SetFlashModeFromPresets()
+        {
+            var flashType = flashStimulusPresets.FlashAppearancePresets.flashType;
+
+            switch (flashType)
+            {
+                case FlashAppearancePresets.FlashType.MonoColored:
+                case FlashAppearancePresets.FlashType.ColoredPattern:
+                    isflashModeIsImage = false;
+                    Logger.Info(this, $"Flash mode set to COLOR ({flashType}).");
+                    break;
+
+                case FlashAppearancePresets.FlashType.PicturePattern:
+                    isflashModeIsImage = true;
+                    Logger.Info(this, "Flash mode set to IMAGE.");
+                    break;
+
+                default:
+                    isflashModeIsImage = false;
+                    Logger.Error(this, "Unknown flashType detected. Defaulting to COLOR mode.");
+                    break;
+            }
+        }
+        private void OnPresetsUpdated()
+        {
+            // Reload flash mode dynamically
+            SetFlashModeFromPresets();
+
+            // Optional: reload other appearance/timing parameters if needed
+            // Example:
+            // RefreshButtonColors();
+            Logger.Info(this, "FlashStimulus updated flash mode from new presets.");
         }
 
     }

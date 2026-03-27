@@ -11,7 +11,7 @@ namespace BCI_Headset
     public class WearableSensingVR300 : IHeadset
     {
         // NOTE: Update the port string as appropriate for your use
-        public static string defaultPort = "COM4";
+        public static string defaultPort = "COM3";
 
         public static string defaultMontage = "Fz-A1A2 P3-A1A2 Pz-A1A2 P4-A1A2 PO7-A1A2 Oz-A1A2 PO8-A1A2";
         public static string defaultReference = "A1A2";

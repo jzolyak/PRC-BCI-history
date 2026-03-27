@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.ComponentModel;
 using ViewModels.Help;
 
 namespace ViewModels.Settings
@@ -20,20 +19,42 @@ namespace ViewModels.Settings
             set { content = value; OnPropertyChanged(nameof(Content)); }
         }
 
-        private List<string> _domainValues;
-        public List<string> DomainValues
+        private List<string>? _domainValues;
+        public List<string>? DomainValues
         {
             get => _domainValues;
             set
             {
                 _domainValues = value;
                 OnPropertyChanged(nameof(DomainValues));
-                OnPropertyChanged(nameof(HasDomain)); // Ensure UI updates!
+                OnPropertyChanged(nameof(HasDomain)); // UI updates automatically
             }
         }
 
         public bool HasDomain => DomainValues != null && DomainValues.Count > 0;
 
-        public string? SelectedDomainKey { get; set; }
+        private string? selectedDomainKey;
+        public string? SelectedDomainKey
+        {
+            get => selectedDomainKey;
+            set
+            {
+                selectedDomainKey = value;
+                OnPropertyChanged(nameof(SelectedDomainKey));
+            }
+        }
+
+        /// <summary>
+        /// Returns the display value including domain for internal usage (UI binds only to Content)
+        /// </summary>
+        public string ValueWithDomain
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(selectedDomainKey) && !string.IsNullOrWhiteSpace(content))
+                    return $"{content};domain={selectedDomainKey}";
+                return content ?? string.Empty;
+            }
+        }
     }
 }

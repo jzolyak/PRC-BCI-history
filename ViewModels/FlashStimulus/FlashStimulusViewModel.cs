@@ -36,6 +36,7 @@ namespace ViewModels.FlashStimulus
         private CountDownViewModel _countDownViewModel;
         private WindowSizeProperties _windowSizeProp;
         private CoeffFileGenerationProgressViewModel _coeffFileGenerationProgressViewModel;
+        private int _coeffAttemptCount = 0;
 
 
         public double Top { get { return _top; } set { _top = value; OnPropertyChanged(nameof(Top)); } }
@@ -58,6 +59,7 @@ namespace ViewModels.FlashStimulus
             _calibrationService.RaiseUIRequestChange += _calibrationService_RaiseUIRequestChange;
             _calibrationService.RaiseCoeffInProgress += _calibrationService_RaiseCoeffInProgress;
             _calibrationService.RaiseCoeffCompleted += _calibrationService_RaiseCoeffCompleted;
+            _calibrationService.RaiseCoeffFailed += _calibrationService_RaiseCoeffFailed;
             _predictionService.RaiseScreenOverLayChange += _predictionService_RaiseScreenOverLayChange;
             _stopQueryViewModel = new CalibrationStopQueryViewModel(NotificationFromUI);
             _beginQueryViewModel = new CalibrationBeginQueryViewModel(NotificationFromUI);
@@ -72,12 +74,20 @@ namespace ViewModels.FlashStimulus
 
         private void _calibrationService_RaiseCoeffCompleted(object? sender, EventArgs e)
         {
-            ClosePopup();
+            _coeffFileGenerationProgressViewModel.SetSuccess();
         }
         private void _calibrationService_RaiseCoeffInProgress(object? sender, EventArgs e)
         {
+            _coeffAttemptCount++;
+            _coeffFileGenerationProgressViewModel.SetAttemptInProgress(_coeffAttemptCount);
+
             PopupContentViewModel = _coeffFileGenerationProgressViewModel;
             OpenPopup();
+        }
+
+        private void _calibrationService_RaiseCoeffFailed(object? sender, EventArgs e)
+        {
+            _coeffFileGenerationProgressViewModel.SetFailure();
         }
 
         private void _calibrationService_RaiseUIRequestChange(object? sender, CoreServices.Models.EventArgs<CoreServices.Models.UIInstruction> e)
