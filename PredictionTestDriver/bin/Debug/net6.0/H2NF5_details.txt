@@ -1,0 +1,90 @@
+***** Generating Feature Weights *****
+        (Spatial Filter = Raw)
+
+File Name: H2NF5_1_5.dat
+Loading file [1/5]...
+Files loaded
+Time elapsed [s]: 1.179
+
+File Name: H2NF5_2_5.dat
+Loading file [2/5]...
+Files loaded
+Time elapsed [s]: 2.234
+
+File Name: H2NF5_3_5.dat
+Loading file [3/5]...
+Files loaded
+Time elapsed [s]: 3.78
+
+File Name: H2NF5_4_5.dat
+Loading file [4/5]...
+Files loaded
+Time elapsed [s]: 5.056
+
+File Name: H2NF5_5_5.dat
+Loading file [5/5]...
+Files loaded
+Time elapsed [s]: 6.012
+
+
+File Name: H2NF5_1_5.dat
+Decimating file [1/5]...
+Signals decimated
+Time elapsed [s]: 6.329
+
+File Name: H2NF5_2_5.dat
+Decimating file [2/5]...
+Signals decimated
+Time elapsed [s]: 6.59
+
+File Name: H2NF5_3_5.dat
+Decimating file [3/5]...
+Signals decimated
+Time elapsed [s]: 7.034
+
+File Name: H2NF5_4_5.dat
+Decimating file [4/5]...
+Signals decimated
+Time elapsed [s]: 7.373
+
+File Name: H2NF5_5_5.dat
+Decimating file [5/5]...
+Signals decimated
+Time elapsed [s]: 7.57
+
+
+Targets: 600
+Non Targets: 6720
+
+
+Applying Stepwisefit classifier...
+
+Features added: [47/60]
+
+7 Transmitted channels 
+List of used channels: 1 2 3 4 5 6 7 
+
+Classifying Responses...
+
+Sequences   %_Correct   BCI-Utility Predicted_Symbols   
+1           20.00        0.00          033_020___7_097_086_084_087_088_100_082___5_023_034_090_054___1_026_033_057_089_
+2           60.00        0.12          033_101_052_026_025_084_053_088_053_043_041_089_033_020_087_087_037_033_058_051_
+3           70.00        0.17          033_101_100_097_086_084_053_088_053_043_057_089_033_101_087_087_037_033_058_051_
+4           95.00        0.30          033_056_100_041_086_067_053_088_053_067_057_089_033_020_087_087_037_033_058_051_
+5           95.00        0.25          033_056_100_041_086_067_053_088_053_067_057_089_033_020_087_087_037_033_068_051_
+6           95.00        0.21          033_056_100_041_086_067_053_088_053_067_057_089_033_020_087_087_037_033_068_051_
+7           95.00        0.18          033_056_100_041_086_067_053_088_053_067_057_089_033_020_087_087_037_033_068_051_
+8          100.00        0.18          033_056_100_041_086_067_053_088_053_067_057_089_033_020_087_087_037_033_098_051_
+9          100.00        0.16          033_056_100_041_086_067_053_088_053_067_057_089_033_020_087_087_037_033_098_051_
+10         100.00        0.15          033_056_100_041_086_067_053_088_053_067_057_089_033_020_087_087_037_033_098_051_
+11         100.00        0.13          033_056_100_041_086_067_053_088_053_067_057_089_033_020_087_087_037_033_098_051_
+12         100.00        0.12          033_056_100_041_086_067_053_088_053_067_057_089_033_020_087_087_037_033_098_051_
+13         100.00        0.11          033_056_100_041_086_067_053_088_053_067_057_089_033_020_087_087_037_033_098_051_
+14         100.00        0.11          033_056_100_041_086_067_053_088_053_067_057_089_033_020_087_087_037_033_098_051_
+15         100.00        0.10          033_056_100_041_086_067_053_088_053_067_057_089_033_020_087_087_037_033_098_051_
+
+Done!
+
+Time elapsed [s]: 14.65
+
+Unable to report Detectability Index for the current protocol

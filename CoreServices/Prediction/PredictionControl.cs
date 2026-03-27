@@ -11,6 +11,8 @@ using CoreServices.SensorData;
 using CoreServices.Presets;
 using static CoreServices.Prediction.PredictionAlgorithm;
 using System.Security.Cryptography.X509Certificates;
+using System.Runtime.CompilerServices;
+using static CoreServices.SensorData.ReadBinaryFileData;
 
 namespace CoreServices.Prediction
 {
@@ -21,7 +23,7 @@ namespace CoreServices.Prediction
 
     public struct PredictStatusMessage
     {
-        public const int STATUS_MSG_SIZE = 20;
+        public const int STATUS_MSG_SIZE = 24;
 
         public int[] content;
 
@@ -56,12 +58,94 @@ namespace CoreServices.Prediction
         }
     }
 
+    /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
     public class PredictionControl
     {
+        // Prediction Control Message ID numbers
+        public enum PredictControlMsgID : int {
+            MARK_STATE_CHANGE = 18,     // Report when stimulus changes state (for debug only)
+            MARK_STIM_CHANGE = 20,      // Report when stimulus changes stim code (for debug only)
+            PREDICTION_STATUS = 21,     // Detailed predict status at end of each flash sequence
+            STIM_STATE_ERROR = 30,      // Report when unexpected value appeared while parsing packet data
+            STIM_CODE_ERROR = 32        // Report when unexpected value appeared while parsing packet data
+        }
 
-        //public enum PredictMsgID : int { MARK_STATE_CHANGE = 18, MARK_STIM_CHANGE = 20, PREDICT_STATUS = 21, 
-        //                                 ABSTENTION_PREDICT = 92, FORCED_PREDICT = 94, END_OF_PREDICTION = 99 }
+        // Indicate if just reporting current status, or which final decision was reached at end of flash sequence.
+        public enum EndDecision : int
+        {
+            STATUS_UPDATE_MSG = 0,      // Current prediction status at end of each flash sequence
+            ABSTENTION_PREDICT = 1,     // Report when reach max number of flash sequences, but no key selected
+            FORCED_PREDICTION = 2,      // Report when reach max number of flash seq, force select with highest win count
+            END_OF_PREDICTION = 3       // Report keyID when reach max number of flash sequences or dynamic stopping point
+        }
+
+        /*
+        public string[] EndDecisionStrings =
+        {
+            "STATUS_UPDATE", "ABSTENTION_PREDICT", "FORCED_PREDICTION", "END_OF_PREDICTION"
+        };
+        */
+
+        public class EndDecisionStrings
+        {
+            /*
+            private string[] _decisionString =
+            {
+                "STATUS_UPDATE", "ABSTENTION_PREDICT", "FORCED_PREDICTION", "END_OF_PREDICTION"
+            };
+            public string outputString = "";
+
+            public string GetString(int enumIndex)
+            {
+                outputString = _decisionString[enumIndex];
+                return outputString;
+            }
+            */
+
+            private string[] _decisionString =
+            {
+                "STATUS_UPDATE", "ABSTENTION_PREDICT", "FORCED_PREDICTION", "END_OF_PREDICTION"
+            };
+
+            public string GetString(int enumIndex)
+            {
+                return _decisionString[enumIndex]; ;
+            }
+        };
+
+        // Report current evaluation of the ongoing prediction accuracy until a selection is made.
+        // "GOOD_CHOICE" and "BAD_CHOICE" refer to outcome if prediction preset values changed 
+        // (i.e. lower win count from 3 to 2), and you had to make a choice at current flash sequence.
+        public enum PredictionAccuracy : int 
+        {
+            NO_TARGET = 0,      // In real-time prediction, you can't predict accuracy without knowing attended target
+            NO_CHOICE = 1,      // No intersecting key ID found in top stim code scores, so no prediction made
+            BAD_CHOICE = 2,     // Predicted key ID did NOT match Attended key ID, but not reach final decision criteria
+            BAD_SELECT = 3,     // Predicted key ID did NOT match Attended key ID, and reached final incorrect selection
+            GOOD_CHOICE = 4,    // Predicted key ID DID match Attended key ID, but not reach final decision criteria
+            GOOD_SELECT = 5     // Predicted key ID DID match Attended key ID, AND reached final correct selection
+        }
+
+        /*
+        public string[] PredictionAccuracyStrings =
+        {
+            "NO_TARGET", "NO_CHOICE", "BAD_CHOICE", "BAD_SELECT", "GOOD_CHOICE", "GOOD_SELECT"
+        };
+        */
+
+        public class PredictionAccuracyStrings
+        {
+            private string[] _accuracyString =
+            {
+            "NO_TARGET", "NO_CHOICE", "BAD_CHOICE", "BAD_SELECT", "GOOD_CHOICE", "GOOD_SELECT"
+            };
+
+            public string GetString(int enumIndex)
+            {
+                return _accuracyString[enumIndex]; ;
+            }
+        }
 
         // Temporay variables until I find proper location to retrieve them from.
         public int numSensorChannels = SensorConstants.NUM_CHANNELS;
@@ -81,7 +165,8 @@ namespace CoreServices.Prediction
 
         public async Task PredictionControlAsync(CancellationToken cts, PredictionPresets predictionConfiguration,
                                IReceivableSourceBlock<WeightCoefficients> weightCoefBufferBlock, ISourceBlock<double[]> packetDataBufferBlock,
-                               ISourceBlock<int[]> commandMsgBufferBlock, ITargetBlock<PredictStatusMessage> statusMsgBufferBlock)
+                               ISourceBlock<int[]> commandMsgBufferBlock, ITargetBlock<PredictStatusMessage> statusMsgBufferBlock,
+                               SemaphoreSlim _signal, TransmitMethod transmitMethod)
         {
 
             // NOTE 1: For the first prototype, weightCoef[,] is an array of 7*240 double values that doesn't
@@ -142,7 +227,8 @@ namespace CoreServices.Prediction
 
             /* **************** */
 
-            const int MAX_MSG_LENGTH = 8;           // Max message length sent back to main thread
+            /*
+            // const int MAX_MSG_LENGTH = 8;           // Max message length sent back to main thread
 
             // Prediction Control Message ID numbers
             const int MARK_STATE_CHANGE = 18;       // Report when stimulus changes state (for debug only)
@@ -151,23 +237,31 @@ namespace CoreServices.Prediction
             const int STIM_STATE_ERROR = 30;        // Report when unexpected value appeared in packet data
             const int STIM_CODE_ERROR = 32;         // Report when unexpected value appeared in packet data
 
-            const int PREDICT_STATUS = 21;          // Detailed predict status at end of each flash sequence
+            const int PREDICTION_STATUS = 21;          // Detailed predict status at end of each flash sequence
             const int ABSTENTION_PREDICT = 92;      // Report when reach max number of flash sequences, but no key selected
-            const int FORCED_PREDICT = 94;          // Report when reach max number of flash seq, force select with highest win count
+            const int FORCED_PREDICTION = 94;          // Report when reach max number of flash seq, force select with highest win count
             const int END_OF_PREDICTION = 99;       // Report keyID when reach max number of flash sequences or reach dynamic stopping
 
-            int statusMessageID = 0;
+            // Report current evaluation of the ongoing prediction accuracy until a selection is made
+            const int NO_TARGET = 0;                // 
+            const int NO_CHOICE = 1;                // 
+            const int BAD_CHOICE = 2;               // 
+            const int BAD_SELECT = 3;               // 
+            const int GOOD_CHOICE = 4;              // 
+            const int GOOD_SELECT = 5;              // 
+            */
+
             int messageLength = 0;
             int phaseInSeq = 0;
             int stimulusCode = 0;
             int reportedAction = 0;
+            int attendedKeyID = 0;
+
+            PredictControlMsgID messageID = PredictControlMsgID.PREDICTION_STATUS;
 
             PredictStatusMessage statusMessage = new PredictStatusMessage();
-            //PredictStatusMessage statusMessage;
 
             WeightCoefficients weightCoefficientBuffer = new WeightCoefficients();
-            //WeightCoefficients weightCoefficientBuffer;
-
 
 
             /* **************** */
@@ -267,7 +361,7 @@ namespace CoreServices.Prediction
                         reportPredictionStatus = true;          // Needs to be set true for now as a work around
                         										// to trigger when to send weight coef data to task.
 
-                        statusMessageID = MARK_STATE_CHANGE;
+                        messageID = PredictControlMsgID.MARK_STATE_CHANGE;
                         messageLength = 5;
                         phaseInSeq = (int)sensorData.packetHeaderTable[eventStartHeaderIndex].phaseInSeq;
                         stimulusCode = (int)sensorData.packetHeaderTable[eventStartHeaderIndex].stimulusCode;
@@ -324,7 +418,7 @@ namespace CoreServices.Prediction
                             // Collect debug info to report to main thread ...
                             reportPredictionStatus = false;      // Set false to disable reporting this msg
 
-                            statusMessageID = MARK_STIM_CHANGE;
+                            messageID = PredictControlMsgID.MARK_STIM_CHANGE;
                             messageLength = 5;
                             phaseInSeq = sensorData.packetHeaderTable[eventStartHeaderIndex].phaseInSeq;
                             stimulusCode = sensorData.packetHeaderTable[eventStartHeaderIndex].stimulusCode;
@@ -340,6 +434,13 @@ namespace CoreServices.Prediction
                             if (flashSequenceCount == 0)
                             {
                                 sensorData.AddStimulusGroupingEntry(eventStartHeaderIndex);
+
+                                if (sensorData.packetHeaderTable[eventStartHeaderIndex].stimulusType != 0)
+                                {
+                                    // This stim code was marked (set to 1) as containing target keyID value during Calibration
+                                    // or Validation. Save the keyID value to test the prediction accuracy.
+                                    attendedKeyID = (int)sensorData.packetHeaderTable[eventStartHeaderIndex].attendedTarget;
+                                }
                             }
 
                             // Determine if number of flash intervals processed is one complete flash sequence yet
@@ -351,13 +452,7 @@ namespace CoreServices.Prediction
                                 // Increment after one complete sequences of stimulus inverals has been flashed
                                 // ++flashSequenceCount;
 
-                                //if (flashSequenceCount == 1)
-                                //{   // Older Calibration data files don't directly state what the target 
-                                //    // stimulus keyID is. It can be derived from other fields in raw data.
-                                //    // Add this function in the future.
-                                //    targetKeyID = sensorData.GetTargetKeyID(numStimulusGroups);
-                                //}
-
+                                // Have collected enough sensor data to run Prediction algorithm.
                                 performPrediction = true;
                             }
                             else
@@ -376,7 +471,7 @@ namespace CoreServices.Prediction
                         if (eventAction.actionType == ActionType.ReportStateError)
                         {
                             // Prepare stimulus state tracking error message to be logged.
-                            statusMessageID = STIM_STATE_ERROR;
+                            messageID = PredictControlMsgID.STIM_STATE_ERROR;
                             messageLength = 5;
                             phaseInSeq = sensorData.packetHeaderTable[eventStartHeaderIndex].phaseInSeq;
                             stimulusCode = sensorData.packetHeaderTable[eventStartHeaderIndex].stimulusCode;
@@ -385,7 +480,7 @@ namespace CoreServices.Prediction
                         else if (eventAction.actionType == ActionType.ReportStimError)
                         {
                             // Prepare stimulus code tracking error message to be logged.
-                            statusMessageID = STIM_CODE_ERROR;
+                            messageID = PredictControlMsgID.STIM_CODE_ERROR;
                             messageLength = 5;
                             phaseInSeq = sensorData.packetHeaderTable[eventStartHeaderIndex].phaseInSeq;
                             stimulusCode = sensorData.packetHeaderTable[eventStartHeaderIndex].stimulusCode;
@@ -500,7 +595,7 @@ namespace CoreServices.Prediction
                     // the keyID does not equal or exceed a preset threshold count value, then no keyID (Abstention)
                     // is decided.
 
-                    if ((predictionResult.predictedKeyID != 0) & (predictionResult.predictWinCount !=0))
+                    if ((predictionResult.predictedKeyID != 0) && (predictionResult.predictWinCount > 0))
                     {
                         // Confirmed that keyID met winning criteria.
                         if (predictionResult.predictWinCount >= highestWinCount.winCount)
@@ -512,11 +607,12 @@ namespace CoreServices.Prediction
 
                     // Increment after one complete sequences of stimulus inverals has been flashed
                     ++flashSequenceCount;
+                    messageID = PredictControlMsgID.PREDICTION_STATUS;
 
                     // Report the target keyID the user is watching extracted from Calibration or Validation raw data.
                     // The attended target is not known in advance (keyID = 0 in packet header) during Prediction.
 
-                    predictionResult.attendedKeyID = 0;     // Need to fix this later for prediction accuracy reporting...
+                    predictionResult.attendedKeyID = attendedKeyID;
 
                     if (stoppingMethod == DecisionLogicPresets.StoppingMethod.FixedNumberOfSequences)
                     {
@@ -527,7 +623,7 @@ namespace CoreServices.Prediction
                             if (highestWinCount.winCount >= winCountForSelection)
                             {
                                 predictionResult.selectedKeyID = highestWinCount.keyID; // Select this key!
-                                statusMessageID = END_OF_PREDICTION;
+                                predictionResult.decision = (int)EndDecision.END_OF_PREDICTION;
                             }
                             else
                             {
@@ -536,12 +632,12 @@ namespace CoreServices.Prediction
                                 if (finalDecisionType == DecisionLogicPresets.DecisionMethod.Abstention)
                                 {
                                     predictionResult.selectedKeyID = 0;     // Report Abstention (keyID = 0)
-                                    statusMessageID = ABSTENTION_PREDICT;
+                                    predictionResult.decision = (int)EndDecision.ABSTENTION_PREDICT;
                                 }
                                 else
                                 {
                                     predictionResult.selectedKeyID = highestWinCount.keyID; // Force select of this key!
-                                    statusMessageID = FORCED_PREDICT;
+                                    predictionResult.decision = (int)EndDecision.FORCED_PREDICTION;
                                 }
                             }
                         }
@@ -549,7 +645,7 @@ namespace CoreServices.Prediction
                         {
                             // Continue collecting data without making a prediction
                             predictionResult.selectedKeyID = 0;
-                            statusMessageID = PREDICT_STATUS;
+                            predictionResult.decision = (int)EndDecision.STATUS_UPDATE_MSG;
                         }
                     }
                     else
@@ -565,7 +661,7 @@ namespace CoreServices.Prediction
                         if (highestWinCount.winCount >= winCountForSelection)
                         {
                             predictionResult.selectedKeyID = highestWinCount.keyID;
-                            statusMessageID = END_OF_PREDICTION;
+                            predictionResult.decision = (int)EndDecision.END_OF_PREDICTION;
                         }
                         else if (flashSequenceCount == maxNumFlashSequences)
                         {
@@ -575,20 +671,59 @@ namespace CoreServices.Prediction
                             if (finalDecisionType == DecisionLogicPresets.DecisionMethod.Abstention)
                             {
                                 predictionResult.selectedKeyID = 0;     // Report Abstention (keyID = 0)
-                                statusMessageID = ABSTENTION_PREDICT;
+                                predictionResult.decision = (int)EndDecision.ABSTENTION_PREDICT;
                             }
                             else
                             {
                                 predictionResult.selectedKeyID = highestWinCount.keyID; // Force select of this key!
-                                statusMessageID = FORCED_PREDICT;
+                                predictionResult.decision = (int)EndDecision.FORCED_PREDICTION;
                             }
                         }
                         else
                         {
                             // Continue collecting data without making a prediction
                             predictionResult.selectedKeyID = 0;
-                            statusMessageID = PREDICT_STATUS;
+                            predictionResult.decision = (int)EndDecision.STATUS_UPDATE_MSG;
                         }
+                    }
+
+                    // During Calibration and Validation the attended target keyID value is known in advance, and
+                    // it is sent as a nonzero value in the sensor packet data. (During Prediction, the software 
+                    // doesn't know which key the user is supposed to watching, hence the target value is zero).
+                    // Evaluate the accuracy of the prediction and report it back with the other results.
+                    if (attendedKeyID != 0)
+                    {
+                        if (predictionResult.predictedKeyID == attendedKeyID)
+                        {
+                            if (predictionResult.selectedKeyID == attendedKeyID)
+                            {   // Met select criteria for final choice.
+                                predictionResult.accuracy = (int)PredictionAccuracy.GOOD_SELECT;
+                            }
+                            else
+                            {   // On the right track, but not ready to make final decision yet
+                                predictionResult.accuracy = (int)PredictionAccuracy.GOOD_CHOICE;
+                            }
+                        }
+                        else
+                        {
+                            if (predictionResult.predictedKeyID == 0)
+                            {   // No intersecting point amongst the top accumulated scores, not certain of anything
+                                predictionResult.accuracy = (int)PredictionAccuracy.NO_CHOICE;
+                            }
+                            else if (predictionResult.selectedKeyID != 0)
+                            {   // Met select criteria for final choice, but it wasn't correct target keyID
+                                predictionResult.accuracy = (int)PredictionAccuracy.BAD_SELECT;
+                            }
+                            else
+                            {   // On the wrong track, but not ready to make final decision yet
+                                predictionResult.accuracy = (int)PredictionAccuracy.BAD_CHOICE;
+                            }
+                        }
+                    }
+                    else
+                    {   // During real-time prediction, user can select any target key, hence it is not
+                        // known in advance to evaluate the accuracy of the prediction.
+                        predictionResult.accuracy = (int)PredictionAccuracy.NO_TARGET;
                     }
 
 
@@ -622,7 +757,7 @@ namespace CoreServices.Prediction
 
                 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-
+                // Check if it is time to send status message back to the state engine
                 if (reportPredictionStatus == true)
                 {
                     reportPredictionStatus = false;
@@ -630,29 +765,29 @@ namespace CoreServices.Prediction
                     // Send prediction status messages back to prediction state engine this way
                     // until I figure out a better way to do it ...
 
-                    if (statusMessageID == MARK_STATE_CHANGE)
+                    if (messageID == PredictControlMsgID.MARK_STATE_CHANGE)
                     {
-                        statusMessage.content[0] = MARK_STATE_CHANGE;     // Message ID
+                        statusMessage.content[0] = (int)messageID;
                         statusMessage.content[1] = messageLength;         // Message length
                         statusMessage.content[2] = phaseInSeq;
                         statusMessage.content[3] = stimulusCode;
                         statusMessage.content[4] = reportedAction;
                     }
 
-                    else if (statusMessageID == MARK_STIM_CHANGE)
+                    else if (messageID == PredictControlMsgID.MARK_STIM_CHANGE)
                     {
-                        statusMessage.content[0] = MARK_STIM_CHANGE;      // Message ID
+                        statusMessage.content[0] = (int)messageID;
                         statusMessage.content[1] = messageLength;         // Message length
                         statusMessage.content[2] = phaseInSeq;
                         statusMessage.content[3] = stimulusCode;
                         statusMessage.content[4] = reportedAction;
                     }
 
-                    else
+                    else if (messageID == PredictControlMsgID.PREDICTION_STATUS)
                     {
                         // Send back prediction status 
-                        statusMessage.content[0] = statusMessageID;        // Message ID
-                        statusMessage.content[1] = 16;                     // Message length
+                        statusMessage.content[0] = (int)messageID;   // Message ID
+                        statusMessage.content[1] = 21;                     // Message length
                         statusMessage.content[2] = predictionResult.flashSequenceCount;
                         statusMessage.content[3] = topAccumulatedScores[0].indexValue;
                         statusMessage.content[4] = topAccumulatedScores[1].indexValue;
@@ -673,34 +808,10 @@ namespace CoreServices.Prediction
                         statusMessage.content[15] = predictionResult.predictedKeyID;
                         statusMessage.content[16] = predictionResult.predictWinCount;
                         statusMessage.content[17] = predictionResult.selectedKeyID;
+                        statusMessage.content[18] = predictionResult.attendedKeyID;
+                        statusMessage.content[19] = predictionResult.decision;
+                        statusMessage.content[20] = predictionResult.accuracy;
                     }
-
-                    /*
-                    else if (statusMessageID == END_OF_PREDICTION)
-                    {
-                        statusMessage.content[0] = END_OF_PREDICTION;      // Message ID
-                        statusMessage.content[1] = 16;                     // Message length
-                        statusMessage.content[2] = predictionResult.flashSequenceCount;
-                        statusMessage.content[3] = topAccumulatedScores[0].indexValue;
-                        statusMessage.content[4] = topAccumulatedScores[1].indexValue;
-                        statusMessage.content[5] = topAccumulatedScores[2].indexValue;
-                        statusMessage.content[6] = topAccumulatedScores[3].indexValue;
-                        statusMessage.content[7] = topAccumulatedScores[4].indexValue;
-
-                        statusMessage.content[8] = predictionResult.stimCodeIndex1;     // stim codes that intersect at common key ID
-                        statusMessage.content[9] = predictionResult.stimCodeIndex2;
-
-                        statusMessage.content[10] = (int)topAccumulatedScores[0].accumScore;
-                        statusMessage.content[11] = (int)topAccumulatedScores[1].accumScore;
-                        statusMessage.content[12] = (int)topAccumulatedScores[2].accumScore;
-                        statusMessage.content[13] = (int)topAccumulatedScores[3].accumScore;
-                        statusMessage.content[14] = (int)topAccumulatedScores[4].accumScore;
-
-                        statusMessage.content[15] = predictionResult.predictedKeyID;
-                        statusMessage.content[16] = predictionResult.predictWinCount;
-                        statusMessage.content[17] = predictionResult.selectedKeyID;
-                    }
-                    */
 
                     // Send prediction status message back to main thread
                     statusMsgBufferBlock.Post(statusMessage);
@@ -708,14 +819,17 @@ namespace CoreServices.Prediction
 
                 if (reportErrorStatus == true)
                 {
+                    // Separated error status from prediction status in order to report error as soon as it occurred.
                     reportErrorStatus = false;
 
                     // Send error message back to prediction state engine.
-                    statusMessage.content[0] = statusMessageID;       // Message ID
+                    statusMessage.content[0] = (int)messageID;  // Message ID
                     statusMessage.content[1] = messageLength;         // Message length
                     statusMessage.content[2] = phaseInSeq;
                     statusMessage.content[3] = stimulusCode;
                     statusMessage.content[4] = reportedAction;
+
+                    statusMsgBufferBlock.Post(statusMessage);
                 }
 
                 if (logTestData == true)
@@ -723,6 +837,16 @@ namespace CoreServices.Prediction
                     // Send numerical data (in ASCII format?) back to prediction state engine...
                 }
 
+                /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+                // Send signal to ReadFileDataAsync() to send next packet of sensor data if the 
+                // transmitMethod = PullMethod, and running Prediction code as an offline task
+                // reading sensor packet data from pre-collected Calibration .bin files.
+                // In normal Prediction mode the headset pushes data thru processing pipeline.
+                if (transmitMethod == TransmitMethod.PullMethod)
+                {
+                    _signal.Release();
+                }
 
             }  // while (!cts.IsCancellationRequested)
 

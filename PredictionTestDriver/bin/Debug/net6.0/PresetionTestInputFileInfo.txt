@@ -1,0 +1,6 @@
+startTargetNum 1
+endTartgetNum 5
+totalSetNum 5
+baseBinaryFilename H2NF5
+coefficientFilename H2NF5.coef
+accuracyReportFilename AccuracyReport.txt
